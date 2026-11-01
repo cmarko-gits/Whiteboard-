@@ -49,6 +49,8 @@ class PartialEraserFlowTest {
     }
 
     private fun choosePartialMode() {
+        text("Appearance")
+        device.waitForIdle()
         // Scroll through connected nodes: old framework caches may retain pre-scroll touch coordinates.
         repeat(6) {
             val queue = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
