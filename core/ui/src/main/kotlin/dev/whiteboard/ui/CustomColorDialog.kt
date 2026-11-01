@@ -168,6 +168,32 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
         if (saved != favorites) saveFavorites(saved)
         submit(selected)
     }
+    val currentCommit by rememberUpdatedState(commit)
+    val currentDismiss by rememberUpdatedState(dismiss)
+    val currentValid by rememberUpdatedState(valid)
+    // Preserve the focused button when hiding the IME moves actions from the input row to the footer.
+    val actions = remember {
+        movableContentOf {
+            TextButton(
+                onClick = { currentDismiss() },
+                modifier = Modifier.focusProperties {
+                    canFocus = true
+                }.focusRequester(cancelFocus)
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(Modifier.width(8.dp))
+            TextButton(
+                onClick = { currentCommit() },
+                enabled = currentValid,
+                modifier = Modifier.focusProperties {
+                    canFocus = currentValid
+                }.focusRequester(applyFocus)
+            ) {
+                Text(stringResource(R.string.apply))
+            }
+        }
+    }
     Dialog(
         onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -191,23 +217,7 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         Box(Modifier.weight(1f)) { hexInput(!inlineActions) }
                         if (inlineActions) {
                             Spacer(Modifier.width(8.dp))
-                            TextButton(
-                                onClick = dismiss,
-                                modifier = Modifier.focusProperties {
-                                    canFocus = true
-                                }.focusRequester(cancelFocus)
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            TextButton(
-                                onClick = commit,
-                                enabled = valid,
-                                modifier = Modifier.focusProperties {
-                                    canFocus = valid
-                                }.focusRequester(applyFocus)
-                            ) {
-                                Text(stringResource(R.string.apply))
-                            }
+                            actions()
                         }
                     }
                     if (!inlineActions) {
@@ -227,24 +237,7 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         }
                         Spacer(Modifier.height(12.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(
-                                onClick = dismiss,
-                                modifier = Modifier.focusProperties {
-                                    canFocus = true
-                                }.focusRequester(cancelFocus)
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(
-                                onClick = commit,
-                                enabled = valid,
-                                modifier = Modifier.focusProperties {
-                                    canFocus = valid
-                                }.focusRequester(applyFocus)
-                            ) {
-                                Text(stringResource(R.string.apply))
-                            }
+                            actions()
                         }
                     }
                 }

@@ -3,6 +3,13 @@
 set -uo pipefail
 
 mkdir -p artifacts
+# A System UI ANR during boot blocks all framework accessibility/input assertions.
+# Keep it visible as infrastructure failure instead of dismissing it inside application tests.
+adb shell dumpsys activity lastanr > artifacts/device-boot-anr.txt
+if grep -q 'ANR in com.android.systemui' artifacts/device-boot-anr.txt; then
+  echo 'System UI failed during emulator boot; application tests cannot run reliably.' >&2
+  exit 1
+fi
 {
   echo "Profile: ${WHITEBOARD_CI_PROFILE:-pixel_2}"
   adb shell wm size

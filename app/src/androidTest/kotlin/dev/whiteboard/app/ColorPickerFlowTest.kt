@@ -1,7 +1,6 @@
 package dev.whiteboard.app
 
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -82,15 +81,7 @@ class ColorPickerFlowTest {
         }
         return text(value)
     }
-    private fun home() {
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
-        device.waitForIdle()
-        device.findObject(By.text("OK"))?.click()
-        if (!device.hasObject(By.desc("New board"))) device.wait(Until.findObject(By.text("Start creating")), 10_000)?.click()
-        control("New board")
-    }
+    private fun home() = launchTestLibrary(device)
 
     private fun hex(): UiObject2 {
         repeat(5) {
@@ -168,7 +159,7 @@ class ColorPickerFlowTest {
         val board = Board(name = "Color picker ${System.currentTimeMillis()}")
         repository.save(board)
         home()
-        text(board.name).click()
+        openTestBoard(device, board.name)
         control("Pen").click()
         openPicker()
         enterHex("12AB34")
@@ -223,7 +214,7 @@ class ColorPickerFlowTest {
         assertEquals(listOf(0xFF12AB34.toInt(), 0xFF65B7F2.toInt()), strokes.map { it.style.color })
         assertTrue(strokes.all { it.style.opacity == 1f })
         home()
-        text(board.name).click()
+        openTestBoard(device, board.name)
         openPicker()
         savedColor("Color #12AB34")
         text("Cancel").click()
@@ -239,7 +230,7 @@ class ColorPickerFlowTest {
         val board = Board(name = "Shape colors ${System.currentTimeMillis()}", pages = listOf(Page(elements = listOf(shape))))
         repository.save(board)
         home()
-        text(board.name).click()
+        openTestBoard(device, board.name)
         control("More actions").click()
         text("Select all objects").click()
         control("Selection actions").click()

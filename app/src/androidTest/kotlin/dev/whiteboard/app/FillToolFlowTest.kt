@@ -1,7 +1,6 @@
 package dev.whiteboard.app
 
 import android.content.Context
-import android.content.Intent
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -42,17 +41,7 @@ class FillToolFlowTest {
         }
         error("Canvas hierarchy did not settle")
     }
-    private fun openBoard(name: String) {
-        repeat(3) { attempt ->
-            try {
-                text(name).click()
-                return
-            } catch (stale: StaleObjectException) {
-                if (attempt == 2) throw stale
-                device.waitForIdle()
-            }
-        }
-    }
+    private fun openBoard(name: String) = openTestBoard(device, name)
     private fun color(value: String) {
         control("Color picker").click()
         text("HEX color")
@@ -80,13 +69,7 @@ class FillToolFlowTest {
         val group = ElementGroup(children = listOf(shape, note))
         val board = Board(name = "Bucket ${System.currentTimeMillis()}", pages = listOf(Page(elements = listOf(group))))
         repository.save(board)
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
-        device.waitForIdle()
-        device.findObject(By.text("OK"))?.click()
-        if (!device.hasObject(By.desc("New board"))) device.wait(Until.findObject(By.text("Start creating")), 10_000)?.click()
-        control("New board")
+        launchTestLibrary(device)
         openBoard(board.name)
         control("Fill color").click()
         text("1:1").click()

@@ -1,7 +1,6 @@
 package dev.whiteboard.app
 
 import android.content.Context
-import android.content.Intent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.room.Room
 import androidx.test.core.app.ActivityScenario
@@ -130,21 +129,8 @@ class CanvasAccessibilityTest {
         val board = Board(name = "Accessibility ${newId()}", pages = listOf(Page(elements = elements)))
         owned.add(board.id)
         repository.save(board)
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
-        // A fresh installation can render onboarding after the first idle event.
-        // Wait for either onboarding or the library, rather than taking a one-time snapshot.
-        val deadline = android.os.SystemClock.uptimeMillis() + 10_000
-        while (!device.hasObject(By.desc("New board")) && android.os.SystemClock.uptimeMillis() < deadline) {
-            device.findObject(By.text("Start creating"))?.click()
-            device.waitForIdle(250)
-        }
-        control("New board")
-        checkNotNull(device.findObject(By.clazz("android.widget.EditText"))).text = board.name.substringAfter("Accessibility ")
-        control("Search results")
-        device.waitForIdle()
-        text(board.name).click()
+        launchTestLibrary(device)
+        openTestBoard(device, board.name)
         control("More actions")
         device.waitForIdle()
         return board

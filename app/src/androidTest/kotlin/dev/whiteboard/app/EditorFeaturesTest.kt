@@ -1,7 +1,6 @@
 package dev.whiteboard.app
 
 import android.content.Context
-import android.content.Intent
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -34,17 +33,7 @@ class EditorFeaturesTest {
     private fun text(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String): UiObject2 =
         checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
-    private fun home() {
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
-        device.waitForIdle()
-        device.findObject(By.text("OK"))?.click()
-        if (!device.hasObject(By.desc("New board"))) {
-            device.wait(Until.findObject(By.text("Start creating")), 10_000)?.click()
-        }
-        control("New board")
-    }
+    private fun home() = launchTestLibrary(device)
 
     @After fun close() = database.close()
 
@@ -62,7 +51,7 @@ class EditorFeaturesTest {
         val board = Board(name = "Rotation ${System.currentTimeMillis()}")
         repository.save(board)
         home()
-        text(board.name).click()
+        openTestBoard(device, board.name)
         control("Pen").click()
         device.waitForIdle()
         val canvas = checkNotNull(device.wait(Until.findObject(By.descContains("Drawing canvas")), 10_000)).visibleBounds
@@ -109,7 +98,7 @@ class EditorFeaturesTest {
         )
         repository.save(original)
         home()
-        text(original.name).click()
+        openTestBoard(device, original.name)
         control("Select").click()
         device.waitForIdle()
         val bounds = checkNotNull(device.wait(Until.findObject(By.descContains("Drawing canvas")), 10_000)).visibleBounds
@@ -152,9 +141,7 @@ class EditorFeaturesTest {
         val board = Board(name = "Search ${System.currentTimeMillis()}", pages = listOf(first, second))
         repository.save(board)
         home()
-        checkNotNull(device.findObject(By.clazz("android.widget.EditText"))).text = needle
-        device.waitForIdle()
-        control("Search results")
+        searchTestLibrary(device, needle)
         text(board.name).click()
         device.waitForIdle()
         device.executeShellCommand("screencap -p /sdcard/whiteboard-search.png")

@@ -1,11 +1,8 @@
 package dev.whiteboard.app
 
-import android.content.Intent
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
@@ -24,27 +21,11 @@ class WorkspaceFlowTest {
         checkNotNull(device.wait(Until.findObject(By.desc(value)), 10_000)) { "Missing control: $value" }
 
     private fun libraryBoard(name: String): UiObject2 {
-        description("New board")
-        // The library preserves its visible item when a newly saved board is inserted above it.
-        repeat(10) {
-            device.findObject(By.text(name))?.let { return it }
-            val grid = checkNotNull(device.wait(Until.findObject(By.desc("All boards").scrollable(true)), 5_000))
-            grid.scroll(Direction.UP, 0.8f)
-            device.waitForIdle()
-        }
+        searchTestLibrary(device, name)
         return text(name)
     }
 
-    private fun launchHome() {
-        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
-        device.waitForIdle()
-        device.findObject(By.text("OK"))?.click()
-        device.wait(Until.hasObject(By.text("Start creating")), 2_000)
-        device.findObject(By.text("Start creating"))?.click()
-    }
+    private fun launchHome() = launchTestLibrary(device)
 
     @Test fun createDrawSaveAndReopenBoard() {
         launchHome()
