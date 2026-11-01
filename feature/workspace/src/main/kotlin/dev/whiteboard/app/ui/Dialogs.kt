@@ -26,16 +26,24 @@ import dev.whiteboard.ui.R
 @Composable
 fun NameDialog(title: String, initial: String, dismiss: () -> Unit, nameLabel: Int = R.string.board_name, submit: (String) -> Unit) {
     var name by rememberSaveable(initial) { mutableStateOf(initial) }
-    AlertDialog(
+    InputAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(title) },
         text = {
             OutlinedTextField(name, { name = it.take(120) }, label = { Text(stringResource(nameLabel)) }, singleLine = true)
         },
-        confirmButton = {
-            TextButton(onClick = { submit(name.trim()) }, enabled = name.isNotBlank()) { Text(stringResource(R.string.confirm)) }
+        confirmButton = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                submit(name.trim())
+            }, enabled = name.isNotBlank()) { Text(stringResource(R.string.confirm)) }
         },
-        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }) { Text(stringResource(R.string.cancel)) }
+        }
     )
 }
 
@@ -79,7 +87,7 @@ fun TextEditorDialog(
             }
         )
     }
-    AlertDialog(
+    InputAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(if (request.note) R.string.note else R.string.text)) },
         modifier = Modifier.systemBarsPadding().imePadding(),
@@ -147,12 +155,18 @@ fun TextEditorDialog(
                 ColorChoiceRow(color, if (request.note) noteColors else inkColors, favoriteColors, saveFavorites) { color = it }
             }
         },
-        confirmButton = {
+        confirmButton = { closeKeyboard ->
             TextButton(onClick = {
+                closeKeyboard()
                 submit(text, size, bold, italic, alignment, color)
             }, enabled = text.isNotBlank()) { Text(stringResource(R.string.apply)) }
         },
-        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }) { Text(stringResource(R.string.cancel)) }
+        }
     )
 }
 
