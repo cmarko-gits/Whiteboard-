@@ -84,12 +84,8 @@ class ColorPickerFlowTest {
     private fun home() = launchTestLibrary(device)
 
     private fun hex(): UiObject2 {
-        repeat(5) {
-            device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()?.let { return it }
-            check(scrollPicker(forward = false)) { "Missing HEX input" }
-            device.waitForIdle()
-        }
-        return checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()) { "Missing HEX input" }
+        refreshPickerAccessibility()
+        return checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 10_000)) { "Missing HEX input" }
     }
     private fun openPicker(index: Int = 0) {
         control("Color picker")
@@ -99,10 +95,14 @@ class ColorPickerFlowTest {
     }
     private fun enterHex(value: String) {
         hex().click()
-        val input = checkNotNull(
+        checkNotNull(
             device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)
         ) { "HEX input did not receive focus" }
-        input.text = value
+        check(value.matches(Regex("[A-Za-z0-9]{1,8}")))
+        // Keep the IME's selection/composition buffer in sync through real keyboard events.
+        device.pressKeyCode(android.view.KeyEvent.KEYCODE_A, android.view.KeyEvent.META_CTRL_ON)
+        device.pressKeyCode(android.view.KeyEvent.KEYCODE_DEL)
+        device.executeShellCommand("input text $value")
         device.waitForIdle()
         // Refresh cached accessibility text after the rendered input changes.
         if (Build.VERSION.SDK_INT >= 34) InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
