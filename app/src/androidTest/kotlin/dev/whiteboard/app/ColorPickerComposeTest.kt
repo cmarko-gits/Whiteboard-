@@ -19,6 +19,35 @@ import org.junit.runner.RunWith
 class ColorPickerComposeTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun doneKeepsValidHexAndFocusesApplyWithoutSubmitting() {
+        var submitted = false
+        compose.setContent {
+            WhiteboardTheme(ThemeMode.LIGHT) {
+                CustomColorDialog(0xFF123456.toInt(), emptyList(), {}, {}, { submitted = true })
+            }
+        }
+        compose.onNode(hasSetTextAction()).performTextReplacement("12AB34")
+        compose.onNode(hasSetTextAction()).performImeAction()
+        compose.onNode(hasSetTextAction()).assertIsNotFocused().assertTextContains("12AB34")
+        compose.onNodeWithText("Apply").assertIsFocused().assertIsEnabled()
+        compose.runOnIdle { assertFalse(submitted) }
+    }
+
+    @Test fun doneOnInvalidHexFocusesCancelWithoutSubmitting() {
+        var submitted = false
+        compose.setContent {
+            WhiteboardTheme(ThemeMode.LIGHT) {
+                CustomColorDialog(0xFF123456.toInt(), emptyList(), {}, {}, { submitted = true })
+            }
+        }
+        compose.onNode(hasSetTextAction()).performTextReplacement("invalid")
+        compose.onNode(hasSetTextAction()).performImeAction()
+        compose.onNode(hasSetTextAction()).assertIsNotFocused()
+        compose.onNodeWithText("Cancel").assertIsFocused()
+        compose.onNodeWithText("Apply").assertIsNotEnabled()
+        compose.runOnIdle { assertFalse(submitted) }
+    }
+
     @Test fun saturationCanBeChangedWithoutATouchDragAndApplied() {
         val original = 0xFF808080.toInt()
         var chosen: Int? = null

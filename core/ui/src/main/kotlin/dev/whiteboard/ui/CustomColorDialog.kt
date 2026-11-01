@@ -19,6 +19,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -58,6 +61,8 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
     var saved by rememberSaveable { mutableStateOf(SavedColorPalette.normalize(favorites)) }
     var rgb by rememberSaveable { mutableStateOf(false) }
     val valid = hex.matches(Regex("[0-9A-F]{6}"))
+    val applyFocus = remember { FocusRequester() }
+    val cancelFocus = remember { FocusRequester() }
     val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     val compact = windowHeight < 500.dp
     fun choose(color: Int) {
@@ -105,7 +110,8 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = {
-                focus.clearFocus()
+                focus.clearFocus(force = true)
+                if (valid) applyFocus.requestFocus() else cancelFocus.requestFocus()
                 keyboard?.hide()
             })
         )
@@ -185,8 +191,23 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         Box(Modifier.weight(1f)) { hexInput(!inlineActions) }
                         if (inlineActions) {
                             Spacer(Modifier.width(8.dp))
-                            TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) }
-                            TextButton(onClick = commit, enabled = valid) { Text(stringResource(R.string.apply)) }
+                            TextButton(
+                                onClick = dismiss,
+                                modifier = Modifier.focusProperties {
+                                    canFocus = true
+                                }.focusRequester(cancelFocus)
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            TextButton(
+                                onClick = commit,
+                                enabled = valid,
+                                modifier = Modifier.focusProperties {
+                                    canFocus = valid
+                                }.focusRequester(applyFocus)
+                            ) {
+                                Text(stringResource(R.string.apply))
+                            }
                         }
                     }
                     if (!inlineActions) {
@@ -206,9 +227,24 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         }
                         Spacer(Modifier.height(12.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) }
+                            TextButton(
+                                onClick = dismiss,
+                                modifier = Modifier.focusProperties {
+                                    canFocus = true
+                                }.focusRequester(cancelFocus)
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
                             Spacer(Modifier.width(8.dp))
-                            TextButton(onClick = commit, enabled = valid) { Text(stringResource(R.string.apply)) }
+                            TextButton(
+                                onClick = commit,
+                                enabled = valid,
+                                modifier = Modifier.focusProperties {
+                                    canFocus = valid
+                                }.focusRequester(applyFocus)
+                            ) {
+                                Text(stringResource(R.string.apply))
+                            }
                         }
                     }
                 }

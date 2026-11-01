@@ -20,7 +20,9 @@ if(Test-Path -LiteralPath $taskBudgetPath) {
     $taskQaHome=Join-Path $taskRoot 'artifacts/qualification-avd'
     $taskHasQaDisk=(Test-Path -LiteralPath (Join-Path $taskQaHome 'qualification-owned.txt')) -and
         (Test-Path -LiteralPath (Join-Path $taskQaHome 'Whiteboard_QA.avd/userdata-qemu.img.qcow2'))
-    $taskReserve=if($Image -eq '37.1' -or $taskHasQaDisk){1000000000}else{2000000000}
+    # Existing 2GB AVD boot has no fresh userdata or RAM backing allocation. Its bounded
+    # follow-up tests use a smaller reserve together with the mandatory runtime watcher.
+    $taskReserve=if($Image -eq '37.1' -and $MemoryMB -eq 2048){512000000}elseif($Image -eq '37.1' -or $taskHasQaDisk){1000000000}else{2000000000}
     if((Get-PSDrive C).Free -lt $taskBudget.freeBytesAtStart-$taskBudget.maxAdditionalBytes+$taskReserve) {
         throw 'Insufficient storage headroom; do not start another emulator under the current qualification budget.'
     }
@@ -67,5 +69,12 @@ try {
     $taskProcess=Start-Process (Join-Path $taskSdk 'emulator/emulator.exe') -ArgumentList $taskArguments -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput (Join-Path $taskRoot "artifacts/qualification-emulator-$Image-out.log") `
         -RedirectStandardError (Join-Path $taskRoot "artifacts/qualification-emulator-$Image-err.log")
+    if(Test-Path -LiteralPath $taskBudgetPath) {
+        Start-Process -FilePath (Get-Process -Id $PID).Path `
+            -ArgumentList @('-NoProfile','-File',('"{0}"' -f (Join-Path $taskRoot 'tools/Watch-QaStorage.ps1')),'-EmulatorProcessId',"$($taskProcess.Id)",'-DeviceSerial',"emulator-$Port") `
+            -WindowStyle Hidden -WorkingDirectory $taskRoot `
+            -RedirectStandardOutput (Join-Path $taskRoot 'artifacts/task-09-storage-watch-out.log') `
+            -RedirectStandardError (Join-Path $taskRoot 'artifacts/task-09-storage-watch-err.log') | Out-Null
+    }
     Write-Output "Started $Image image as emulator-$Port; process $($taskProcess.Id). Poll sys.boot_completed before installation."
 } finally { $env:ANDROID_AVD_HOME=$taskPreviousAvdHome }

@@ -54,8 +54,10 @@ class CanvasAccessibilityTest {
                 instrument.waitForIdleSync()
                 assertTrue(target.refresh())
                 assertTrue(target.isFocused)
+                val focusBounds = android.graphics.Rect().also(target::getBoundsInParent)
                 scenario.onActivity {
                     val canvasView = checkNotNull(view)
+                    assertFalse(canvasView.defaultFocusHighlightEnabled)
                     val bitmap = android.graphics.Bitmap.createBitmap(
                         canvasView.width,
                         canvasView.height,
@@ -66,11 +68,22 @@ class CanvasAccessibilityTest {
                         val radius = (4 * canvasView.resources.displayMetrics.density).toInt() + 1
                         var black = 0
                         var white = 0
-                        for (y in 100 - radius..100 + radius) {
-                            for (x in 140 until 260) {
+                        for (y in focusBounds.top - radius..focusBounds.top + radius) {
+                            for (x in focusBounds.left + focusBounds.width() / 4 until focusBounds.right - focusBounds.width() / 4) {
                                 when (bitmap.getPixel(x, y)) {
                                     android.graphics.Color.BLACK -> black++
                                     android.graphics.Color.WHITE -> white++
+                                }
+                            }
+                        }
+                        if (black <= 100 || white <= 100) {
+                            val directory =
+                                InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")?.let { java.io.File(it) }
+                                    ?: context.getExternalFilesDir(null)
+                            directory?.mkdirs()
+                            directory?.let {
+                                java.io.File(it, "focus-${background.toUInt()}.png").outputStream().use { output ->
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
                                 }
                             }
                         }

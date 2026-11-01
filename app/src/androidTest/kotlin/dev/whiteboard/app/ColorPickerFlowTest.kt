@@ -119,8 +119,16 @@ class ColorPickerFlowTest {
     }
     private fun finishHexEntry() {
         if (Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
-            device.pressBack()
+            val done = device.findObject(By.desc("Done"))
+            if (done != null) done.click() else device.pressBack()
             device.waitForIdle()
+            val until = android.os.SystemClock.uptimeMillis() + 5_000
+            while (Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method")) &&
+                android.os.SystemClock.uptimeMillis() < until
+            ) android.os.SystemClock.sleep(50)
+            check(!Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
+                "HEX keyboard did not close after Done"
+            }
         }
     }
     private fun pick(value: String, index: Int = 0) {
@@ -189,6 +197,7 @@ class ColorPickerFlowTest {
         assertEquals(listOf(0xFF12AB34.toInt()), preferences.values.first().favoriteColors)
 
         openPicker()
+        finishHexEntry()
         val hueBounds = control("Hue").visibleBounds
         device.click(hueBounds.left + hueBounds.width() * 2 / 3, hueBounds.centerY())
         val plane = control("Saturation and brightness").visibleBounds
@@ -200,6 +209,7 @@ class ColorPickerFlowTest {
         device.executeShellCommand("screencap -p /sdcard/whiteboard-color-picker-landscape.png")
         assertEquals("65B7F2", hex().text)
         device.executeShellCommand("screencap -p /sdcard/whiteboard-color-picker-landscape.png")
+        finishHexEntry()
         text("Apply").click()
         device.setOrientationNatural()
         device.unfreezeRotation()

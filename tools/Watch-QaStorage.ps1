@@ -10,16 +10,20 @@ $taskBaseline = Get-Content -LiteralPath (Join-Path $taskRoot 'artifacts/qualifi
 $taskReportPath = Join-Path $taskRoot 'artifacts/task-09-runtime-storage.json'
 $taskUntil = [DateTime]::UtcNow.AddMinutes($MaximumMinutes)
 $taskReport = [ordered]@{ startedAtUtc = [DateTime]::UtcNow.ToString('o'); peakAdditionalBytes = 0L; maxAdditionalBytes = $taskBaseline.maxAdditionalBytes; stoppedForReserve = $false; status = 'monitoring' }
+function Stop-GuardedQaEmulator {
+    $taskAvd = @(& $AdbPath -s $DeviceSerial emu avd name 2>$null | ForEach-Object { $_.Trim() })
+    if ($LASTEXITCODE -ne 0 -or $taskAvd.Count -eq 0 -or $taskAvd[0] -notin @('Small_Phone', 'Whiteboard_QA')) {
+        throw 'QA emulator identity could not be verified before shutdown.'
+    }
+    & $AdbPath -s $DeviceSerial emu kill | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'QA emulator shutdown failed.' }
+}
 try {
     while ((Get-Process -Id $EmulatorProcessId -ErrorAction SilentlyContinue) -and [DateTime]::UtcNow -lt $taskUntil) {
         $taskAdditional = $taskBaseline.freeBytesAtStart - [IO.DriveInfo]::new('C:').AvailableFreeSpace
         $taskReport.peakAdditionalBytes = [Math]::Max($taskReport.peakAdditionalBytes, $taskAdditional)
         if ($taskAdditional -ge $taskBaseline.maxAdditionalBytes - 200000000) {
-            $taskAvd = @(& $AdbPath -s $DeviceSerial emu avd name 2>$null | ForEach-Object { $_.Trim() })
-            if ($LASTEXITCODE -ne 0 -or $taskAvd.Count -eq 0 -or $taskAvd[0] -notin @('Small_Phone', 'Whiteboard_QA')) {
-                throw 'Storage reserve reached, but QA emulator identity could not be verified.'
-            }
-            & $AdbPath -s $DeviceSerial emu kill | Out-Null
+            Stop-GuardedQaEmulator
             $taskReport.stoppedForReserve = $true
             $taskReport.status = 'stopped-for-storage-reserve'
             break
@@ -28,7 +32,12 @@ try {
         Start-Sleep -Seconds 1
     }
     if ($taskReport.status -eq 'monitoring') {
-        $taskReport.status = if ([DateTime]::UtcNow -ge $taskUntil) { 'monitor-time-limit' } else { 'emulator-exited' }
+        if ((Get-Process -Id $EmulatorProcessId -ErrorAction SilentlyContinue) -and [DateTime]::UtcNow -ge $taskUntil) {
+            Stop-GuardedQaEmulator
+            $taskReport.status = 'stopped-for-time-limit'
+        } else {
+            $taskReport.status = 'emulator-exited'
+        }
     }
 } finally {
     $taskReport.finishedAtUtc = [DateTime]::UtcNow.ToString('o')

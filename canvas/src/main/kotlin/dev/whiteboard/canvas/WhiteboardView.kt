@@ -92,6 +92,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     )
 
     init {
+        // Virtual objects draw their own focus ring; a platform foreground would tint the artwork.
+        defaultFocusHighlightEnabled = false
         isFocusable = true
         isFocusableInTouchMode = true
         isClickable = true
