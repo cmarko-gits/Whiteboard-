@@ -187,6 +187,33 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         }
         if (deltas.isNotEmpty()) execute(EditCommand(page.id, deltas))
     }
+    fun eraseParts(cuts: List<StrokeCut>): Boolean {
+        if (cuts.isEmpty()) return false
+        require(cuts.map { it.original.id }.distinct().size == cuts.size)
+        val originals = page.elements.flatMap { it.leaves() }.filterIsInstance<Stroke>().associateBy { it.id }
+        if (cuts.any { originals[it.original.id] != it.original }) return false
+        val replacements = cuts.filter { it.fragments != listOf(it.original) }.associate { it.original.id to it.fragments }
+        if (replacements.isEmpty()) return false
+        val deltas = mutableListOf<ElementDelta>()
+        var destination = 0
+        var leaves = 0
+        page.elements.forEachIndexed { index, element ->
+            val fragments = element.withStrokeFragments(replacements)
+            leaves += fragments.sumOf { it.leaves().size }
+            if (fragments.size == 1 && fragments.single() === element) {
+                destination++
+            } else {
+                deltas.add(ElementDelta(LocatedElement(index, element), null))
+                fragments.forEach { deltas.add(ElementDelta(null, LocatedElement(destination++, it))) }
+            }
+            if (destination > Page.MAX_ELEMENTS || leaves > Page.MAX_ELEMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        }
+        val command = EditCommand(page.id, deltas)
+        // Partial erasing must never silently lose its own Undo entry.
+        if (command.estimatedBytes > historyByteLimit) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        execute(command)
+        return true
+    }
     fun undo() {
         if (undoStack.isEmpty()) return
         val entry = undoStack.removeLast()

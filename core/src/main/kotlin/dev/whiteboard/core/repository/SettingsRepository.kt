@@ -15,4 +15,5 @@ interface SettingsRepository {
     suspend fun addBrush(name: String, tool: Tool, ink: InkStyle)
     suspend fun deleteBrush(id: String)
     suspend fun favoriteColors(colors: List<Int>)
+    suspend fun eraserMode(mode: EraserMode)
 }

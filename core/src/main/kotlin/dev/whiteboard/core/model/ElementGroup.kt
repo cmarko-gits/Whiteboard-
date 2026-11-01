@@ -3,7 +3,7 @@ package dev.whiteboard.core.model
 /** Groups are deliberately flat; grouping existing groups merges their editable children. */
 data class ElementGroup(override val id: String = newId(), val children: List<Element>) : Element {
     init {
-        require(children.size in 2..100_000 && children.none { it is ElementGroup })
+        require(children.size in 2..Page.MAX_ELEMENTS && children.none { it is ElementGroup })
         require(children.map { it.id }.toSet().size == children.size && children.none { it.id == id })
     }
     override val bounds: Bounds by lazy { children.map { it.bounds }.reduce(Bounds::union) }
@@ -38,4 +38,23 @@ fun Element.withoutStrokes(ids: Set<String>): Element? = if (ids.isEmpty()) {
         is Stroke -> takeUnless { id in ids }
         else -> this
     }
+}
+
+/** Retains z-order and existing group identity; zero/one-child groups collapse normally. */
+fun Element.withStrokeFragments(replacements: Map<String, List<Stroke>>): List<Element> = when (this) {
+    is Stroke -> replacements[id] ?: listOf(this)
+    is ElementGroup -> {
+        if (children.none { it is Stroke && it.id in replacements }) {
+            listOf(this)
+        } else {
+            val remaining = children.flatMap { if (it is Stroke) replacements[it.id] ?: listOf(it) else listOf(it) }
+            if (remaining.size > Page.MAX_ELEMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+            when (remaining.size) {
+                0 -> emptyList()
+                1 -> listOf(remaining.single())
+                else -> listOf(copy(children = remaining))
+            }
+        }
+    }
+    else -> listOf(this)
 }

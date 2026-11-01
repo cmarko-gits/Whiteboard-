@@ -2,6 +2,8 @@ package dev.whiteboard.app.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
@@ -10,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -191,6 +194,22 @@ fun SettingsDialog(
             Text(stringResource(R.string.smart_shapes_help), style = MaterialTheme.typography.bodySmall)
             SettingsSwitch(stringResource(R.string.snap), settings.snap, viewModel::snap)
             SettingsSwitch(stringResource(R.string.autosave), settings.autosave, viewModel::autosave)
+            Text(stringResource(R.string.eraser_mode), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
+            Column(Modifier.selectableGroup()) {
+                EraserMode.entries.forEach { mode ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
+                            selected = settings.eraserMode == mode,
+                            role = Role.RadioButton,
+                            onClick = { viewModel.eraserMode(mode) }
+                        ),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        RadioButton(settings.eraserMode == mode, onClick = null)
+                        Text(stringResource(if (mode == EraserMode.STROKE) R.string.eraser_whole else R.string.eraser_partial))
+                    }
+                }
+            }
             HorizontalDivider(Modifier.padding(vertical = 18.dp))
             Text(stringResource(R.string.backup_title), fontWeight = FontWeight.SemiBold)
             Text(stringResource(R.string.backup_description), style = MaterialTheme.typography.bodySmall)

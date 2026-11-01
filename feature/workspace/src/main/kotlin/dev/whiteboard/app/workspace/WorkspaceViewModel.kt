@@ -163,6 +163,16 @@ class WorkspaceViewModel @Inject constructor(
                 current.eraseStrokes(event.ids)
                 changed()
             }
+            is CanvasEvent.EraseParts -> {
+                try {
+                    if (current.eraseParts(event.cuts)) changed()
+                } catch (error: DocumentFailure) {
+                    report(error)
+                } catch (error: IllegalArgumentException) {
+                    report(error)
+                }
+            }
+            is CanvasEvent.Rejected -> report(DocumentFailure(event.error))
             is CanvasEvent.Select -> {
                 val ids = event.ids.intersect(current.page.elements.map { it.id }.toSet())
                 mutable.update {
@@ -220,6 +230,7 @@ class WorkspaceViewModel @Inject constructor(
     fun favoriteColors(colors: List<Int>) = work { preferences.favoriteColors(colors) }
     fun smartShapes(enabled: Boolean) = work { preferences.smartShapes(enabled) }
     fun snap(enabled: Boolean) = work { preferences.snap(enabled) }
+    fun eraserMode(mode: EraserMode) = work { preferences.eraserMode(mode) }
     fun undo() {
         session?.undo()
         changed()
@@ -575,6 +586,7 @@ class WorkspaceViewModel @Inject constructor(
                 DocumentError.STORAGE_UNAVAILABLE -> R.string.storage_unavailable
                 DocumentError.PERMISSION_DENIED -> R.string.document_permission_denied
                 DocumentError.INVALID_DOCUMENT -> R.string.invalid_document
+                DocumentError.EDIT_LIMIT -> R.string.edit_limit
             }
             is IOException -> R.string.storage_unavailable
             is SecurityException -> R.string.document_permission_denied

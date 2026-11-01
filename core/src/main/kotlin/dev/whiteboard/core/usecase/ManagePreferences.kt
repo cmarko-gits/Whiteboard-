@@ -12,6 +12,7 @@ class ManagePreferences(private val settings: SettingsRepository) {
     suspend fun autosave(enabled: Boolean) = settings.autosave(enabled)
     suspend fun smartShapes(enabled: Boolean) = settings.smartShapes(enabled)
     suspend fun snap(enabled: Boolean) = settings.snap(enabled)
+    suspend fun eraserMode(mode: EraserMode) = settings.eraserMode(mode)
     suspend fun lastBrush(tool: Tool, ink: InkStyle) = settings.lastBrush(tool, ink)
     suspend fun addBrush(name: String, tool: Tool, ink: InkStyle) {
         val title = name.trim().take(40)

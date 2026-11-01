@@ -25,7 +25,8 @@ class AppSettings(context: Context) : SettingsRepository {
                 values[LAST_OPACITY]?.takeIf { it.isFinite() }?.coerceIn(0f, 1f) ?: 1f
             ),
             brushes = brushes.decode(values[PRESETS]),
-            favoriteColors = FavoriteColors.decode(values[FAVORITE_COLORS])
+            favoriteColors = FavoriteColors.decode(values[FAVORITE_COLORS]),
+            eraserMode = EraserMode.entries.firstOrNull { it.name == values[ERASER_MODE] } ?: EraserMode.STROKE
         )
     }
     override suspend fun theme(mode: ThemeMode) {
@@ -45,6 +46,9 @@ class AppSettings(context: Context) : SettingsRepository {
     }
     override suspend fun snap(enabled: Boolean) {
         store.edit { it[SNAP] = enabled }
+    }
+    override suspend fun eraserMode(mode: EraserMode) {
+        store.edit { it[ERASER_MODE] = mode.name }
     }
     override suspend fun lastBrush(tool: Tool, ink: InkStyle) {
         store.edit {
@@ -77,6 +81,7 @@ class AppSettings(context: Context) : SettingsRepository {
         private val AUTOSAVE = booleanPreferencesKey("autosave")
         private val SMART = booleanPreferencesKey("smart_shapes")
         private val SNAP = booleanPreferencesKey("snap")
+        private val ERASER_MODE = stringPreferencesKey("eraser_mode")
         private val LAST_TOOL = stringPreferencesKey("last_tool")
         private val LAST_COLOR = intPreferencesKey("last_color")
         private val LAST_WIDTH = floatPreferencesKey("last_width")

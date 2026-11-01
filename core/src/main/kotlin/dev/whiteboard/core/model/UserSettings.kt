@@ -1,6 +1,7 @@
 package dev.whiteboard.core.model
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+enum class EraserMode { STROKE, PARTIAL }
 
 data class UserSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
@@ -12,5 +13,6 @@ data class UserSettings(
     val lastTool: Tool = Tool.PEN,
     val lastInk: InkStyle = InkStyle(),
     val brushes: List<BrushPreset> = defaultBrushPresets,
-    val favoriteColors: List<Int> = emptyList()
+    val favoriteColors: List<Int> = emptyList(),
+    val eraserMode: EraserMode = EraserMode.STROKE
 )

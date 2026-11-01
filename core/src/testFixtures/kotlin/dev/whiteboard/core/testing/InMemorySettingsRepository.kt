@@ -25,6 +25,9 @@ class InMemorySettingsRepository(initial: UserSettings = UserSettings()) : Setti
     override suspend fun snap(enabled: Boolean) {
         values.update { it.copy(snap = enabled) }
     }
+    override suspend fun eraserMode(mode: EraserMode) {
+        values.update { it.copy(eraserMode = mode) }
+    }
     override suspend fun lastBrush(tool: Tool, ink: InkStyle) {
         values.update { it.copy(lastTool = tool, lastInk = ink) }
     }

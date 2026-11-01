@@ -1,0 +1,110 @@
+package dev.whiteboard.app
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.*
+import dev.whiteboard.canvas.PageExporter
+import dev.whiteboard.core.model.*
+import dev.whiteboard.data.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class PartialEraserFlowTest {
+    @get:Rule val capture = CaptureUiFailure()
+    private val context = ApplicationProvider.getApplicationContext<Context>()
+    private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    private val database = Room.databaseBuilder(context, WhiteboardDatabase::class.java, "whiteboard.db")
+        .addMigrations(DatabaseMigrations.FROM_1_TO_2, DatabaseMigrations.FROM_2_TO_3, DatabaseMigrations.FROM_3_TO_4).build()
+    private val repository = LocalBoardRepository(database)
+    private val preferences = AppSettings(context)
+    private val originalSettings = runBlocking { preferences.values.first() }
+    private val owned = mutableListOf<String>()
+    private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
+    private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
+    private fun home() = launchTestLibrary(device)
+    private fun scrolledText(value: String): UiObject2 {
+        repeat(6) {
+            device.findObject(By.text(value))?.let { return it }
+            device.findObjects(By.scrollable(true)).lastOrNull()?.scroll(Direction.DOWN, 0.8f)
+            device.waitForIdle()
+        }
+        return text(value)
+    }
+    private fun save() {
+        control("Save").click()
+        text("Saved on this device")
+        control("Back to boards")
+        device.waitForIdle()
+    }
+
+    @After fun cleanup(): Unit = runBlocking {
+        home()
+        preferences.eraserMode(originalSettings.eraserMode)
+        preferences.lastBrush(originalSettings.lastTool, originalSettings.lastInk)
+        owned.forEach { repository.deletePermanently(it) }
+        database.close()
+    }
+
+    @Test fun settingsGestureUndoRedoSaveAndPngExportKeepTheCutAndTheOtherGroupChild(): Unit = runBlocking {
+        val stroke = Stroke(points = listOf(Point(100f, 200f), Point(600f, 200f)), style = InkStyle(width = 6f))
+        val note = Note(bounds = Bounds(100f, 400f, 300f, 550f), text = "Keep this note")
+        val group = ElementGroup(children = listOf(stroke, note))
+        val board = Board(name = "Partial ${newId()}", pages = listOf(Page(background = Background.PLAIN, elements = listOf(group))))
+        owned += board.id
+        repository.save(board)
+        home()
+        openTestBoard(device, board.name)
+        control("More actions").click()
+        scrolledText("Settings").click()
+        scrolledText("Partial stroke").click()
+        withTimeout(5_000) { preferences.values.first { it.eraserMode == EraserMode.PARTIAL } }
+        text("Done").click()
+        device.waitForIdle()
+        repeat(4) {
+            if (!device.hasObject(By.desc("Eraser"))) {
+                device.findObjects(By.scrollable(true)).firstOrNull()?.scroll(Direction.RIGHT, 0.8f)
+                device.waitForIdle()
+            }
+        }
+        control("Eraser").click()
+        val canvas = checkNotNull(device.wait(Until.findObject(By.descContains("Drawing canvas")), 10_000)).visibleBounds
+        device.swipe(canvas.left + 350, canvas.top + 100, canvas.left + 350, canvas.top + 300, 12)
+        text("Unsaved changes")
+        save()
+        val split = repository.load(board.id).activePage
+        val splitGroup = split.elements.single() as ElementGroup
+        assertEquals(group.id, splitGroup.id)
+        assertEquals(note, splitGroup.children.last())
+        assertEquals(2, splitGroup.children.filterIsInstance<Stroke>().size)
+        val bitmap = PageExporter().bitmap(split)
+        try {
+            val bounds = checkNotNull(split.contentBounds).expand(32f)
+            val scale = bitmap.width / bounds.width
+            assertEquals(
+                split.backgroundColor,
+                bitmap.getPixel(((350f - bounds.left) * scale).toInt(), ((200f - bounds.top) * scale).toInt())
+            )
+        } finally {
+            bitmap.recycle()
+        }
+        control("Undo").click()
+        save()
+        assertEquals(listOf(group), repository.load(board.id).activePage.elements)
+        control("Redo").click()
+        save()
+        assertEquals(split.elements, repository.load(board.id).activePage.elements)
+        control("Back to boards").click()
+        control("New board")
+        assertEquals(EraserMode.PARTIAL, AppSettings(context).values.first().eraserMode)
+    }
+}

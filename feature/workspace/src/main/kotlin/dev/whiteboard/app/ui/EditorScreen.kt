@@ -38,6 +38,7 @@ fun EditorScreen(
     editor: EditorUi,
     fingerDrawing: Boolean,
     snap: Boolean,
+    eraserMode: EraserMode,
     brushes: List<BrushPreset>,
     favoriteColors: List<Int>,
     exporting: Boolean,
@@ -213,6 +214,7 @@ fun EditorScreen(
                 update = { view ->
                     view.fingerDrawing = fingerDrawing
                     view.snapEnabled = snap
+                    view.eraserMode = eraserMode
                     view.update(editor.page, editor.tool, editor.ink, editor.selectedIds, viewModel.currentViewport(editor.page.id))
                     if (editor.initialFit) view.requestInitialFit()
                 },

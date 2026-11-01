@@ -272,4 +272,8 @@
     <string name="decrease_saturation">Smanji zasićenost</string>
     <string name="increase_brightness">Povećaj osvetljenost</string>
     <string name="decrease_brightness">Smanji osvetljenost</string>
+    <string name="eraser_mode">Režim gumice</string>
+    <string name="eraser_whole">Ceo potez</string>
+    <string name="eraser_partial">Deo poteza</string>
+    <string name="edit_limit">Ova izmena je prevelika. Pokušajte manju oblast.</string>
 </resources>

@@ -14,7 +14,9 @@ import android.view.ViewConfiguration
 import androidx.core.view.ViewCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat
+import dev.whiteboard.core.editor.PartialStrokeEraser
 import dev.whiteboard.core.editor.SnapEngine
+import dev.whiteboard.core.editor.StrokeCut
 import dev.whiteboard.core.editor.StrokeEraser
 import dev.whiteboard.core.model.*
 import kotlin.math.*
@@ -25,6 +27,8 @@ sealed interface CanvasEvent {
     data class TransformBy(val id: String, val translation: Point, val factor: Float) : CanvasEvent
     data class Delete(val ids: Set<String>) : CanvasEvent
     data class EraseStrokes(val ids: Set<String>) : CanvasEvent
+    data class EraseParts(val cuts: List<StrokeCut>) : CanvasEvent
+    data class Rejected(val error: DocumentError) : CanvasEvent
     data class Select(val ids: Set<String>) : CanvasEvent
     data class EditText(val position: Point, val existing: Element? = null, val note: Boolean = false) : CanvasEvent
     data class Camera(val viewport: Viewport) : CanvasEvent
@@ -55,9 +59,20 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private val samples = mutableListOf<Point>()
     private val activePath = Path()
     private val erased = mutableSetOf<String>()
+    private val partialFragments = linkedMapOf<String, List<Stroke>>()
+    private var partialSource: Page? = null
+    private var partialLeafCount = 0
+    private var eraserRejected = false
     private var previousErase: Point? = null
     var fingerDrawing = true
     var snapEnabled = false
+    var eraserMode = EraserMode.STROKE
+        set(value) {
+            if (field != value) {
+                clearGesture()
+                field = value
+            }
+        }
     private var snapCandidates = emptyList<Bounds>()
     private var guideX: Float? = null
     private var guideY: Float? = null
@@ -117,6 +132,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         val accessibilityChanged = this.page !== page || this.selectedIds != selectedIds || this.tool != tool
         if (this.page.id != page.id) {
             viewport = restoredViewport ?: page.viewport
+            clearGesture()
+        } else if (activePointer >= 0 && (this.page.elements !== page.elements || this.tool != tool)) {
             clearGesture()
         }
         this.page = page
@@ -339,7 +356,13 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             if (it.id !in erased && it.id !in movingIds &&
                 it.renderBounds.expand(10f).intersects(visible)
             ) {
-                it.withoutStrokes(erased)?.let { visibleElement -> renderer.drawElement(canvas, visibleElement) }
+                it.withoutStrokes(erased)?.let { visibleElement ->
+                    if (partialFragments.isEmpty()) {
+                        renderer.drawElement(canvas, visibleElement)
+                    } else {
+                        visibleElement.withStrokeFragments(partialFragments).forEach { fragment -> renderer.drawElement(canvas, fragment) }
+                    }
+                }
             }
         }
         renderer.drawLiveStroke(canvas, activePath, samples.firstOrNull(), samples.size == 1, ink)
@@ -420,6 +443,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 guideX = null
                 guideY = null
                 erased.clear()
+                clearPartialErasure()
                 previousErase = null
                 previousScreen = centroid(event)
             }
@@ -489,6 +513,9 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             MotionEvent.ACTION_POINTER_UP -> {
                 if (event.getPointerId(event.actionIndex) == activePointer) {
                     if (stylus) {
+                        if (tool == Tool.ERASER && !navigating) {
+                            erase(viewport.toDocument(Point(event.getX(event.actionIndex), event.getY(event.actionIndex))))
+                        }
                         finishGesture()
                         clearGesture()
                         navigating = true
@@ -499,6 +526,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 previousScreen = null
             }
             MotionEvent.ACTION_UP -> {
+                if (tool == Tool.ERASER && !navigating && activePointer >= 0) erase(viewport.toDocument(Point(event.x, event.y)))
                 if (tool == Tool.FILL) {
                     val up = viewport.toDocument(Point(event.x, event.y))
                     if ((down?.let { hypot(up.x - it.x, up.y - it.y) * viewport.scale } ?: 0f) > touchSlop) fillTap = false
@@ -525,8 +553,36 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         }
     }
     private fun erase(point: Point) {
+        if (eraserRejected) return
         val start = previousErase ?: point
         previousErase = point
+        if (eraserMode == EraserMode.PARTIAL) {
+            try {
+                if (partialSource == null) {
+                    partialSource = page
+                    partialLeafCount = page.elements.sumOf { it.leaves().size }
+                }
+                page.elements.flatMap { it.leaves() }.filterIsInstance<Stroke>().forEach { original ->
+                    val before = partialFragments[original.id] ?: listOf(original)
+                    val after = mutableListOf<Stroke>()
+                    before.forEach { fragment ->
+                        after.addAll(PartialStrokeEraser.cut(fragment, start, point, 15 * density / viewport.scale))
+                        if (after.size > PartialStrokeEraser.MAX_FRAGMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+                    }
+                    if (after != before) {
+                        val count = partialLeafCount + after.size - before.size
+                        if (count > Page.MAX_ELEMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+                        partialFragments[original.id] = after.toList()
+                        partialLeafCount = count
+                    }
+                }
+            } catch (error: DocumentFailure) {
+                clearPartialErasure()
+                eraserRejected = true
+                onEvent(CanvasEvent.Rejected(error.error))
+            }
+            return
+        }
         page.elements.flatMap { it.leaves() }.filterIsInstance<Stroke>()
             .filter { it.id !in erased && StrokeEraser.intersects(it, start, point, 15 * density / viewport.scale) }
             .forEach { erased.add(it.id) }
@@ -538,7 +594,16 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     CanvasEvent.Add(Stroke(points = samples.toList(), style = ink, tool = tool))
                 )
             }
-            Tool.ERASER -> if (erased.isNotEmpty()) onEvent(CanvasEvent.EraseStrokes(erased.toSet()))
+            Tool.ERASER -> {
+                if (partialFragments.isNotEmpty()) {
+                    val cuts = partialSource?.elements.orEmpty().flatMap { it.leaves() }.filterIsInstance<Stroke>().mapNotNull { original ->
+                        partialFragments[original.id]?.let { StrokeCut(original, it) }
+                    }
+                    onEvent(CanvasEvent.EraseParts(cuts))
+                } else if (erased.isNotEmpty()) {
+                    onEvent(CanvasEvent.EraseStrokes(erased.toSet()))
+                }
+            }
             Tool.SELECT -> {
                 if (selectionPreview.isNotEmpty()) onEvent(CanvasEvent.Replace(selectionPreview))
                 selectionArea?.let { area ->
@@ -573,6 +638,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         Point(event.x, event.y)
     }
     private fun clearGesture() {
+        clearPartialErasure()
         guideX = null
         guideY = null
         snapCandidates = emptyList()
@@ -592,5 +658,11 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         stylus = false
         resizing = false
         invalidate()
+    }
+    private fun clearPartialErasure() {
+        partialFragments.clear()
+        partialSource = null
+        partialLeafCount = 0
+        eraserRejected = false
     }
 }

@@ -1,6 +1,6 @@
 # Whiteboard — lokalno korišćenje
 
-Aktivna razvojna verzija je 0.4.1. Status kandidata i ograničenja: [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Aktivna funkcionalna grana razvija 0.5.0; Android provera parcijalne gumice još traje: [PARTIAL-ERASER.md](PARTIAL-ERASER.md). Prethodni razvojni APK i njegovi rezultati: [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 ## Table i biblioteka
 
@@ -10,7 +10,7 @@ Move to Trash zadržava tablu za kasniji Restore. Delete permanently? traži pot
 
 ## Crtanje, boje i objekti
 
-Toolbar bira olovku, marker, oblike, tekst, sticky belešku, selekciju, pomeranje i gumicu. Postojeća gumica briše ceo pogođeni potez; parcijalna gumica je preostala funkcija. Pencil trenutno koristi zajednički način iscrtavanja poteza.
+Toolbar bira olovku, marker, oblike, tekst, sticky belešku, selekciju, pomeranje i gumicu. U 0.5.0 Settings → Eraser bira Whole stroke za brisanje celog poteza ili Partial stroke za brisanje dela preko kog pređeš. Jedan završen gest se vraća jednim Undo; otkazan gest ne briše sadržaj. Izbor režima se pamti. Prethodni APK 0.4.1 ima samo brisanje celog poteza. Pencil trenutno koristi zajednički način iscrtavanja poteza.
 
 Fill color menja boju pogođenog podržanog oblika/beleške ili pozadine kada se dodirne prazna površina. Započeti potez prevlačenjem ne potvrđuje fill tap. Undo/Redo vraćaju izmene. Canvas background u More actions bira izgled i boju stranice.
 

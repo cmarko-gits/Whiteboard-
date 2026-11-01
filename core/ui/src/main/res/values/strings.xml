@@ -271,4 +271,8 @@
     <string name="decrease_saturation">Decrease saturation</string>
     <string name="increase_brightness">Increase brightness</string>
     <string name="decrease_brightness">Decrease brightness</string>
+    <string name="eraser_mode">Eraser mode</string>
+    <string name="eraser_whole">Whole stroke</string>
+    <string name="eraser_partial">Partial stroke</string>
+    <string name="edit_limit">This edit is too large. Try a smaller area.</string>
 </resources>

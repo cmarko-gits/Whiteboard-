@@ -114,14 +114,17 @@ data class Page(
     val viewport: Viewport = Viewport()
 ) {
     init {
-        require(elements.size <= 100_000)
+        require(elements.size <= MAX_ELEMENTS)
         require(elements.map { it.id }.distinct().size == elements.size)
         val allIds = elements.flatMap { element ->
             if (element is ElementGroup) listOf(element.id) + element.children.map { it.id } else listOf(element.id)
         }
-        require(elements.sumOf { it.leaves().size } <= 100_000 && allIds.toSet().size == allIds.size)
+        require(elements.sumOf { it.leaves().size } <= MAX_ELEMENTS && allIds.toSet().size == allIds.size)
     }
     val contentBounds get() = elements.map { it.renderBounds }.reduceOrNull(Bounds::union)
+    companion object {
+        const val MAX_ELEMENTS = 100_000
+    }
 }
 
 data class Board(
