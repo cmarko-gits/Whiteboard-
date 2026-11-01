@@ -11,13 +11,17 @@ import org.junit.runner.Description
 /** Keeps the original failure while preserving the disposable emulator UI for diagnosis. */
 class CaptureUiFailure : TestWatcher() {
     override fun failed(error: Throwable, description: Description) {
+        snapshot("failure-${description.methodName}")
+    }
+
+    fun snapshot(label: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-        val name = description.methodName.replace(Regex("[^A-Za-z0-9_-]"), "_")
+        val name = label.replace(Regex("[^A-Za-z0-9_-]"), "_")
         val output = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
         val directory = output?.let(::File) ?: context.getExternalFilesDir(null) ?: return
         directory.mkdirs()
-        runCatching { device.dumpWindowHierarchy(File(directory, "failure-$name.xml")) }
-        runCatching { device.takeScreenshot(File(directory, "failure-$name.png")) }
+        runCatching { device.dumpWindowHierarchy(File(directory, "$name.xml")) }
+        runCatching { device.takeScreenshot(File(directory, "$name.png")) }
     }
 }
