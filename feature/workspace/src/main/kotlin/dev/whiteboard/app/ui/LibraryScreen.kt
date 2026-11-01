@@ -40,6 +40,11 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: WorkspaceViewModel, onSettings: () -> Unit) {
+    val closeKeyboard = rememberInputCloser()
+    val openSettings = {
+        closeKeyboard()
+        onSettings()
+    }
     var section by rememberSaveable { mutableStateOf(0) }
     var search by rememberSaveable { mutableStateOf("") }
     var create by rememberSaveable { mutableStateOf(false) }
@@ -59,7 +64,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
             (selectedFolder == null || section == 2 || it.folderId == selectedFolder) &&
             (search.isBlank() || state.searchQuery == search.trim() && it.id in state.searchMatches)
     }
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().imePadding()) {
         val wide = maxWidth >= 800.dp
         val compact = maxHeight < 700.dp
         Row(Modifier.fillMaxSize()) {
@@ -103,7 +108,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                             true
                     }
                     Spacer(Modifier.weight(1f))
-                    LibraryDestination(stringResource(R.string.settings), Icons.Outlined.Settings, false, onSettings)
+                    LibraryDestination(stringResource(R.string.settings), Icons.Outlined.Settings, false, openSettings)
                     if (!compact) {
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
@@ -135,7 +140,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
-                    if (!wide) IconButton(onClick = onSettings) { Icon(Icons.Outlined.Settings, stringResource(R.string.settings)) }
+                    if (!wide) IconButton(onClick = openSettings) { Icon(Icons.Outlined.Settings, stringResource(R.string.settings)) }
                 }
                 if (!compact) {
                     Text(
@@ -175,6 +180,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                     Spacer(Modifier.width(12.dp))
                     Button(
                         onClick = {
+                            closeKeyboard()
                             create = true
                         },
                         enabled = !state.loading,
@@ -255,7 +261,10 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                         if (section == 0 &&
                             search.isBlank()
                         ) {
-                            TextButton(onClick = { create = true }) { Text(stringResource(R.string.create_first)) }
+                            TextButton(onClick = {
+                                closeKeyboard()
+                                create = true
+                            }) { Text(stringResource(R.string.create_first)) }
                         }
                     }
                 } else {
@@ -279,9 +288,17 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                                 board,
                                 compact = compact,
                                 loadPreview = viewModel::preview,
-                                open = { if (section != 2 && !state.loading) workspace.open(board.id, search.takeIf { it.isNotBlank() }) },
+                                open = {
+                                    if (section != 2 &&
+                                        !state.loading
+                                    ) {
+                                        closeKeyboard()
+                                        workspace.open(board.id, search.takeIf { it.isNotBlank() })
+                                    }
+                                },
                                 favorite = { viewModel.favorite(board) },
                                 rename = {
+                                    closeKeyboard()
                                     rename = board
                                 },
                                 trash = { viewModel.trash(board.id) },

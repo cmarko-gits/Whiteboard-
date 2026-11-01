@@ -31,14 +31,12 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
     var selected by rememberSaveable { mutableStateOf(BoardTemplate.BLANK) }
     val confirmFocus = remember { FocusRequester() }
     val cancelFocus = remember { FocusRequester() }
-    AlertDialog(
+    InputAlertDialog(
         onDismissRequest = dismiss,
         modifier = Modifier.systemBarsPadding().imePadding(),
         properties = DialogProperties(decorFitsSystemWindows = false),
         title = { Text(stringResource(R.string.new_board)) },
-        text = {
-            val focus = LocalFocusManager.current
-            val keyboard = LocalSoftwareKeyboardController.current
+        text = { closeKeyboard ->
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 OutlinedTextField(
                     name,
@@ -47,10 +45,9 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        focus.clearFocus(force = true)
+                        closeKeyboard()
                         // Give keyboard focus a stable destination, including on older Android dialogs.
                         if (name.isNotBlank()) confirmFocus.requestFocus() else cancelFocus.requestFocus()
-                        keyboard?.hide()
                     })
                 )
                 Text(
@@ -70,13 +67,10 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
                 }
             }
         },
-        confirmButton = {
-            val focus = LocalFocusManager.current
-            val keyboard = LocalSoftwareKeyboardController.current
+        confirmButton = { closeKeyboard ->
             TextButton(
                 onClick = {
-                    focus.clearFocus()
-                    keyboard?.hide()
+                    closeKeyboard()
                     create(name.trim(), selected)
                 },
                 enabled = name.isNotBlank(),
@@ -87,8 +81,11 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
                 Text(stringResource(R.string.confirm))
             }
         },
-        dismissButton = {
-            TextButton(onClick = dismiss, modifier = Modifier.focusProperties { canFocus = true }.focusRequester(cancelFocus)) {
+        dismissButton = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }, modifier = Modifier.focusProperties { canFocus = true }.focusRequester(cancelFocus)) {
                 Text(stringResource(R.string.cancel))
             }
         }
