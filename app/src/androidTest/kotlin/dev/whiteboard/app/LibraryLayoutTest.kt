@@ -36,9 +36,10 @@ class LibraryLayoutTest {
     private val originalFontScale = device.executeShellCommand("settings get system font_scale").trim().toFloatOrNull()
     private var fontChanged = false
     private var completed = false
+    private var caseName = "normal"
 
     @After fun cleanup(): Unit = runBlocking {
-        if (!completed) capture.snapshot("library-before-cleanup")
+        if (!completed) capture.snapshot("library-$caseName-before-cleanup")
         if (fontChanged) {
             device.executeShellCommand(
                 originalFontScale?.let { "settings put system font_scale $it" } ?: "settings delete system font_scale"
@@ -65,6 +66,7 @@ class LibraryLayoutTest {
     }
 
     private fun verifyLayout(doubleFont: Boolean): Unit = runBlocking {
+        caseName = if (doubleFont) "double-font" else "normal"
         val prefix = "Layout ${newId()}"
         val board = Board(name = "$prefix long board name")
         owned += board.id
