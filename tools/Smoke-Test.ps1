@@ -125,6 +125,11 @@ try {
         Invoke-Adb shell input swipe ([int]($taskCanvas[2] - 24)) $taskToolY ([int]($taskCanvas[0] + 24)) $taskToolY 350 | Out-Null
         Tap-Ui (Find-Ui -Description 'Shapes')
         Tap-Ui (Find-Ui -Text 'Rectangle')
+        # Synchronize the native canvas/tool update before injecting the next gesture.
+        $taskCanvas = Get-Rect (Find-Ui -Description 'Drawing canvas')
+        $taskWidth = $taskCanvas[2] - $taskCanvas[0]
+        $taskHeight = $taskCanvas[3] - $taskCanvas[1]
+        Write-Output "Creating the rotation rectangle inside canvas [$($taskCanvas -join ',')]."
         Invoke-Adb shell input swipe ([int]($taskCanvas[0] + $taskWidth / 3)) ([int]($taskCanvas[1] + $taskHeight / 4)) ([int]($taskCanvas[0] + $taskWidth * 2 / 3)) ([int]($taskCanvas[1] + $taskHeight * 3 / 4)) 500 | Out-Null
         Find-Ui -Description 'Rectangle' | Out-Null
         Tap-Ui (Find-Ui -Description 'More actions')
