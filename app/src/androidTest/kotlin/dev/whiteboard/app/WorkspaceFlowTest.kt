@@ -22,7 +22,7 @@ class WorkspaceFlowTest {
 
     private fun libraryBoard(name: String): UiObject2 {
         searchTestLibrary(device, name)
-        return text(name)
+        return testBoardCard(device, name)
     }
 
     private fun launchHome() = launchTestLibrary(device)

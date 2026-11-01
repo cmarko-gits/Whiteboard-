@@ -27,9 +27,12 @@ internal fun launchTestLibrary(device: UiDevice) {
 internal fun openTestBoard(device: UiDevice, name: String) {
     checkNotNull(device.wait(Until.findObject(By.desc("New board")), 10_000)) { "Library is not open" }
     searchTestLibrary(device, name)
-    checkNotNull(device.wait(Until.findObject(By.text(name)), 10_000)) { "Missing board: $name" }.click()
+    testBoardCard(device, name).click()
     check(device.wait(Until.hasObject(By.desc("More actions")), 10_000)) { "Editor did not open: $name" }
 }
+
+internal fun testBoardCard(device: UiDevice, name: String) =
+    checkNotNull(device.wait(Until.findObject(By.text(name).clazz("android.widget.TextView")), 10_000)) { "Missing board card: $name" }
 
 internal fun searchTestLibrary(device: UiDevice, query: String) {
     val search = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
