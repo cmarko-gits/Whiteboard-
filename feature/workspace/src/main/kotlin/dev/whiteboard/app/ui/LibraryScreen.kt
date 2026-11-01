@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -259,7 +260,15 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
                     }
                 } else {
                     LazyVerticalGrid(
-                        GridCells.Adaptive(if (wide) 240.dp else 155.dp),
+                        GridCells.Adaptive(
+                            if (compact) {
+                                320.dp
+                            } else if (wide) {
+                                240.dp
+                            } else {
+                                155.dp
+                            }
+                        ),
                         modifier = Modifier.weight(1f).semantics { contentDescription = resultsLabel },
                         contentPadding = PaddingValues(bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -418,10 +427,12 @@ private fun BoardCard(
         }
     }
     val details: @Composable RowScope.() -> Unit = {
-        Column(Modifier.weight(1f).clickable(onClick = open)) {
+        Column(Modifier.weight(1f).heightIn(min = 48.dp).clickable(onClick = open), verticalArrangement = Arrangement.Center) {
             Text(board.name, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
             Text(
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(board.updatedAt)),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -455,16 +466,19 @@ private fun BoardCard(
             }
         }
     }
-    if (compact) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            preview(Modifier.width(92.dp))
-            Spacer(Modifier.width(12.dp))
-            details()
-        }
-    } else {
-        Column {
-            preview(Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, content = details)
+    BoxWithConstraints {
+        val horizontal = compact && maxWidth >= 320.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)
+        if (horizontal) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                preview(Modifier.width(92.dp))
+                Spacer(Modifier.width(12.dp))
+                details()
+            }
+        } else {
+            Column {
+                preview(Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, content = details)
+            }
         }
     }
 }

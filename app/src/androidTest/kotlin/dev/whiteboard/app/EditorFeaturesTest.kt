@@ -39,7 +39,8 @@ class EditorFeaturesTest {
 
     @Test fun openSourceNoticesAreAvailableLocally() {
         home()
-        control("Settings").click()
+        // Wide libraries expose a labeled navigation destination instead of the phone icon.
+        (device.findObject(By.desc("Settings")) ?: text("Settings")).click()
         val scroll = checkNotNull(device.wait(Until.findObject(By.scrollable(true)), 5_000))
         repeat(3) { if (!device.hasObject(By.text("Open source licenses"))) scroll.scroll(Direction.DOWN, 1f) }
         text("Open source licenses").click()
