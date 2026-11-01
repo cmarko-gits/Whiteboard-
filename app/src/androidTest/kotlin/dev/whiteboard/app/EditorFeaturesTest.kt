@@ -32,7 +32,8 @@ class EditorFeaturesTest {
     private val repository = LocalBoardRepository(database)
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private fun text(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
-    private fun control(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
+    private fun control(value: String): UiObject2 =
+        checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
     private fun home() {
         context.startActivity(
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
