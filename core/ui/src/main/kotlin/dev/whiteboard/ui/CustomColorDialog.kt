@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -168,32 +170,6 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
         if (saved != favorites) saveFavorites(saved)
         submit(selected)
     }
-    val currentCommit by rememberUpdatedState(commit)
-    val currentDismiss by rememberUpdatedState(dismiss)
-    val currentValid by rememberUpdatedState(valid)
-    // Preserve the focused button when hiding the IME moves actions from the input row to the footer.
-    val actions = remember {
-        movableContentOf {
-            TextButton(
-                onClick = { currentDismiss() },
-                modifier = Modifier.focusProperties {
-                    canFocus = true
-                }.focusRequester(cancelFocus)
-            ) {
-                Text(stringResource(R.string.cancel))
-            }
-            Spacer(Modifier.width(8.dp))
-            TextButton(
-                onClick = { currentCommit() },
-                enabled = currentValid,
-                modifier = Modifier.focusProperties {
-                    canFocus = currentValid
-                }.focusRequester(applyFocus)
-            ) {
-                Text(stringResource(R.string.apply))
-            }
-        }
-    }
     Dialog(
         onDismissRequest = dismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -212,35 +188,91 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         Text(stringResource(R.string.custom_color), style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(12.dp))
                     }
-                    // Keep the input in the same composition slot while the IME changes the available space.
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { hexInput(!inlineActions) }
-                        if (inlineActions) {
+                    ColorDialogContents(
+                        compact = inlineActions,
+                        input = { hexInput(!inlineActions) },
+                        actions = {
+                            TextButton(
+                                onClick = dismiss,
+                                modifier = Modifier.weight(1f, fill = false).focusProperties {
+                                    canFocus = true
+                                }.focusRequester(cancelFocus)
+                            ) { Text(stringResource(R.string.cancel)) }
                             Spacer(Modifier.width(8.dp))
-                            actions()
-                        }
-                    }
-                    if (!inlineActions) {
-                        Spacer(Modifier.height(12.dp))
-                        BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
-                            if (compact && maxWidth >= 360.dp) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                    Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { visual() }
-                                    Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { details() }
-                                }
-                            } else {
-                                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    visual()
-                                    details()
+                            TextButton(
+                                onClick = commit,
+                                enabled = valid,
+                                modifier = Modifier.weight(1f, fill = false).focusProperties {
+                                    canFocus = valid
+                                }.focusRequester(applyFocus)
+                            ) { Text(stringResource(R.string.apply)) }
+                        },
+                        body = {
+                            if (!inlineActions) {
+                                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                    if (compact && maxWidth >= 360.dp) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                            Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { visual() }
+                                            Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { details() }
+                                        }
+                                    } else {
+                                        Column(
+                                            Modifier.verticalScroll(rememberScrollState()),
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            visual()
+                                            details()
+                                        }
+                                    }
                                 }
                             }
                         }
-                        Spacer(Modifier.height(12.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            actions()
-                        }
-                    }
+                    )
                 }
+            }
+        }
+    }
+}
+
+/** The input and action row keep the same parents while IME insets change their placement. */
+@Composable
+private fun ColorDialogContents(
+    compact: Boolean,
+    input: @Composable () -> Unit,
+    actions: @Composable RowScope.() -> Unit,
+    body: @Composable () -> Unit
+) {
+    Layout(content = {
+        Box(Modifier.fillMaxWidth()) { input() }
+        Row(verticalAlignment = Alignment.CenterVertically, content = actions)
+        Box(Modifier.fillMaxWidth()) { body() }
+    }) { items, constraints ->
+        val width = constraints.maxWidth
+        val height = constraints.maxHeight
+        val sideBySide = compact && width >= 320.dp.roundToPx()
+        if (sideBySide) {
+            val gap = 8.dp.roundToPx().coerceAtMost(width)
+            val buttons = items[1].measure(Constraints(maxWidth = (width * 0.6f).toInt(), maxHeight = height))
+            val field = items[0].measure(Constraints(maxWidth = (width - buttons.width - gap).coerceAtLeast(0), maxHeight = height))
+            val hidden = items[2].measure(Constraints.fixed(0, 0))
+            val measuredHeight = maxOf(field.height, buttons.height).coerceIn(constraints.minHeight, height)
+            layout(width, measuredHeight) {
+                field.placeRelative(0, (measuredHeight - field.height) / 2)
+                buttons.placeRelative(width - buttons.width, (measuredHeight - buttons.height) / 2)
+                hidden.placeRelative(0, 0)
+            }
+        } else {
+            val gap = 12.dp.roundToPx()
+            val buttons = items[1].measure(Constraints(maxWidth = width, maxHeight = height))
+            val field = items[0].measure(Constraints(maxWidth = width, maxHeight = (height - buttons.height - gap).coerceAtLeast(0)))
+            val remaining = (height - field.height - buttons.height - 2 * gap).coerceAtLeast(0)
+            val content = items[2].measure(Constraints(maxWidth = width, maxHeight = remaining))
+            val gaps = if (content.height > 0) 2 * gap else gap
+            val measuredHeight = (field.height + content.height + buttons.height + gaps).coerceIn(constraints.minHeight, height)
+            layout(width, measuredHeight) {
+                field.placeRelative(0, 0)
+                content.placeRelative(0, field.height + gap)
+                buttons.placeRelative(width - buttons.width, (measuredHeight - buttons.height).coerceAtLeast(0))
             }
         }
     }
