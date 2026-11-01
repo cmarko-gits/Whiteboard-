@@ -3,6 +3,7 @@ param(
     [string] $DeviceSerial = 'emulator-5554',
     [string] $Package = 'dev.whiteboard.app.debug',
     [string] $ApkPath,
+    [switch] $CheckRotation,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -116,6 +117,42 @@ try {
     $taskHeight = $taskCanvas[3] - $taskCanvas[1]
     Invoke-Adb shell input swipe ([int]($taskCanvas[0] + $taskWidth / 4)) ([int]($taskCanvas[1] + $taskHeight / 3)) ([int]($taskCanvas[0] + $taskWidth * 3 / 4)) ([int]($taskCanvas[1] + $taskHeight / 2)) 700 | Out-Null
     Find-Ui -Text 'Unsaved changes' | Out-Null
+    if ($CheckRotation) {
+        Write-Output 'Checking arbitrary object rotation in the optimized installed package.'
+        $taskPen = Get-Rect (Find-Ui -Description 'Pen')
+        $taskToolY = [int](($taskPen[1] + $taskPen[3]) / 2)
+        # Reach the shape palette by scrolling its own toolbar; the tablet may need no scroll.
+        Invoke-Adb shell input swipe ([int]($taskCanvas[2] - 24)) $taskToolY ([int]($taskCanvas[0] + 24)) $taskToolY 350 | Out-Null
+        Tap-Ui (Find-Ui -Description 'Shapes')
+        Tap-Ui (Find-Ui -Text 'Rectangle')
+        Invoke-Adb shell input swipe ([int]($taskCanvas[0] + $taskWidth / 3)) ([int]($taskCanvas[1] + $taskHeight / 4)) ([int]($taskCanvas[0] + $taskWidth * 2 / 3)) ([int]($taskCanvas[1] + $taskHeight * 3 / 4)) 500 | Out-Null
+        Find-Ui -Description 'Rectangle' | Out-Null
+        Tap-Ui (Find-Ui -Description 'More actions')
+        Tap-Ui (Find-Ui -Text 'Select all objects')
+        $taskOriginalRectangle = Get-Rect (Find-Ui -Description 'Rectangle')
+        Tap-Ui (Find-Ui -Description 'Rotate selection')
+        Tap-Ui (Find-Ui -Class 'android.widget.EditText')
+        Wait-Keyboard
+        Invoke-Adb shell input keyevent 123 67 67 | Out-Null
+        Invoke-Adb shell input text 45 | Out-Null
+        Find-Ui -Text '45' -Class 'android.widget.EditText' | Out-Null
+        Tap-Ui (Find-Ui -Text 'Apply')
+        Wait-Keyboard $false
+        $taskRotatedRectangle = Get-Rect (Find-Ui -Description 'Rectangle')
+        if (($taskRotatedRectangle[2] - $taskRotatedRectangle[0]) -eq ($taskOriginalRectangle[2] - $taskOriginalRectangle[0]) -and
+            ($taskRotatedRectangle[3] - $taskRotatedRectangle[1]) -eq ($taskOriginalRectangle[3] - $taskOriginalRectangle[1])) {
+            throw 'The rectangle bounds did not change after a 45-degree rotation.'
+        }
+        Capture 'release-rotated-objects'
+        Tap-Ui (Find-Ui -Description 'Undo')
+        if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne ($taskOriginalRectangle -join ',')) {
+            throw 'Undo did not restore the rectangle bounds in the optimized package.'
+        }
+        Tap-Ui (Find-Ui -Description 'Redo')
+        if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne ($taskRotatedRectangle -join ',')) {
+            throw 'Redo did not restore the rotated rectangle bounds in the optimized package.'
+        }
+    }
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null
     Invoke-Adb shell am start -f 0x10008000 -n "$Package/dev.whiteboard.app.MainActivity" | Out-Null
@@ -125,12 +162,17 @@ try {
     Tap-Ui (Find-Ui -Text 'Recover')
     Find-Ui -Text 'Unsaved changes' | Out-Null
     if (@(Get-Ui | Where-Object text -eq 'Make room for an idea.').Count -gt 0) { throw 'Recovered canvas was empty' }
+    if ($CheckRotation) { Find-Ui -Description 'Rectangle' | Out-Null }
     Capture 'recovered-editor'
     Tap-Ui (Find-Ui -Description 'Back to boards')
     Tap-Ui (Find-Ui -Text 'Save and close')
     Find-Ui -Description 'New board' | Out-Null
     Tap-Ui (Find-Ui -Text $taskName)
     Find-Ui -Text 'Saved on this device' | Out-Null
+    if ($CheckRotation) {
+        Find-Ui -Description 'Rectangle' | Out-Null
+        Write-Output 'PASS: optimized rotation, Undo/Redo, recovery and saved reopen.'
+    }
     Tap-Ui (Find-Ui -Description 'Back to boards')
     Capture 'phone-library'
     if ($SkipAdaptiveResize) {
