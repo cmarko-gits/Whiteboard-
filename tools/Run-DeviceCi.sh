@@ -2,6 +2,24 @@
 # Preserve the original test exit status while collecting diagnostics before the runner stops its emulator.
 set -uo pipefail
 
+mkdir -p artifacts
+{
+  echo "Profile: ${WHITEBOARD_CI_PROFILE:-pixel_2}"
+  adb shell wm size
+  adb shell wm density
+  adb shell getprop ro.product.model
+} > artifacts/device-profile.txt
+if [[ "${WHITEBOARD_CI_PROFILE:-}" == pixel_c ]]; then
+  size=$(adb shell wm size | sed -n 's/Physical size: //p' | tr -d '\r')
+  density=$(adb shell wm density | sed -n 's/Physical density: //p' | tr -d '\r')
+  IFS=x read -r width height <<< "$size"
+  if [[ ! "$width" =~ ^[0-9]+$ || ! "$height" =~ ^[0-9]+$ || ! "$density" =~ ^[1-9][0-9]*$ ]] ||
+    ((width * 160 / density < 800 || height * 160 / density < 800)); then
+    echo "The tablet profile did not provide an actual large display." >&2
+    exit 1
+  fi
+fi
+
 run_release_smoke() {
   bash ./gradlew :app:assembleRelease -Pwhiteboard.leakDetection=false \
     -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --no-parallel --console=plain || return $?
@@ -19,8 +37,12 @@ run_release_smoke() {
     --out "$signed" "$unsigned" || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
   sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
+  local -a smoke_options=()
+  # API 26 touch injection after a runtime density override is unreliable. Its tablet
+  # coverage uses a separate real AVD profile; modern API 36 retains all resize cases.
+  if [[ "$api" == 26 ]]; then smoke_options+=(-SkipAdaptiveResize); fi
   pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
-    -Package dev.whiteboard.app -ApkPath "$signed" 2>&1 | tee artifacts/device-release/smoke.log
+    -Package dev.whiteboard.app -ApkPath "$signed" "${smoke_options[@]}" 2>&1 | tee artifacts/device-release/smoke.log
 }
 
 if bash ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest \

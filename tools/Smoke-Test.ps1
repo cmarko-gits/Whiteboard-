@@ -3,6 +3,7 @@ param(
     [string] $DeviceSerial = 'emulator-5554',
     [string] $Package = 'dev.whiteboard.app.debug',
     [string] $ApkPath,
+    [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
 $ErrorActionPreference = 'Stop'
@@ -128,6 +129,10 @@ try {
     Find-Ui -Text 'Saved on this device' | Out-Null
     Tap-Ui (Find-Ui -Description 'Back to boards')
     Capture 'phone-library'
+    if ($SkipAdaptiveResize) {
+        Write-Output 'PASS: keyboard, color input, recovery, Save and reopen on the configured device profile. Runtime DPI/tablet resizing was explicitly skipped.'
+        return
+    }
     Write-Output 'Checking adaptive tablet layout.'
     Invoke-Adb shell wm size 1600x2560 | Out-Null
     Invoke-Adb shell wm density 180 | Out-Null
