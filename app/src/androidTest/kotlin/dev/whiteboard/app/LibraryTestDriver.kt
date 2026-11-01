@@ -39,6 +39,16 @@ internal fun testDialogField(device: UiDevice, label: String) = checkNotNull(
     device.wait(Until.findObject(By.clazz("android.widget.EditText").hasDescendant(By.text(label))), 10_000)
 ) { "Missing labeled dialog input: $label" }
 
+/** Observe only; do not press Back and hide an application's input-session regression. */
+internal fun awaitTestKeyboardHidden(device: UiDevice) {
+    val shown = Regex("\\bmInputShown=true\\b")
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (shown.containsMatchIn(device.executeShellCommand("dumpsys input_method")) && SystemClock.uptimeMillis() < deadline) {
+        SystemClock.sleep(50)
+    }
+    check(!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) { "Application keyboard did not close" }
+}
+
 internal fun searchTestLibrary(device: UiDevice, query: String) {
     val search = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
     search.text = query

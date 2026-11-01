@@ -63,6 +63,7 @@ class RotationFlowTest {
         assertTrue(device.wait(Until.hasObject(By.clazz("android.widget.EditText").text("45")), 5_000))
         text("Apply").click()
         assertTrue(device.wait(Until.gone(By.text("Angle in degrees")), 10_000))
+        awaitTestKeyboardHidden(device)
         text("Unsaved changes")
         save()
         val rotated = repository.load(board.id).activePage

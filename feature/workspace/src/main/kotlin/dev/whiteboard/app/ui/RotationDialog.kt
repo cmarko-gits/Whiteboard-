@@ -12,8 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -30,12 +28,17 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
     val degrees = angle.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() && abs(it) <= 36_000 }
     val applyFocus = remember { FocusRequester() }
     val cancelFocus = remember { FocusRequester() }
-    LaunchedEffect(sequence) { if (sequence != initialSequence) dismiss() }
     InputDialog({
         if (!busy) dismiss()
     }) { closeKeyboard ->
-        val focus = LocalFocusManager.current
-        val keyboard = LocalSoftwareKeyboardController.current
+        LaunchedEffect(sequence) {
+            if (sequence != initialSequence) {
+                // Close the dialog's current input session after the busy-state transition,
+                // while its window token is still attached, before removing the dialog.
+                closeKeyboard()
+                dismiss()
+            }
+        }
         BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
             val compact = maxHeight < 240.dp
             Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
@@ -65,9 +68,8 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = {
                                     if (!busy) {
-                                        focus.clearFocus(force = true)
+                                        closeKeyboard()
                                         if (degrees != null) applyFocus.requestFocus() else cancelFocus.requestFocus()
-                                        keyboard?.hide()
                                     }
                                 })
                             )
