@@ -172,7 +172,12 @@ class MediaInstrumentedTest {
                     val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
                     try {
                         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        assertEquals(Color.RED, bitmap.getPixel(bitmap.width / 2, bitmap.height / 2))
+                        val center = bitmap.getPixel(bitmap.width / 2, bitmap.height / 2)
+                        // The framework PDF rasterizer returned red=253 for the solid red fixture
+                        // on API 26. Permit only a small per-channel rasterization difference.
+                        assertEquals(255, Color.alpha(center))
+                        assertTrue("Expected a red PDF center, got ${Integer.toHexString(center)}", Color.red(center) >= 252)
+                        assertTrue(Color.green(center) <= 3 && Color.blue(center) <= 3)
                     } finally {
                         bitmap.recycle()
                     }
