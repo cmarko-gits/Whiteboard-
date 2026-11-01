@@ -19,7 +19,11 @@ data class MediaElement(
         require(rotation in 0..359)
         require(crop.left >= 0 && crop.top >= 0 && crop.right <= 1 && crop.bottom <= 1 && crop.width > 0 && crop.height > 0)
     }
-    override fun transform(target: Bounds) = copy(bounds = target)
+    override fun transform(target: Bounds): Element = if (rotation == 0) {
+        copy(bounds = target)
+    } else {
+        AffineElement.fromDocument(this).transform(target)
+    }
     override fun duplicate() = copy(id = newId())
     fun cropped(target: Bounds): MediaElement {
         val localX = bounds.left + ((target.left + target.right) / 2 - crop.left) / crop.width * bounds.width

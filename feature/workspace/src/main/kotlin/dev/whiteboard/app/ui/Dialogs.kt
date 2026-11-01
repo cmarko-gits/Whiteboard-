@@ -59,7 +59,7 @@ fun TextEditorDialog(
     favoriteColors: List<Int>,
     saveFavorites: (List<Int>) -> Unit
 ) {
-    val existing = request.existing
+    val existing = request.existing?.content()
     var text by rememberSaveable(request) {
         mutableStateOf(
             when (existing) {

@@ -28,6 +28,10 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
     Box {
         IconButton(onClick = { expanded = true }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
         DropdownMenu(expanded, { expanded = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.rotate)) }, onClick = {
+                expanded = false
+                viewModel.rotateSelected()
+            })
             DropdownMenuItem(text = { Text(stringResource(R.string.group)) }, enabled = editor.selectedIds.size > 1, onClick = {
                 expanded = false
                 viewModel.groupSelected()
@@ -59,7 +63,7 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.properties)) },
                 enabled = editor.page.elements.filter { it.id in editor.selectedIds }.flatMap { it.leaves() }
-                    .any { it is Stroke || it is Shape || it is Line },
+                    .map { it.content() }.any { it is Stroke || it is Shape || it is Line },
                 onClick = {
                     expanded = false
                     onProperties()

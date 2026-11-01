@@ -108,7 +108,7 @@ internal class CanvasAccessibility(
                 host.context.getString(R.string.canvas_select)
             )
         )
-        if (element is TextElement || element is Note) {
+        if (element.content() is TextElement || element.content() is Note) {
             node.isLongClickable = true
             node.addAction(
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat(
@@ -196,6 +196,7 @@ internal class CanvasAccessibility(
 
 /** Shared spoken labels for native virtual nodes and the complete Compose object navigator. */
 fun describeCanvasElement(context: Context, element: Element): String = when (element) {
+    is AffineElement -> describeCanvasElement(context, element.source)
     is Note -> context.getString(R.string.canvas_note, element.text.take(160))
     is TextElement -> context.getString(R.string.canvas_text, element.text.take(160))
     is Stroke -> context.getString(R.string.canvas_stroke)

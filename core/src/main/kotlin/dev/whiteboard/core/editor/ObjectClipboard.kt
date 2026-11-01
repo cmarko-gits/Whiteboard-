@@ -17,7 +17,7 @@ class ObjectClipboard {
         pasteCount = pasteCount % 20 + 1
         val offset = 24f * pasteCount
         return elements.map { element ->
-            val bounds = element.bounds
+            val bounds = element.selectionBounds
             element.duplicate().transform(Bounds(bounds.left + offset, bounds.top + offset, bounds.right + offset, bounds.bottom + offset))
         }
     }

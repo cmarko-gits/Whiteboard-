@@ -15,6 +15,13 @@ data class AffineTransform2D(
 ) {
     private val determinant = xx * yy - xy * yx
 
+    override fun equals(other: Any?): Boolean = other is AffineTransform2D &&
+        xx == other.xx && xy == other.xy && tx == other.tx && yx == other.yx && yy == other.yy && ty == other.ty
+
+    override fun hashCode(): Int = listOf(xx, xy, tx, yx, yy, ty).fold(1) { result, value ->
+        31 * result + if (value == 0.0) 0 else value.hashCode()
+    }
+
     init {
         require(listOf(xx, xy, yx, yy).all { it.isFinite() && abs(it) <= MAX_LINEAR })
         require(listOf(tx, ty).all { it.isFinite() && abs(it) <= MAX_TRANSLATION })
@@ -42,6 +49,17 @@ data class AffineTransform2D(
         val x = point.x - tx
         val y = point.y - ty
         return Point(((yy * x - xy * y) / determinant).toFloat(), ((xx * y - yx * x) / determinant).toFloat())
+    }
+
+    val inverseMaxScale: Double by lazy {
+        val a = yy / determinant
+        val b = -xy / determinant
+        val c = -yx / determinant
+        val d = xx / determinant
+        val first = a * a + c * c
+        val second = b * b + d * d
+        val cross = a * b + c * d
+        kotlin.math.sqrt((first + second + kotlin.math.sqrt((first - second) * (first - second) + 4 * cross * cross)) / 2)
     }
 
     /** Axis-aligned extent for culling/selection, not a substitute for inverse hit-testing. */

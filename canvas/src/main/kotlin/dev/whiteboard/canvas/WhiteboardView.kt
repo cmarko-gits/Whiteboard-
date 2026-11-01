@@ -256,8 +256,9 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         when (action) {
             AccessibilityNodeInfoCompat.ACTION_CLICK -> onEvent(CanvasEvent.Select(setOf(element.id)))
             AccessibilityNodeInfoCompat.ACTION_LONG_CLICK -> {
-                if (element !is Note && element !is TextElement) return false
-                onEvent(CanvasEvent.EditText(element.bounds.center, element, element is Note))
+                val content = element.content()
+                if (content !is Note && content !is TextElement) return false
+                onEvent(CanvasEvent.EditText(element.bounds.center, element, content is Note))
             }
             R.id.canvas_delete -> onEvent(CanvasEvent.Delete(setOf(element.id)))
             else -> {
@@ -369,7 +370,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         preview?.let { renderer.drawElement(canvas, it) }
         selectionPreview.forEach { renderer.drawElement(canvas, it) }
         val selected = selectionPreview.ifEmpty { page.elements.filter { it.id in selectedIds } }
-        val selectedBounds = selected.map { it.bounds }.reduceOrNull(Bounds::union)
+        val selectedBounds = selected.map { it.selectionBounds }.reduceOrNull(Bounds::union)
         (selectionArea ?: selectedBounds)?.let {
             val b = it.expand(6 * density / viewport.scale)
             selectionPaint.color = 0xFF40836C.toInt()
@@ -388,7 +389,21 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvasAccessibility?.drawFocus(canvas)
     }
 
-    override fun onTouchEvent(event: MotionEvent): Boolean {
+    override fun onTouchEvent(event: MotionEvent): Boolean = try {
+        handleTouch(event)
+    } catch (error: DocumentFailure) {
+        clearGesture()
+        onEvent(CanvasEvent.Rejected(error.error))
+        invalidate()
+        true
+    } catch (_: IllegalArgumentException) {
+        clearGesture()
+        onEvent(CanvasEvent.Rejected(DocumentError.EDIT_LIMIT))
+        invalidate()
+        true
+    }
+
+    private fun handleTouch(event: MotionEvent): Boolean {
         parent?.requestDisallowInterceptTouchEvent(true)
         if (!stylus) scaleDetector.onTouchEvent(event)
         when (event.actionMasked) {
@@ -411,7 +426,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     Tool.ERASER -> erase(point)
                     Tool.SELECT -> {
                         val current = page.elements.filter { it.id in selectedIds }
-                        val handle = current.map { it.bounds }.reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
+                        val handle = current.map { it.selectionBounds }.reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
                         resizing = handle != null && hypot(point.x - handle.right, point.y - handle.bottom) < 22 * density / viewport.scale
                         val hit = page.elements.lastOrNull { it.hitTest(point, 12 * density / viewport.scale) }
                         dragOriginal = when {
@@ -426,7 +441,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             viewport.toDocument(Point(width.toFloat(), height.toFloat()))
                         )
                         snapCandidates =
-                            page.elements.filter { it.id !in ids && it.renderBounds.intersects(visible) }.map { it.bounds }
+                            page.elements.filter { it.id !in ids && it.renderBounds.intersects(visible) }.map { it.selectionBounds }
                         onEvent(CanvasEvent.Select(ids))
                     }
                     else -> Unit
@@ -474,7 +489,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                         if (original.isEmpty()) {
                             selectionArea = Bounds.between(origin, point)
                         } else {
-                            val b = original.map { it.bounds }.reduce(Bounds::union)
+                            val b = original.map { it.selectionBounds }.reduce(Bounds::union)
                             val target = if (resizing) {
                                 Bounds(b.left, b.top, max(b.left + 24f, point.x), max(b.top + 24f, point.y))
                             } else {
@@ -496,7 +511,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             guideY = snapped?.guideY
                             val final = snapped?.bounds ?: target
                             selectionPreview = original.map { element ->
-                                val bounds = element.bounds
+                                val bounds = element.selectionBounds
                                 val topLeft = Point(bounds.left, bounds.top).remap(b, final)
                                 val bottomRight = Point(bounds.right, bounds.bottom).remap(b, final)
                                 element.transform(Bounds.between(topLeft, bottomRight))
@@ -610,8 +625,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     onEvent(CanvasEvent.Select(page.elements.filter { it.renderBounds.intersects(area) }.map { it.id }.toSet()))
                 }
                 val single = dragOriginal.singleOrNull()
-                if (selectionPreview.isEmpty() && (single is TextElement || single is Note)) {
-                    down?.let { onEvent(CanvasEvent.EditText(it, single, single is Note)) }
+                if (selectionPreview.isEmpty() && (single?.content() is TextElement || single?.content() is Note)) {
+                    down?.let { onEvent(CanvasEvent.EditText(it, single, single?.content() is Note)) }
                 }
             }
             Tool.TEXT, Tool.NOTE -> down?.let { onEvent(CanvasEvent.EditText(it, note = tool == Tool.NOTE)) }

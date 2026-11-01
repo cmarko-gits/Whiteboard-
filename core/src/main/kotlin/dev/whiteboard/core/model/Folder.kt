@@ -37,7 +37,7 @@ fun Board.searchableText(): String = buildString {
     pages.forEach { page ->
         append('\n')
         append(page.name)
-        page.elements.flatMap { it.leaves() }.forEach { element ->
+        page.elements.flatMap { it.leaves() }.map { it.content() }.forEach { element ->
             when (element) {
                 is TextElement -> {
                     append('\n')

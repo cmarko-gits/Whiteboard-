@@ -89,6 +89,12 @@ class DocumentCodec {
         put("id", element.id)
         put("bounds", JSONArray(listOf(element.bounds.left, element.bounds.top, element.bounds.right, element.bounds.bottom)))
         when (element) {
+            is AffineElement -> {
+                put("type", "affine")
+                put("source", encodeElement(element.source))
+                val p = element.placement
+                put("placement", JSONArray(listOf(p.xx, p.xy, p.tx, p.yx, p.yy, p.ty)))
+            }
             is ElementGroup -> {
                 put("type", "group")
                 put("children", JSONArray().apply { element.children.forEach { put(encodeElement(it)) } })
@@ -136,11 +142,21 @@ class DocumentCodec {
             }
         }
     }
-    private fun decodeElement(root: JSONObject): Element {
+    private fun decodeElement(root: JSONObject, validateRenderBounds: Boolean = true): Element {
         val id = root.getString("id")
         val b = root.getJSONArray("bounds")
         val bounds = Bounds(b.getDouble(0).toFloat(), b.getDouble(1).toFloat(), b.getDouble(2).toFloat(), b.getDouble(3).toFloat())
         return when (val type = root.getString("type")) {
+            "affine" -> {
+                val source = root.getJSONObject("source")
+                require(source.getString("type") in setOf("shape", "text", "note", "media"))
+                val p = root.getJSONArray("placement")
+                require(p.length() == 6 && source.getString("id") == id)
+                AffineElement(
+                    decodeElement(source, validateRenderBounds = false),
+                    AffineTransform2D(p.getDouble(0), p.getDouble(1), p.getDouble(2), p.getDouble(3), p.getDouble(4), p.getDouble(5))
+                )
+            }
             "group" -> {
                 val children = root.getJSONArray("children")
                 require(children.length() in 2..100_000)
@@ -202,7 +218,7 @@ class DocumentCodec {
             )
             "note" -> Note(id, bounds, root.getString("text"), root.getInt("color"), root.float("fontSize"))
             else -> throw IllegalArgumentException("Unknown object type: $type")
-        }.also { it.renderBounds }
+        }.also { if (validateRenderBounds) it.renderBounds }
     }
     private fun encodeStyle(style: InkStyle) = JSONObject().apply {
         put("color", style.color)
@@ -217,7 +233,7 @@ class DocumentCodec {
     private fun JSONArray.point() = Point(getDouble(0).toFloat(), getDouble(1).toFloat())
     private fun JSONObject.optionalString(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val MAX_DOCUMENT_CHARACTERS = 64 * 1024 * 1024
     }
 }

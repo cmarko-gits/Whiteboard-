@@ -275,4 +275,10 @@
     <string name="eraser_whole">Whole stroke</string>
     <string name="eraser_partial">Partial stroke</string>
     <string name="edit_limit">This edit is too large. Try a smaller area.</string>
+    <string name="rotate_selection">Rotate selection</string>
+    <string name="rotation_degrees">Angle in degrees</string>
+    <string name="rotation_help">Rotate around the selection center. Positive angles turn clockwise. Resizing transformed content scales its appearance.</string>
+    <string name="rotation_invalid">Enter an angle between -36000 and 36000 degrees.</string>
+    <string name="rotating">Rotating…</string>
+    <string name="rotation_changed">The page changed during rotation. Try again.</string>
 </resources>

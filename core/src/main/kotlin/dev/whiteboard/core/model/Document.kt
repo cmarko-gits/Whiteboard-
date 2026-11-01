@@ -163,6 +163,10 @@ data class BoardSummary(
 fun Element.hitTest(point: Point, tolerance: Float): Boolean {
     if (!renderBounds.contains(point, tolerance)) return false
     return when (this) {
+        is AffineElement -> {
+            val localTolerance = tolerance * placement.inverseMaxScale.toFloat()
+            source.hitTest(placement.unmap(point), localTolerance)
+        }
         is ElementGroup -> children.any { it.hitTest(point, tolerance) }
         is Stroke -> {
             if (points.size == 1) {
@@ -178,28 +182,29 @@ fun Element.hitTest(point: Point, tolerance: Float): Boolean {
                 hit
             }
         }
-        is Line -> distanceToSegment(point, start, end) <= tolerance + style.width / 2
-        is Shape -> when (kind) {
-            Tool.CIRCLE, Tool.ELLIPSE -> {
-                val rx = bounds.width / 2 + tolerance
-                val ry = bounds.height / 2 + tolerance
-                if (rx <= 0 || ry <= 0) {
-                    false
-                } else {
-                    val dx = (point.x - bounds.center.x) / rx
-                    val dy = (point.y - bounds.center.y) / ry
-                    dx * dx + dy * dy <= 1
-                }
-            }
-            Tool.DIAMOND -> abs(point.x - bounds.center.x) / (bounds.width / 2 + tolerance).coerceAtLeast(0.1f) +
-                abs(point.y - bounds.center.y) / (bounds.height / 2 + tolerance).coerceAtLeast(0.1f) <= 1
-            else -> true
+        is Line -> {
+            val radius = tolerance + style.width / 2
+            distanceToSegment(point, start, end) <= radius || arrowhead()?.let { (first, second) ->
+                distanceToSegment(point, first, end) <= radius || distanceToSegment(point, end, second) <= radius
+            } == true
+        }
+        is Shape -> containsShape(point, tolerance + style.width / 2)
+        is MediaElement -> {
+            val local = if (rotation == 0) point else AffineTransform2D.rotation(rotation.toDouble(), bounds.center).unmap(point)
+            bounds.contains(local, tolerance)
         }
         else -> true
     }
 }
 
+val Element.selectionBounds: Bounds get() = when (this) {
+    is ElementGroup -> children.map { it.selectionBounds }.reduce(Bounds::union)
+    is MediaElement -> rotatedBounds
+    else -> bounds
+}
+
 val Element.renderBounds: Bounds get() = when (this) {
+    is AffineElement -> if (source is Shape) bounds.expand(source.style.width / 2) else bounds
     is ElementGroup -> children.map { it.renderBounds }.reduce(Bounds::union)
     is MediaElement -> rotatedBounds
     is Shape -> bounds.expand(style.width / 2)
@@ -208,6 +213,7 @@ val Element.renderBounds: Bounds get() = when (this) {
 }
 
 fun Element.estimatedBytes(): Long = when (this) {
+    is AffineElement -> 128L + source.estimatedBytes()
     is ElementGroup -> 128L + children.sumOf { it.estimatedBytes() }
     is Stroke -> 128L + points.size * 24L
     is TextElement -> 128L + text.length * 2L

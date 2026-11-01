@@ -14,7 +14,7 @@ fun Board.firstTextMatch(query: String?): BoardMatch? {
     pages.forEach { page ->
         if (normalizeForSearch(page.name).contains(key)) return BoardMatch(page.id)
         page.elements.forEach { element ->
-            val text = element.leaves().joinToString("\n") {
+            val text = element.leaves().map { it.content() }.joinToString("\n") {
                 when (it) {
                     is TextElement -> it.text
                     is Note -> it.text

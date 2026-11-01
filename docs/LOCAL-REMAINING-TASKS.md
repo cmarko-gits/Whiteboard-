@@ -21,8 +21,8 @@ Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih fu
 
 Ovo je proširenje sadašnjeg lokalnog obima. Za svaku uvedenu funkciju podrazumevaju se domenski model/komande, UI, pristupačnost, čuvanje, format/migracije kada su potrebni i odgovarajući testovi.
 
-- [ ] F01 U toku na codex/partial-eraser (0.5.0). Implementirani parcijalni rez, izbor režima, čuvanje podešavanja i atomski Undo/Redo; 24 nova JVM test prolazi. Devet native-input i jedan UI/save/PNG Android test su napisani, izvršavanje još nije potvrđeno. Kriterijumi i dokazi: PARTIAL-ERASER.md. Prethodni APK 0.4.1 ima samo brisanje celog poteza.
-- [ ] F02 Proizvoljna rotacija vektorskih objekata i grupa, sa tačnom selekcijom/hit-testom i izvozom. Za medije dopuniti UI za ugao; sadašnja akcija rotira za 90°, iako model medija podržava širi opseg.
+- [ ] F01 U toku na codex/partial-eraser (0.5.1/code 7). Implementirani parcijalni rez, izbor režima, čuvanje podešavanja i atomski Undo/Redo; 24 nova JVM testa prolaze. Native-input i UI/save/PNG testovi prolazili su na CI uređajima; poslednje zajedničke ispravke tastature zahtevaju završenu novu matricu (run 41341043323, source 550bd93). Verify je prošao; device rezultati su u toku. Kriterijumi i dokazi: PARTIAL-ERASER.md. Prethodni APK 0.4.1 ima samo brisanje celog poteza.
+- [ ] F02 Implementacija 0.6.0/code 8 na codex/object-rotation: proizvoljna relativna rotacija objekata/grupa, afinni okvir, tačan Fill/picking, Undo/Redo, čuvanje formata 4 i renderer/izvoz. Napisani novi domenski/format/Android testovi još zahtevaju CI izvršenje; funkcija nije kvalifikovana. Odluke i kriterijumi: OBJECT-ROTATION-DESIGN.md.
 - [ ] F03 Pomeranje objekta jedan nivo napred/nazad. Bring to Front/Send to Back već postoje.
 - [ ] F04 Eksplicitno poravnanje više izabranih objekata po ivicama i centrima. Automatski Snap/guide već postoji; ravnomerna raspodela razmaka može biti dodatni deo ove funkcije.
 - [ ] F05 Pametni konektori vezani za ID-jeve i tačke objekata, koji prate move/resize, pravilno se kopiraju i reaguju na brisanje/Undo. Sadašnje strelice su nezavisne linije.

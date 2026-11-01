@@ -6,6 +6,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.editor.ObjectClipboard
+import dev.whiteboard.core.editor.ObjectRotation
 import dev.whiteboard.core.editor.SmartShapeRecognizer
 import dev.whiteboard.core.model.*
 import dev.whiteboard.core.model.ThemeMode
@@ -49,7 +50,9 @@ data class WorkspaceUi(
     val textRequest: CanvasEvent.EditText? = null,
     val pdfImport: PdfImportRequest? = null,
     val message: UiNotice? = null,
-    val exporting: Boolean = false
+    val exporting: Boolean = false,
+    val rotating: Boolean = false,
+    val rotationSequence: Long = 0
 )
 
 @HiltViewModel
@@ -313,16 +316,32 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(pdfImport = null) }
         files.deleteAssets(pending.pages.flatMap { it.elements }.filterIsInstance<MediaElement>().map { it.assetId }.toSet())
     }
-    fun rotateSelected() {
-        val current = session ?: return
-        val media = current.page.elements.firstOrNull { it.id == mutable.value.editor?.selectedId } as? MediaElement ?: return
-        current.replace(media.copy(rotation = (media.rotation + 90) % 360))
-        changed()
+    fun rotateSelected(degrees: Double = 90.0) = work {
+        if (mutable.value.rotating) return@work
+        val current = session ?: return@work
+        val original = current.page
+        val ids = mutable.value.editor?.selectedIds.orEmpty()
+        val budget = current.editBudgetBytes
+        mutable.update { it.copy(rotating = true) }
+        try {
+            val plan = withContext(Dispatchers.Default) {
+                val calculation = currentCoroutineContext()
+                ObjectRotation.plan(original, ids, degrees, budget) { calculation.ensureActive() }
+            }
+            if (session === current && current.applyRotation(plan)) {
+                changed()
+            } else if (plan.replacements.isNotEmpty() && mutable.value.editor?.boardId == current.board.id) {
+                mutable.update { it.copy(message = UiNotice(R.string.rotation_changed)) }
+            }
+        } finally {
+            mutable.update { it.copy(rotating = false, rotationSequence = it.rotationSequence + 1) }
+        }
     }
     fun cropSelected(crop: Bounds) {
         val current = session ?: return
-        val media = current.page.elements.firstOrNull { it.id == mutable.value.editor?.selectedId } as? MediaElement ?: return
-        current.replace(media.cropped(crop))
+        val element = current.page.elements.firstOrNull { it.id == mutable.value.editor?.selectedId } ?: return
+        val media = element.content() as? MediaElement ?: return
+        current.replace(element.withContent(media.cropped(crop)))
         changed()
     }
     private fun clearSelection() {
@@ -389,7 +408,7 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(editor = it.editor?.copy(selectedIds = ids)) }
         changed()
     }
-    fun applySelectedStyle(ink: InkStyle, fill: Int?) {
+    fun applySelectedStyle(ink: InkStyle, fill: Int?) = work {
         session?.replaceAll(
             selectedElements().map { element ->
                 element.mapLeaves { child ->
@@ -413,7 +432,7 @@ class WorkspaceViewModel @Inject constructor(
                 return
             }
             val b =
-                existing?.bounds
+                existing?.content()?.bounds
                     ?: Bounds(
                         request.position.x,
                         request.position.y,
@@ -425,7 +444,7 @@ class WorkspaceViewModel @Inject constructor(
             } else {
                 TextElement(existing?.id ?: newId(), b, text, color, size, bold, italic, alignment)
             }
-            if (existing == null) session?.add(element) else session?.replace(element)
+            if (existing == null) session?.add(element) else session?.replace(existing.withContent(element))
             changed()
         }
         dismissText()

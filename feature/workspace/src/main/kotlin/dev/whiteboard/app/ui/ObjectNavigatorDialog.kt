@@ -40,7 +40,7 @@ fun ObjectNavigatorDialog(page: Page, dismiss: () -> Unit, select: (String) -> U
                 page.elements.filter { element ->
                     calculation.ensureActive()
                     describeCanvasElement(context, element).contains(search, ignoreCase = true) ||
-                        element.leaves().any { leaf ->
+                        element.leaves().map { it.content() }.any { leaf ->
                             when (leaf) {
                                 is Note -> leaf.text.contains(search, ignoreCase = true)
                                 is TextElement -> leaf.text.contains(search, ignoreCase = true)

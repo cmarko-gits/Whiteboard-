@@ -63,6 +63,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     val dirty get() = revision != savedRevision
     val canUndo get() = undoStack.isNotEmpty()
     val canRedo get() = redoStack.isNotEmpty()
+    val editBudgetBytes get() = historyByteLimit
     val page get() = board.activePage
     val retainedAssetIds get() = board.referencedAssets() + (undoStack.toList() + redoStack.toList()).flatMap { it.command.assetIds }
 
@@ -90,7 +91,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     fun transformBy(id: String, translation: Point, factor: Float): Boolean {
         require(factor.isFinite() && factor in 0.1f..10f)
         val element = page.elements.firstOrNull { it.id == id } ?: return false
-        val bounds = element.bounds
+        val bounds = element.selectionBounds
         val halfWidth = (bounds.width * factor / 2).coerceAtLeast(0.05f)
         val halfHeight = (bounds.height * factor / 2).coerceAtLeast(0.05f)
         val x = bounds.center.x + translation.x
@@ -133,6 +134,22 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
             if (index == original) null else ElementDelta(LocatedElement(original, element), LocatedElement(index, element))
         }
         if (deltas.isNotEmpty()) execute(EditCommand(page.id, deltas))
+    }
+    fun rotate(ids: Set<String>, degrees: Double): Boolean = applyRotation(ObjectRotation.plan(page, ids, degrees, historyByteLimit))
+
+    fun applyRotation(plan: RotationPlan): Boolean {
+        if (page.id != plan.original.id || page.elements !== plan.original.elements || plan.replacements.isEmpty()) return false
+        val replacements = plan.replacements.associateBy(Element::id)
+        val deltas = page.elements.mapIndexedNotNull { index, before ->
+            replacements[before.id]?.takeIf { it != before }?.let { after ->
+                ElementDelta(LocatedElement(index, before), LocatedElement(index, after))
+            }
+        }
+        if (deltas.isEmpty()) return false
+        val command = EditCommand(page.id, deltas)
+        if (command.estimatedBytes > historyByteLimit) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        execute(command)
+        return true
     }
     fun group(ids: Set<String>): ElementGroup? {
         val selected = page.elements.mapIndexedNotNull { index, element ->

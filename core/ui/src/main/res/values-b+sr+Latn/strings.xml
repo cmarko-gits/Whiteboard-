@@ -276,4 +276,10 @@
     <string name="eraser_whole">Ceo potez</string>
     <string name="eraser_partial">Deo poteza</string>
     <string name="edit_limit">Ova izmena je prevelika. Pokušajte manju oblast.</string>
+    <string name="rotate_selection">Rotiraj izabrane objekte</string>
+    <string name="rotation_degrees">Ugao u stepenima</string>
+    <string name="rotation_help">Rotacija oko centra izbora. Pozitivan ugao okreće u smeru kazaljke na satu. Promena veličine transformisanog sadržaja skalira njegov izgled.</string>
+    <string name="rotation_invalid">Unesi ugao od -36000 do 36000 stepeni.</string>
+    <string name="rotating">Rotiranje…</string>
+    <string name="rotation_changed">Stranica je promenjena tokom rotacije. Pokušaj ponovo.</string>
 </resources>

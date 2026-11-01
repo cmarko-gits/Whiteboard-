@@ -77,6 +77,41 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
 
     fun drawElement(canvas: Canvas, element: Element) {
         when (element) {
+            is AffineElement -> {
+                val p = element.placement
+                val matrix = android.graphics.Matrix().apply {
+                    setValues(
+                        floatArrayOf(
+                            p.xx.toFloat(), p.xy.toFloat(), p.tx.toFloat(),
+                            p.yx.toFloat(), p.yy.toFloat(), p.ty.toFloat(),
+                            0f, 0f, 1f
+                        )
+                    )
+                }
+                val content = element.source
+                if (content is Shape) {
+                    // Transform geometry before stroking: ink width remains in document units.
+                    val shape = content
+                    val path = shapePath(shape).apply { transform(matrix) }
+                    shape.fill?.let {
+                        paint.reset()
+                        paint.isAntiAlias = true
+                        paint.color = it
+                        paint.style = Paint.Style.FILL
+                        canvas.drawPath(path, paint)
+                    }
+                    configure(shape.style)
+                    canvas.drawPath(path, paint)
+                } else {
+                    canvas.save()
+                    try {
+                        canvas.concat(matrix)
+                        drawElement(canvas, element.source)
+                    } finally {
+                        canvas.restore()
+                    }
+                }
+            }
             is ElementGroup -> element.children.forEach { drawElement(canvas, it) }
             is MediaElement -> {
                 val image = assets?.load(element.assetId, element.pdfPage)
@@ -131,13 +166,11 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
             is Line -> {
                 configure(element.style)
                 canvas.drawLine(element.start.x, element.start.y, element.end.x, element.end.y, paint)
-                if (element.arrow) {
-                    val angle = atan2(element.end.y - element.start.y, element.end.x - element.start.x)
-                    val length = max(14f, element.style.width * 4)
+                element.arrowhead()?.let { (first, second) ->
                     val path = Path().apply {
-                        moveTo(element.end.x - length * cos(angle - 0.5f), element.end.y - length * sin(angle - 0.5f))
+                        moveTo(first.x, first.y)
                         lineTo(element.end.x, element.end.y)
-                        lineTo(element.end.x - length * cos(angle + 0.5f), element.end.y - length * sin(angle + 0.5f))
+                        lineTo(second.x, second.y)
                     }
                     canvas.drawPath(path, paint)
                 }

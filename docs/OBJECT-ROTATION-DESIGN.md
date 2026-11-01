@@ -1,6 +1,6 @@
 # F02 — rotacija objekata: kriterijumi i projektovanje
 
-Stanje: geometrijska osnova je implementirana na grani codex/object-rotation; korisnička funkcija još nije implementirana. Prethodna akcija za medije rotira za 90°. Ovaj dokument ne označava F02 kao završen.
+Stanje 1. novembra 2026: implementacija 0.6.0/code 8 pripremljena je na grani codex/object-rotation. Dijalog za relativni ugao, model, selekcija, Fill, čuvanje i renderer su povezani; integracioni testovi još nisu izvršeni. Ovaj dokument ne označava F02 kao završen.
 
 `AffineTransform2D` u core modelu podržava rotaciju oko zajedničkog centra, translaciju, neuniformno skaliranje/refleksiju, kompoziciju i inverziju, mapiranje AABB granica i direktno inverzno mapiranje tačke bez nove matrice pri svakom hit-testu. Matrica zadržava Double preciznost do mapiranja u postojeći Point model. Neispravne, singularne i numerički prevelike matrice se odbijaju. Quarter-turn uglovi ostaju tačni.
 
@@ -17,13 +17,25 @@ Stanje: geometrijska osnova je implementirana na grani codex/object-rotation; ko
 7. Save/reopen, recovery, backup/restore, PNG/PDF i pretraga koriste isti model i zadržavaju rotaciju. Stare verzije dokumenata i postojeći mediji sa rotation poljem ostaju čitljivi; format koji stari čitač pogrešno prikazuje mora dobiti novu verziju.
 8. Granice koordinata, singularne/neispravne matrice, overflow i trošak Undo provere se izvršavaju pre izmene dokumenta. Odbijena operacija ne ostavlja delimično rotiranu grupu.
 
-## Nalazi u postojećem kodu
+## Implementirana odluka
+
+Pravougaoni sadržaj koristi `AffineElement`: jedan lokalni okvir centriran na nulu i jednu `AffineTransform2D` matricu. Dozvoljeni su Shape, Note, TextElement i MediaElement; grupe i ugnježdene transformacije u sadržaju su zabranjene. Linije i potezi se rotiraju u koordinatama dokumenta, pa postojeća parcijalna gumica nastavlja da obrađuje iste polilinije. Ravne grupe zadržavaju svoje ID-jeve i članstvo.
+
+Rotacija i naknadni neuniformni resize komponuju se bez gubitka smicanja. Kod postavljenog teksta/beleške resize skalira prikaz sadržaja; običan tekst bez transformacije zadržava postojeći reflow. Dijalog ovo objašnjava. Debljina okvira oblika ostaje u jedinicama dokumenta, uključujući neuniformni resize.
+
+Planiranje rotacije radi na Default dispatcher-u uz kooperativno otkazivanje. Pre izmene proverava budžet istorije i koordinate; primena odbija plan čija se početna stranica u međuvremenu promenila. Potvrda je jedna Undo komanda. Dijalog zatvara sopstvenu tastaturu i prikazuje zauzetost do završetka planiranja.
+
+JSON format je podignut na 4 jer stari čitači ne razumeju afinni sadržaj. Čitanje verzija 1–3 ostaje podržano; Room šema ostaje 4 jer se SQL struktura nije menjala. Dekoder zabranjuje singularne/prevelike matrice, ugnježdene okvire, necentrirani izvor i neslaganje ID-ja izvora i objekta. Prilozi, pretraga, stilovi i uređivanje sadržaja prolaze kroz isti geometrijski sloj.
+
+Dodato je 15 domenskih i šest format testova, šest Android renderer/native-input testova i jedan kompletan UI tok sa otkazivanjem, rotacijom grupe, Undo/Redo, čuvanjem, ponovnim otvaranjem i PNG izvozom. To su napisani testovi, bez potvrde izvršenja ove integracije. Prethodno potvrđenih 12 testova osnove i 163 JVM testa odnosi se isključivo na raniji commit 2a3763f.
+
+## Nalazi koji su vodili implementaciju
 
 - `MediaElement` čuva ugao 0–359 i ima `rotatedBounds`; renderer rotira oko centra.
-- Ostali objekti nemaju transformaciju. `Element.bounds` i `renderBounds` imaju različite namene; selekcioni kod još koristi bounds na više mesta.
+- Ostali objekti ranije nisu imali transformaciju. `Element.bounds`, `selectionBounds` i `renderBounds` imaju različite namene; selekcija sada uključuje vidljive granice legacy medija.
 - Trenutni resize nije ograničen na isti faktor po obe ose. Samo dodavanje angle polja ne predstavlja tačno kombinaciju rotacije i neuniformnog skaliranja: rezultat može sadržati smicanje.
 - `leaves()`, Fill, stroke eraser, stilovi i uređivanje teksta prepoznaju konkretne tipove. Novi geometrijski sloj mora dosledno da prođe kroz sve ove tokove.
-- JSON je verzija 3, Room šema 4. Promena sadržaja JSON-a nije automatski promena SQL šeme; migraciju uvoditi prema stvarnoj promeni skladišta.
+- Pre ove funkcije JSON je bio verzija 3, a Room šema 4. Promena sadržaja JSON-a nije automatski promena SQL šeme.
 
 ## Arhitektonska odluka koju implementacija mora potvrditi
 
@@ -35,4 +47,4 @@ Pre izbora konačnog modela dokazati testovima kombinaciju rotate → nonuniform
 
 Domenski testovi: uglovi 0/45/90/180/270/360 i negativni, zajednički pivot, grupe, granične koordinate, inverse round-trip, stabilan Undo/Redo, promašaj u praznom AABB uglu, Fill i gumica. Format testovi: round-trip, legacy verzije/mediji i odbijanje oštećenih transformacija. Android: stvarni renderer/izvoz piksela, dodir/selektor/Fill, uređivanje teksta, čuvanje i recovery, modalni fokus i pristupačnost, phone/tablet portrait/landscape i minified paket.
 
-Ovo je ulaz u implementaciju, bez tvrdnje da su navedene provere već izvršene.
+Funkcija ostaje otvorena dok ove provere i puna regresija konkretnog kandidata ne prođu. Govorni izlaz TalkBack-a, fizički uređaji i release performanse nisu potvrđeni ovim kodom.

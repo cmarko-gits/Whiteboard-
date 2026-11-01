@@ -42,6 +42,8 @@ fun EditorScreen(
     brushes: List<BrushPreset>,
     favoriteColors: List<Int>,
     exporting: Boolean,
+    rotating: Boolean,
+    rotationSequence: Long,
     viewModel: WorkspaceViewModel,
     assets: AssetProvider,
     onBack: () -> Unit,
@@ -61,6 +63,7 @@ fun EditorScreen(
     var pages by rememberSaveable { mutableStateOf(false) }
     var background by rememberSaveable { mutableStateOf(false) }
     var crop by rememberSaveable { mutableStateOf(false) }
+    var rotation by rememberSaveable { mutableStateOf(false) }
     var showPresets by rememberSaveable { mutableStateOf(false) }
     var properties by rememberSaveable { mutableStateOf(false) }
     var objects by rememberSaveable { mutableStateOf(false) }
@@ -272,10 +275,10 @@ fun EditorScreen(
                         IconButton(onClick = { viewModel.deleteSelected() }) {
                             Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete))
                         }
-                        if (editor.page.elements.firstOrNull { it.id == editor.selectedId } is MediaElement) {
-                            IconButton(onClick = { viewModel.rotateSelected() }) {
-                                Icon(Icons.AutoMirrored.Outlined.RotateRight, stringResource(R.string.rotate))
-                            }
+                        IconButton(onClick = { rotation = true }, enabled = !rotating) {
+                            Icon(Icons.AutoMirrored.Outlined.RotateRight, stringResource(R.string.rotate_selection))
+                        }
+                        if (editor.page.elements.firstOrNull { it.id == editor.selectedId }?.content() is MediaElement) {
                             IconButton(onClick = { crop = true }) { Icon(Icons.Outlined.Crop, stringResource(R.string.crop)) }
                         }
                     }
@@ -369,7 +372,7 @@ fun EditorScreen(
         }
     }
     if (properties) {
-        val elements = editor.page.elements.filter { it.id in editor.selectedIds }.flatMap { it.leaves() }
+        val elements = editor.page.elements.filter { it.id in editor.selectedIds }.flatMap { it.leaves() }.map { it.content() }
         ObjectStyleDialog(elements, { properties = false }, favoriteColors, viewModel::favoriteColors) { ink, fill ->
             viewModel.applySelectedStyle(ink, fill)
             properties = false
@@ -390,7 +393,7 @@ fun EditorScreen(
         )
     }
     if (crop) {
-        val selected = editor.page.elements.firstOrNull { it.id == editor.selectedId } as? MediaElement
+        val selected = editor.page.elements.firstOrNull { it.id == editor.selectedId }?.content() as? MediaElement
         if (selected != null) {
             CropDialog(selected, { crop = false }) {
                 viewModel.cropSelected(it)
@@ -398,6 +401,7 @@ fun EditorScreen(
             }
         }
     }
+    if (rotation) RotationDialog(rotating, rotationSequence, { rotation = false }) { viewModel.rotateSelected(it) }
 }
 
 private val shapeTools = listOf(Tool.RECTANGLE, Tool.SQUARE, Tool.CIRCLE, Tool.ELLIPSE, Tool.TRIANGLE, Tool.DIAMOND, Tool.LINE, Tool.ARROW)
