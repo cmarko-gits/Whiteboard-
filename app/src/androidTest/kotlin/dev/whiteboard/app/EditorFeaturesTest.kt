@@ -180,7 +180,8 @@ class EditorFeaturesTest {
             testDialogField(device, "Board name").text = name
             text("Grid").click()
             text("Confirm").click()
-            control("Save").click()
+            // Creation has already persisted this unchanged template. A redundant Save can
+            // temporarily disable Back while its thumbnail is being written.
             text("Saved on this device")
             control("Back to boards").click()
             text(folder)
