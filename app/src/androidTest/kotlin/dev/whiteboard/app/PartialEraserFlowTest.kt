@@ -29,6 +29,7 @@ class PartialEraserFlowTest {
     private val preferences = AppSettings(context)
     private val originalSettings = runBlocking { preferences.values.first() }
     private val owned = mutableListOf<String>()
+    private var completed = false
     private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
     private fun home() = launchTestLibrary(device)
@@ -47,7 +48,38 @@ class PartialEraserFlowTest {
         device.waitForIdle()
     }
 
+    private fun choosePartialMode() {
+        // Scroll through connected nodes: old framework caches may retain pre-scroll touch coordinates.
+        repeat(6) {
+            val queue = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
+            InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow?.let(queue::add)
+            var scroll: android.view.accessibility.AccessibilityNodeInfo? = null
+            var remaining = 1000
+            while (queue.isNotEmpty() && remaining-- > 0) {
+                val node = queue.removeFirst()
+                if (!node.refresh()) continue
+                if (node.isScrollable && node.isVisibleToUser) scroll = node
+                if (node.text?.toString() == "Partial stroke" && node.isVisibleToUser) {
+                    var target: android.view.accessibility.AccessibilityNodeInfo? = node
+                    while (target != null && !target.isClickable) target = target.parent
+                    check(target?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true) {
+                        "Partial mode did not expose an actionable accessibility target"
+                    }
+                    return
+                }
+                repeat(node.childCount) { node.getChild(it)?.let(queue::add) }
+            }
+            check(scroll?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) {
+                "Partial stroke setting could not be reached by scrolling"
+            }
+            device.waitForIdle()
+        }
+        error("Missing connected Partial stroke setting")
+    }
+
     @After fun cleanup(): Unit = runBlocking {
+        // TestWatcher executes after @After, so preserve the original editor/dialog first.
+        if (!completed) capture.snapshot("partial-before-cleanup")
         home()
         preferences.eraserMode(originalSettings.eraserMode)
         preferences.lastBrush(originalSettings.lastTool, originalSettings.lastInk)
@@ -66,7 +98,7 @@ class PartialEraserFlowTest {
         openTestBoard(device, board.name)
         control("More actions").click()
         scrolledText("Settings").click()
-        scrolledText("Partial stroke").click()
+        choosePartialMode()
         withTimeout(5_000) { preferences.values.first { it.eraserMode == EraserMode.PARTIAL } }
         text("Done").click()
         device.waitForIdle()
@@ -106,5 +138,6 @@ class PartialEraserFlowTest {
         control("Back to boards").click()
         control("New board")
         assertEquals(EraserMode.PARTIAL, AppSettings(context).values.first().eraserMode)
+        completed = true
     }
 }
