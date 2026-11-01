@@ -98,7 +98,7 @@ class ColorPickerComposeTest {
                 CustomColorDialog(0xFF123456.toInt(), palette, { palette = it }, { dismissed = true }, { submitted = true })
             }
         }
-        compose.onNodeWithText("Save color").performScrollTo().performClick()
+        compose.onNodeWithText("Save color").performScrollTo().performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithText("Remove saved color").assertExists()
         compose.onNodeWithText("Cancel").performClick()
         compose.runOnIdle {
