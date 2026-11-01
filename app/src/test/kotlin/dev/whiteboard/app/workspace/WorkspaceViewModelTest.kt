@@ -2,6 +2,7 @@ package dev.whiteboard.app.workspace
 
 import androidx.lifecycle.viewModelScope
 import dev.whiteboard.canvas.CanvasEvent
+import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.model.*
 import dev.whiteboard.core.testing.*
 import dev.whiteboard.core.usecase.DocumentTransfers
@@ -36,8 +37,14 @@ class WorkspaceViewModelTest {
     private val settings = InMemorySettingsRepository(UserSettings(onboarded = true))
     private val files = FakeDocumentStorage()
     private val models = mutableListOf<WorkspaceViewModel>()
-    private fun model() =
-        WorkspaceViewModel(EditorPersistence(repository), ManagePreferences(settings), DocumentTransfers(files)).also(models::add)
+    private fun model(computation: CoroutineDispatcher = main.dispatcher): WorkspaceViewModel {
+        val dispatchers = object : AppDispatchers {
+            override val io = main.dispatcher
+            override val computation = computation
+        }
+        return WorkspaceViewModel(EditorPersistence(repository), ManagePreferences(settings), DocumentTransfers(files), dispatchers)
+            .also(models::add)
+    }
     private fun note(text: String) = Note(bounds = Bounds(10f, 10f, 200f, 200f), text = text)
 
     @Test fun staleCanvasTextRequestsCannotRevertNewerGeometry() = runTest {
@@ -118,6 +125,47 @@ class WorkspaceViewModelTest {
         assertFalse(model.state.value.rotating)
         assertEquals(1L, model.state.value.rotationSequence)
         assertNotNull(model.state.value.message)
+    }
+
+    @Test fun anEditDuringRotationPlanningCannotBeOverwrittenByTheComputedResult() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        val model = model(computation)
+        model.create("Intervening edit").join()
+        val original = note("Before")
+        model.canvas(CanvasEvent.Add(original))
+        model.selectAll()
+        val rotation = model.rotateSelected(45.0)
+        runCurrent()
+        assertTrue(model.state.value.rotating)
+        val edited = original.copy(text = "Newer edit")
+        model.canvas(CanvasEvent.Replace(listOf(edited)))
+        computation.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(rotation.isCompleted)
+        assertFalse(model.state.value.rotating)
+        assertEquals(listOf(edited), model.state.value.editor!!.page.elements)
+        assertEquals(R.string.rotation_changed, model.state.value.message?.resource)
+        model.undo()
+        assertEquals(listOf(original), model.state.value.editor!!.page.elements)
+    }
+
+    @Test fun cancellingQueuedRotationReleasesBusyStateWithoutChangingTheDocumentOrReportingFailure() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        val model = model(computation)
+        model.create("Cancelled rotation").join()
+        model.canvas(CanvasEvent.Add(note("Keep me")))
+        model.selectAll()
+        val before = model.state.value.editor!!.page
+        val rotation = model.rotateSelected(45.0)
+        runCurrent()
+        assertTrue(model.state.value.rotating)
+        rotation.cancel()
+        computation.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(rotation.isCancelled)
+        assertFalse(model.state.value.rotating)
+        assertEquals(before, model.state.value.editor!!.page)
+        assertNull(model.state.value.message)
     }
 
     @Test fun settingsAreObservedThroughDomainContract() = runTest {

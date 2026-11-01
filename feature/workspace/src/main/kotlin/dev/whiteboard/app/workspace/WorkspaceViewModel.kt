@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.whiteboard.canvas.CanvasEvent
+import dev.whiteboard.core.concurrency.AppDispatchers
+import dev.whiteboard.core.concurrency.DefaultAppDispatchers
 import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.editor.ObjectClipboard
 import dev.whiteboard.core.editor.ObjectRotation
@@ -59,7 +61,8 @@ data class WorkspaceUi(
 class WorkspaceViewModel @Inject constructor(
     private val persistence: EditorPersistence,
     private val preferences: ManagePreferences,
-    private val files: DocumentTransfers
+    private val files: DocumentTransfers,
+    private val dispatchers: AppDispatchers = DefaultAppDispatchers
 ) : ViewModel() {
     private val mutable = MutableStateFlow(WorkspaceUi())
     val state = mutable.asStateFlow()
@@ -324,7 +327,7 @@ class WorkspaceViewModel @Inject constructor(
         val budget = current.editBudgetBytes
         mutable.update { it.copy(rotating = true) }
         try {
-            val plan = withContext(Dispatchers.Default) {
+            val plan = withContext(dispatchers.computation) {
                 val calculation = currentCoroutineContext()
                 ObjectRotation.plan(original, ids, degrees, budget) { calculation.ensureActive() }
             }

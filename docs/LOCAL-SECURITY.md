@@ -1,6 +1,8 @@
-# Lokalna bezbednosna provera — Whiteboard 0.4.0
+# Lokalna bezbednosna provera — istorijska osnova i 0.5.1
 
 Datum: 1. novembar 2026. Obim je aktivna lokalna Android aplikacija i tekući izvorni fajlovi. Ovo je inženjerski pregled sa automatizovanim regresionim proverama; nije nezavisan pentest niti tvrdnja da nema svih ranjivosti. Raniji backend/cloud izveštaj nije dokaz za ovu verziju.
+
+Za provereni paket 0.5.1 merodavni su tačan commit, SHA-256 i gates u [LOCAL-0.5.1-CANDIDATE.md](LOCAL-0.5.1-CANDIDATE.md), kao i `artifacts/task-11-family-packages.json`. Dalje navedeni promenljivi artifacts/security fajlovi mogu pripadati kasnijem kandidatu; ne pripisivati njihov sadržaj ranijem APK-u bez poređenja hash-a. Razvojna rotacija 0.6.0 uvodi validaciju afinih matrica, granice koordinata i budžeta, ID/source ograničenja i odbijanje zastarelog plana; završni CI i pregled njenog tačnog paketa ostaju zaseban uslov.
 
 ## Imovina i granice poverenja
 

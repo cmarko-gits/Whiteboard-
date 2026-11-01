@@ -1,4 +1,4 @@
-# Lokalna arhitektura — 0.4.0
+# Lokalna arhitektura — 0.5.1 i razvoj 0.6.0
 
 Odluka od 31. oktobra 2026. zamenjuje online arhitekturu za trenutni obim rada. Istorijske odluke ostaju u ARCHITECTURE.md. Korisnikov prilog se primenjuje na lokalnu aplikaciju; mrežni primeri ne dodaju mrežne zavisnosti.
 
@@ -32,7 +32,9 @@ ViewModel-i izlažu jedno StateFlow stanje, immutable snapshots i eksplicitne ak
 
 DocumentSession poseduje dokument i istoriju. Canvas poseduje nedovršene poteze, viewport i gesture preview; završeni gest postaje logička komanda. Grupisanje, Fill i clipboard poštuju Undo/Redo identitete. Bitmap/path cache i vidljivi bounds ograničavaju rad renderera.
 
-Room schema 4 koristi nedestruktivne migracije 1→2→3→4. Veliki JSON se deli na ograničene redove, u jednoj transakciji sa metapodacima. Format piše verziju 3 i čita 1–3. Online tabele su kompatibilnosni ostatak, bez aktivnog klijenta, servisa ili scheduler-a. Ne uvodi se migration downgrade ili fallbackToDestructiveMigration.
+Room schema 4 koristi nedestruktivne migracije 1→2→3→4. Veliki JSON se deli na ograničene redove, u jednoj transakciji sa metapodacima. Provereni paket 0.5.1 piše JSON 3 i čita 1–3. Razvojna 0.6.0 piše JSON 4 i čita 1–4; SQL struktura ostaje ista. Stariji paket ne čita novi afinni sadržaj, pa downgrade nije podržan put prenosa dokumenata. Online tabele su kompatibilnosni ostatak, bez aktivnog klijenta, servisa ili scheduler-a. Ne uvodi se migration downgrade ili fallbackToDestructiveMigration.
+
+Parcijalna gumica koristi domensku geometriju kapsule i `StrokeCut` snimke za atomsku primenu jednog gesta. Prikaz do podizanja prsta ostaje u canvas adapteru. Rotacija 0.6.0 ima čist afinni model za pravougaoni sadržaj; potezi/linije ostaju polilinije u koordinatama dokumenta. Računanje plana preko injektovanog AppDispatchers.computation ne menja sesiju; primena na Main niti ponovo proverava početnu stranicu. Pravila geometrije, resize-a i formata su u OBJECT-ROTATION-DESIGN.md; integraciona kvalifikacija je odvojena od arhitektonske odluke.
 
 Save uhvati reviziju pre suspend upisa. Paralelni UI Save se ignoriše dok prvi traje, a njegov busy status ne sme biti poništen drugim zahtevom. Novije izmene ostaju dirty i u recovery-u. Ako je autosave uključen, uspešan spor Save zakazuje sledeće snimanje tih izmena. Neuspeh ne pokreće beskonačan automatski retry; prikazuje se korisnički retry. Back tokom snimanja ostaje potrošen u editoru.
 
