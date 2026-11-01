@@ -90,6 +90,7 @@ class PartialEraserFlowTest {
     }
 
     @Test fun settingsGestureUndoRedoSaveAndPngExportKeepTheCutAndTheOtherGroupChild(): Unit = runBlocking {
+        preferences.eraserMode(EraserMode.STROKE)
         val stroke = Stroke(points = listOf(Point(100f, 200f), Point(600f, 200f)), style = InkStyle(width = 6f))
         val note = Note(bounds = Bounds(100f, 400f, 300f, 550f), text = "Keep this note")
         val group = ElementGroup(children = listOf(stroke, note))
@@ -100,8 +101,20 @@ class PartialEraserFlowTest {
         openTestBoard(device, board.name)
         control("More actions").click()
         scrolledText("Settings").click()
+        val modeStart = android.os.SystemClock.uptimeMillis()
         choosePartialMode()
-        withTimeout(5_000) { preferences.values.first { it.eraserMode == EraserMode.PARTIAL } }
+        val until = android.os.SystemClock.uptimeMillis() + 10_000
+        var selected = false
+        do {
+            selected = device.findObjects(By.checkable(true).checked(true))
+                .any { it.findObject(By.text("Partial stroke")) != null }
+            if (selected) break
+            device.waitForIdle(100)
+        } while (android.os.SystemClock.uptimeMillis() < until)
+        assertTrue("Partial mode did not become selected in Settings", selected)
+        val persisted = withTimeout(10_000) { preferences.values.first() }
+        assertEquals("Selected eraser mode must be persisted", EraserMode.PARTIAL, persisted.eraserMode)
+        android.util.Log.i("WhiteboardQA", "Partial mode persisted after ${android.os.SystemClock.uptimeMillis() - modeStart} ms")
         text("Done").click()
         device.waitForIdle()
         repeat(4) {
