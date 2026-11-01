@@ -49,3 +49,5 @@ Manual Save čuva uhvaćenu reviziju. Izmene tokom upisa ostaju dirty; recovery 
 - [Arhivirani online kod](legacy/README.md)
 
 Optimizovani APK i AAB služe lokalnoj proveri i pripremi. Preview koristi razvojni potpis; vlasnički upload ključ i Play Console objava nisu uključeni. Podrška svim fizičkim telefonima, stylus uređajima i foldable konfiguracijama nije proglašena na osnovu emulatora.
+
+Repozitorijum: [cmarko-gits/Whiteboard-](https://github.com/cmarko-gits/Whiteboard-).
