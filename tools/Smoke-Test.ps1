@@ -85,6 +85,8 @@ try {
     $taskInitial = @(Get-Ui)
     $taskOnboarding = $taskInitial | Where-Object text -eq 'Start creating' | Select-Object -First 1
     if ($taskOnboarding) { Tap-Ui $taskOnboarding }
+    Find-Ui -Description 'New board' | Out-Null
+    Wait-Keyboard $false
     Tap-Ui (Find-Ui -Description 'New board')
     Find-Ui -Text 'Board name' | Out-Null
     Tap-Ui (Find-Ui -Class 'android.widget.EditText')
@@ -117,7 +119,9 @@ try {
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null
     Invoke-Adb shell am start -f 0x10008000 -n "$Package/dev.whiteboard.app.MainActivity" | Out-Null
-    Tap-Ui (Find-Ui -Text $taskName)
+    Find-Ui -Description 'New board' | Out-Null
+    Wait-Keyboard $false
+    Tap-Ui (Find-Ui -Text $taskName -Class 'android.widget.TextView')
     Tap-Ui (Find-Ui -Text 'Recover')
     Find-Ui -Text 'Unsaved changes' | Out-Null
     if (@(Get-Ui | Where-Object text -eq 'Make room for an idea.').Count -gt 0) { throw 'Recovered canvas was empty' }
