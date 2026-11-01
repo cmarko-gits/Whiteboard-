@@ -61,6 +61,65 @@ class WorkspaceViewModelTest {
         models.forEach { it.viewModelScope.cancel() }
     }
 
+    @Test fun rotatingThenEditingAndSavingANoteKeepsItsPlacementAndUndoHistory() = runTest {
+        val model = model()
+        model.create("Placed note").join()
+        val original = note("Before")
+        model.canvas(CanvasEvent.Add(original))
+        model.selectAll()
+        model.rotateSelected(37.0).join()
+        val placed = model.state.value.editor!!.page.elements.single() as AffineElement
+        assertFalse(model.state.value.rotating)
+        assertEquals(1L, model.state.value.rotationSequence)
+        model.canvas(CanvasEvent.EditText(placed.bounds.center, placed, true))
+        model.applyText("After", 28f, false, false, TextAlignment.LEFT, original.color)
+        val edited = model.state.value.editor!!.page.elements.single() as AffineElement
+        assertEquals(placed.placement, edited.placement)
+        assertEquals("After", (edited.source as Note).text)
+        model.save().join()
+        val editor = model.state.value.editor!!
+        assertEquals(edited, repository.load(editor.boardId).activePage.elements.single())
+        model.undo()
+        assertEquals(placed, model.state.value.editor!!.page.elements.single())
+        model.undo()
+        assertEquals(original, model.state.value.editor!!.page.elements.single())
+    }
+
+    @Test fun aStyleChangeInsideARotatedGroupKeepsTheGroupAndChildFrames() = runTest {
+        val model = model()
+        model.create("Placed group style").join()
+        val shape = Shape(bounds = Bounds(0f, 0f, 100f, 100f), kind = Tool.RECTANGLE, style = InkStyle())
+        val group = ElementGroup(children = listOf(shape, note("Keep text")))
+        model.canvas(CanvasEvent.Add(group))
+        model.selectAll()
+        model.rotateSelected(-45.0).join()
+        val before = model.state.value.editor!!.page.elements.single() as ElementGroup
+        val ink = InkStyle(color = 0xFF12AB34.toInt(), width = 8f)
+        model.applySelectedStyle(ink, 0xFF334455.toInt()).join()
+        val after = model.state.value.editor!!.page.elements.single() as ElementGroup
+        assertEquals(before.id, after.id)
+        assertEquals(before.children.map { (it as AffineElement).placement }, after.children.map { (it as AffineElement).placement })
+        val changed = after.children.first().content() as Shape
+        assertEquals(ink, changed.style)
+        assertEquals(0xFF334455.toInt(), changed.fill)
+        assertEquals(before.children.last(), after.children.last())
+        model.undo()
+        assertEquals(before, model.state.value.editor!!.page.elements.single())
+    }
+
+    @Test fun rejectingAnInvalidRotationReleasesTheDialogAndKeepsTheDocument() = runTest {
+        val model = model()
+        model.create("Rejected rotation").join()
+        model.canvas(CanvasEvent.Add(note("Keep me")))
+        model.selectAll()
+        val before = model.state.value.editor!!.page
+        model.rotateSelected(Double.NaN).join()
+        assertEquals(before, model.state.value.editor!!.page)
+        assertFalse(model.state.value.rotating)
+        assertEquals(1L, model.state.value.rotationSequence)
+        assertNotNull(model.state.value.message)
+    }
+
     @Test fun settingsAreObservedThroughDomainContract() = runTest {
         val model = model()
         runCurrent()

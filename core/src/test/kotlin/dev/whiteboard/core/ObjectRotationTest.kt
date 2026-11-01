@@ -195,6 +195,14 @@ class ObjectRotationTest {
         assertEquals(0.5, AffineTransform2D.scale(2.0, 3.0).inverseMaxScale, 1e-12)
     }
 
+    @Test fun aLargeLocalShapeCanBePickedInsideItsSmallValidDocumentFrame() {
+        val large = shape.copy(bounds = Bounds(-1_000_000_000f, -1_000_000_000f, 1_000_000_000f, 1_000_000_000f))
+        val placed = AffineElement(large, AffineTransform2D.scale(0.000001, 0.000001))
+        assertTrue(placed.hitTest(Point(0f, 0f), 0f))
+        assertFalse(placed.hitTest(Point(1010f, 0f), 0f))
+        assertEquals(FillEngine.Target.Surface(placed, placed.id), FillEngine.target(Page(elements = listOf(placed)), Point(0f, 0f)))
+    }
+
     @Test fun arrowheadPickingFollowsItsRotatedPaintedSegments() {
         val arrow = Line(start = Point(200f, 200f), end = Point(300f, 200f), style = InkStyle(width = 4f), arrow = true)
         val session = documentSession(arrow)

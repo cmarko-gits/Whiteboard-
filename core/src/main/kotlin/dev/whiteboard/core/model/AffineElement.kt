@@ -25,17 +25,13 @@ data class AffineElement(val source: Element, val placement: AffineTransform2D) 
     companion object {
         fun fromDocument(source: Element, additional: AffineTransform2D = AffineTransform2D.IDENTITY): AffineElement {
             val b = source.bounds
+            val halfWidth = b.width / 2
+            val halfHeight = b.height / 2
             val local = Bounds(
-                if (b.width ==
-                    0f
-                ) {
-                    0f
-                } else {
-                    -b.width / 2
-                },
-                if (b.height == 0f) 0f else -b.height / 2,
-                b.width / 2,
-                b.height / 2
+                if (halfWidth > 0f) -halfWidth else 0f,
+                if (halfHeight > 0f) -halfHeight else 0f,
+                halfWidth,
+                halfHeight
             )
             val centered = when (source) {
                 is Shape -> source.copy(bounds = local)

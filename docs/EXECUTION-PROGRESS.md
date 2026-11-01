@@ -2,6 +2,20 @@
 
 Datum: 1. novembar 2026. Brojevi odgovaraju korisniku prikazanom spisku od 47 stavki i ID-jevima iz LOCAL-REMAINING-TASKS.md. Na početku svake stavke navesti broj. Nastaviti na sledeću izvodljivu stavku kada zavisnost nedostaje; ne označavati neizvršeno kao završeno.
 
+## Aktuelni presek, 20:32 CET
+
+- **3/Z03 završen:** [CI 41341043323](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41341043323), commit `550bd93`, prolazi verify i svih pet device poslova. Povezivanje i izvršavanje udaljenog CI-ja su dokazani. Main grana nije prepisana niti spojena.
+- **11/F01 završen za lokalni emulator obim:** 0.5.1/code 7; 151 JVM i po 66 app + 13 data testova na API 26/30/33/36 telefonima i API 26 tabletu, bez grešaka/preskakanja. Minified smoke API 26/36 prolazi. Zbir jedinstvenih JVM/app/data slučajeva je 230; ponavljanja na OS matrici nisu novi jedinstveni testovi.
+- **8/Z08 konkretni nalazi ispravljeni:** stabilan raspored/fokus dijaloga boja; zatvaranje sopstvene IME sesije dijaloga; tastatura biblioteke; raspored kartica pri kratkom prozoru i 200% fontu; bezbednosni ZIP limiti. Nova funkcionalnost ostaje predmet sopstvene regresije. Starija 0.4.1 grana ima poseban neuspešan fixture tok na API 33 i nije predstavljena kao potpuno zelen kandidat.
+- **9/Z09 za 0.5.1:** stil/arhitektura, lint debug/release, R8, OSV 147 bez prijavljenih nalaza, licence/notices 147, source secret scan i manifest/DEX politika prolaze. Lokalno potpisani paket prolazi v2/v3, ZIP-P16 i četiri ELF LOAD/RELRO provere. Ovo ne zamenjuje nezavisan pentest.
+- **10/Z10 za 0.5.1:** paket i svi pregledani XML-ovi vezani su za tačan commit u `artifacts/task-11-family-packages.json`; korisničko uputstvo i PARTIAL-ERASER.md ažurirani. APK SHA-256: `62C64CCF35F0DE70DB76C2A3508A9BBEF231D2AFE7029EF3B239A56875B8DBDB`. Potpis je razvojni; Play objava ostaje odložena.
+- **12/F02 u toku:** 0.6.0/code 8, JSON 4, afinni model i relativni ugao u dijalogu, grupna selekcija/Fill/izvoz/čuvanje/Undo. [Prvi integracioni CI 41341674388](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41341674388), source `aafa34d`, još radi. Naknadni granični testovi, ViewModel i backup/PDF provere još nisu izvršeni; njihovi rezultati se ne pripisuju prvom CI-ju.
+- **Prostor:** nije pokrenut novi težak lokalni Gradle/emulator posao. Ranije prekoračenje od 46.206.464 bajta ostaje zabeleženo u `artifacts/task-08-storage-incident.json`; ne zamenjivati ga manjim trenutnim zauzećem. Aktuelna evidencija paketa beleži novo merenje. Nisu preuzimane SDK/system image slike.
+
+Stari redovi ispod opisuju ranije kohorte. Kada se razlikuju, ovaj presek i verzijski dokument F01 daju novije stanje. TalkBack govorni pregled, fizički uređaji, optimizovani hardverski profil i prava OS nadogradnja ostaju nepokriveni; ne zatvaraju se prolazom emulator matrice.
+
+## Raniji presek
+
 | Broj | ID | Stanje | Dokaz / zavisnost |
 |---|---|---|---|
 | 1 | Z01 | Završeno | Pronađen i uklonjen preostali QA RAM snapshot od 3,22 GB; QuickbootFileBacked isključen. Stvarni API 36 boot bez RAM fajla, završno posmatrano dodatno zauzeće najviše 1,65 GB. task-01-*.json. |

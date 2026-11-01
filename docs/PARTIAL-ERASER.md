@@ -1,4 +1,4 @@
-# F01 — parcijalna gumica, razvoj 0.5.0
+# F01 — parcijalna gumica, proverena lokalna 0.5.1
 
 ## Kriterijumi prihvatanja
 
@@ -19,6 +19,12 @@ Native canvas čuva samo privremeni pregled tokom gesta. ViewModel prima završe
 
 24 nova JVM test prolazi: geometrija, kapsula, retke/ponovljene tačke, veliki koordinatni opseg, deterministički nasumični slučajevi, grupe i redosled, stari snimci, Undo/Redo i granice memorije/broja objekata. Sa postojećim testovima: 151 JVM provera. Logovi: `artifacts/task-11-domain-tests-repeat.log` i `artifacts/task-11-android-build.log`.
 
-Android build, test APK i debug lint prolaze. Devet testova MotionEvent unosa i jedan ceo UI/čuvanje/PNG tok su napisani; izvršavanje na Android matrici još nije potvrđeno. F01 ostaje otvoren dok se ti rezultati ne pregledaju. Broj prolaznih JVM testova nije dokaz izvršenih Android testova.
+Konačni CI [41341043323](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41341043323), source `550bd93`, prolazi u celosti. JVM: core 95 + format 36 + data 5 + ViewModel 15 = 151. Svaka od pet konfiguracija (API 26/30/33/36 pixel_2 i API 26 pixel_c) prolazi 66 app + 13 data testova, bez grešaka ili preskakanja. Uključeni su devet MotionEvent testova i ceo Settings/čuvanje/Undo/Redo/PNG tok. Optimizovani release smoke prolazi na API 26 i 36; tablet profil potvrđuje 1280 × 900 dp. F01 je završen u lokalnom emulator obimu.
+
+Posle nalaza ispravljeni su: fokus i zadržana tastatura pri zatvaranju dijaloga, skriveni rezultati pretrage, raspored kartica u kratkom prozoru i pri 200% fontu. Svi navedeni rezultati odnose se na isti commit, bez objedinjavanja prolaza različitih verzija.
+
+Paket `artifacts/whiteboard-local-0.5.1-preview.apk`, code 7, ima SHA-256 `62C64CCF35F0DE70DB76C2A3508A9BBEF231D2AFE7029EF3B239A56875B8DBDB`. Potpis je razvojni v2/v3 sa postojećim lokalnim sertifikatom. ZIP i četiri ELF biblioteke prolaze proveru 16 KB poravnanja; manifest/DEX politika, licence i source scan prolaze. OSV za 147 runtime Maven zavisnosti nema prijavljenih nalaza. Potpuna evidencija paketa i pregledanih XML-ova: `artifacts/task-11-family-packages.json`; verify log: `artifacts/task-11-family-verify.log`.
+
+Ovo ne potvrđuje fizičke uređaje, govorni izlaz TalkBack-a ili release performanse na hardveru. Razvojna rotacija 0.6.0 nije uključena u ovaj APK. Stariji 0.5.0 paket nije konačni kandidat.
 
 Ova funkcija ne dodaje mrežu, dozvole, uvoz novih tipova datoteka ili izvršavanje korisničkog koda. Granice opterećenja i atomicitet imaju regresione testove; nezavisan penetracioni test nije izvršen.

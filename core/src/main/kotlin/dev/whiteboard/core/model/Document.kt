@@ -164,8 +164,15 @@ fun Element.hitTest(point: Point, tolerance: Float): Boolean {
     if (!renderBounds.contains(point, tolerance)) return false
     return when (this) {
         is AffineElement -> {
-            val localTolerance = tolerance * placement.inverseMaxScale.toFloat()
-            source.hitTest(placement.unmap(point), localTolerance)
+            val localPoint = placement.unmap(point)
+            val inverseScale = placement.inverseMaxScale.toFloat()
+            // Shape ink is stroked after placement in document units. Do not expand local
+            // render bounds: a valid large source can be scaled into a small document frame.
+            if (source is Shape) {
+                source.containsShape(localPoint, (tolerance + source.style.width / 2) * inverseScale)
+            } else {
+                source.bounds.contains(localPoint, tolerance * inverseScale)
+            }
         }
         is ElementGroup -> children.any { it.hitTest(point, tolerance) }
         is Stroke -> {

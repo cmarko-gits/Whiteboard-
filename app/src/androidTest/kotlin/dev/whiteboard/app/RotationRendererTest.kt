@@ -135,7 +135,7 @@ class RotationRendererTest {
     @Test fun draggingBeyondTheDocumentLimitRejectsTheGestureWithoutAPartialTransform() {
         val instrument = InstrumentationRegistry.getInstrumentation()
         instrument.runOnMainSync {
-            val source = shape.copy(bounds = Bounds(-1_000_000_000f, 0f, 0f, 100f), style = InkStyle(width = 0.1f))
+            val source = shape.copy(bounds = Bounds(-1_000_000_000f, 0f, 0f, 1000f), style = InkStyle(width = 0.1f))
             val placed = AffineElement.fromDocument(source)
             val view = WhiteboardView(instrument.targetContext)
             view.layout(0, 0, 1000, 1000)

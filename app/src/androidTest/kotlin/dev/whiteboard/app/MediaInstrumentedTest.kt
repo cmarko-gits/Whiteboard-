@@ -14,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.whiteboard.app.workspace.DocumentFiles
 import dev.whiteboard.app.workspace.LocalMediaStore
 import dev.whiteboard.canvas.PageExporter
+import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.model.*
 import dev.whiteboard.data.LocalBoardRepository
 import dev.whiteboard.data.WhiteboardDatabase
@@ -130,6 +131,48 @@ class MediaInstrumentedTest {
                             }
                         }
                         assertTrue("Expected the blue annotation in the exported PDF", bluePixels > 20)
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+    }
+
+    @Test fun rotatedMediaKeepsItsFrameAndPixelsThroughBackupRestoreAndPdfExport() = runBlocking {
+        val input = temp(".png")
+        val fixture = Bitmap.createBitmap(100, 50, Bitmap.Config.ARGB_8888)
+        try {
+            fixture.eraseColor(Color.RED)
+            input.outputStream().use { assertTrue(fixture.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        } finally {
+            fixture.recycle()
+        }
+        val image = media.importImage(Uri.fromFile(input)).also { imported.add(it.assetId) }
+        val session = DocumentSession(Board(name = "Rotated backup", pages = listOf(Page(elements = listOf(image)))))
+        session.rotate(setOf(image.id), 37.0)
+        val original = session.board
+        val placed = original.activePage.elements.single() as AffineElement
+        repository.save(original)
+        val backup = temp(".zip")
+        assertEquals(1, files.backup(Uri.fromFile(backup)))
+        assertEquals(1, files.restore(Uri.fromFile(backup)))
+        val restored = repository.savedBoards().single { it.id != original.id }
+        val restoredImage = restored.activePage.elements.single() as AffineElement
+        assertEquals(placed.placement, restoredImage.placement)
+        assertEquals(placed.source.bounds, restoredImage.source.bounds)
+        assertNotEquals(image.assetId, (restoredImage.source as MediaElement).assetId)
+        assertTrue(media.file((restoredImage.source as MediaElement).assetId).isFile)
+        val output = temp(".pdf")
+        files.exportPdf(Uri.fromFile(output), restored)
+        ParcelFileDescriptor.open(output, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            PdfRenderer(descriptor).use { renderer ->
+                assertEquals(1, renderer.pageCount)
+                renderer.openPage(0).use { page ->
+                    val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                    try {
+                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        assertEquals(Color.RED, bitmap.getPixel(bitmap.width / 2, bitmap.height / 2))
                     } finally {
                         bitmap.recycle()
                     }

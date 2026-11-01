@@ -76,4 +76,14 @@ class RotationCodecTest {
         assertEquals(digest.of(first), digest.of(restored))
         assertNotEquals(digest.of(first), digest.of(second))
     }
+
+    @Test fun decodingValidatesInkInDocumentCoordinatesInsteadOfExpandingTheLocalSource() {
+        val shape = Shape(
+            bounds = Bounds(-1_000_000_000f, -1_000_000_000f, 1_000_000_000f, 1_000_000_000f),
+            kind = Tool.RECTANGLE,
+            style = InkStyle(width = 200f)
+        )
+        val placed = AffineElement(shape, AffineTransform2D.scale(0.000001, 0.000001))
+        assertEquals(placed, codec.decodeElementJson(codec.encodeElementJson(placed)))
+    }
 }
