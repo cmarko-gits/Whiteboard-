@@ -28,3 +28,9 @@ Referentni prag za automatski tekst je [WCAG 1.4.3, 4,5:1](https://www.w3.org/WA
 Dokaz: artifacts/task-06-accessibility-contrast-api37-app-tests.txt — 5/5 ciljanih testova. Stari 0.4 release APK još ne sadrži ove izmene. Novi RealTalkBackTest proverava imenovanje, fokus i promenu stanja četiri prekidača uz uključeni pravi servis; rezultat je zaseban od običnih Compose testova. Slušni pregled izgovora i kompletni spoljni sistemski tokovi ostaju otvoreni.
 
 Okvir fokusa tastature koristi crni spoljašnji i beli unutrašnji potez. Stvarni View bitmap na beloj, crnoj i zelenoj stranici ima oba dela okvira; fokus se dobija kroz povezani AccessibilityNodeInfo. CanvasAccessibilityTest, uključujući postojeće mutacije/navigator/stare čvorove, prolazi 5/5: artifacts/task-06-keyboard-api37-app-tests.txt. Ovo nije merenje odziva na fizičku tastaturu.
+
+## Integritet parcijalnog brisanja, zadatak 11
+
+Novi lokalni tok odbija zastarele originalne poteze i prevelike komande pre promene dokumenta. Fragmenti imaju ograničenje broja, zadržavaju stil i ne mogu da koriste ID drugog objekta/grupe ili isti novi ID u dve zamene. Provera ID-jeva zatvara mogućnost da interna neispravna komanda ukloni nepovezan objekat kroz postojeći mehanizam zamene; nije predstavljen novi mrežni napad. Tri regresiona testa proveravaju odbijanje bez upisa i Undo promene. Ukupno 24 nova core testa za gumicu prolaze; zasebna matrica Android testova još se izvršava.
+
+Source scan 5dd77e6 obuhvatio je 293 neignorisana fajla bez prijavljenih tajni. Git history scan iz istog prolaza prijavio je 16 skeniranih commit-a bez nalaza. Dokazi: artifacts/task-11-verification.json i task-11-history-secrets.log/json; ovo nisu dokazi kasnijih izmena geometrije na drugoj grani.
