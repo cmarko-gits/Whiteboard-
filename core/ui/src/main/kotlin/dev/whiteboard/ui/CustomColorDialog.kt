@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -41,7 +40,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -170,10 +168,7 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
         if (saved != favorites) saveFavorites(saved)
         submit(selected)
     }
-    Dialog(
-        onDismissRequest = dismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-    ) {
+    InputDialog(dismiss) { closeKeyboard ->
         BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
             val inlineActions = maxHeight < 240.dp
             val showTitle = maxHeight >= 360.dp
@@ -188,19 +183,25 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         Text(stringResource(R.string.custom_color), style = MaterialTheme.typography.headlineSmall)
                         Spacer(Modifier.height(12.dp))
                     }
-                    ColorDialogContents(
+                    AdaptiveDialogContent(
                         compact = inlineActions,
                         input = { hexInput(!inlineActions) },
                         actions = {
                             TextButton(
-                                onClick = dismiss,
+                                onClick = {
+                                    closeKeyboard()
+                                    dismiss()
+                                },
                                 modifier = Modifier.weight(1f, fill = false).focusProperties {
                                     canFocus = true
                                 }.focusRequester(cancelFocus)
                             ) { Text(stringResource(R.string.cancel)) }
                             Spacer(Modifier.width(8.dp))
                             TextButton(
-                                onClick = commit,
+                                onClick = {
+                                    closeKeyboard()
+                                    commit()
+                                },
                                 enabled = valid,
                                 modifier = Modifier.weight(1f, fill = false).focusProperties {
                                     canFocus = valid
@@ -229,50 +230,6 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
                         }
                     )
                 }
-            }
-        }
-    }
-}
-
-/** The input and action row keep the same parents while IME insets change their placement. */
-@Composable
-private fun ColorDialogContents(
-    compact: Boolean,
-    input: @Composable () -> Unit,
-    actions: @Composable RowScope.() -> Unit,
-    body: @Composable () -> Unit
-) {
-    Layout(content = {
-        Box(Modifier.fillMaxWidth()) { input() }
-        Box(Modifier.fillMaxWidth()) { body() }
-        Row(verticalAlignment = Alignment.CenterVertically, content = actions)
-    }) { items, constraints ->
-        val width = constraints.maxWidth
-        val height = constraints.maxHeight
-        val sideBySide = compact && width >= 320.dp.roundToPx()
-        if (sideBySide) {
-            val gap = 8.dp.roundToPx().coerceAtMost(width)
-            val buttons = items[2].measure(Constraints(maxWidth = (width * 0.6f).toInt(), maxHeight = height))
-            val field = items[0].measure(Constraints(maxWidth = (width - buttons.width - gap).coerceAtLeast(0), maxHeight = height))
-            val hidden = items[1].measure(Constraints.fixed(0, 0))
-            val measuredHeight = maxOf(field.height, buttons.height).coerceIn(constraints.minHeight, height)
-            layout(width, measuredHeight) {
-                field.placeRelative(0, (measuredHeight - field.height) / 2)
-                buttons.placeRelative(width - buttons.width, (measuredHeight - buttons.height) / 2)
-                hidden.placeRelative(0, 0)
-            }
-        } else {
-            val gap = 12.dp.roundToPx()
-            val buttons = items[2].measure(Constraints(maxWidth = width, maxHeight = height))
-            val field = items[0].measure(Constraints(maxWidth = width, maxHeight = (height - buttons.height - gap).coerceAtLeast(0)))
-            val remaining = (height - field.height - buttons.height - 2 * gap).coerceAtLeast(0)
-            val content = items[1].measure(Constraints(maxWidth = width, maxHeight = remaining))
-            val gaps = if (content.height > 0) 2 * gap else gap
-            val measuredHeight = (field.height + content.height + buttons.height + gaps).coerceIn(constraints.minHeight, height)
-            layout(width, measuredHeight) {
-                field.placeRelative(0, 0)
-                content.placeRelative(0, field.height + gap)
-                buttons.placeRelative(width - buttons.width, (measuredHeight - buttons.height).coerceAtLeast(0))
             }
         }
     }
