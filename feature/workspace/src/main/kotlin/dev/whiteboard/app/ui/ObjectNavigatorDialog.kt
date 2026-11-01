@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.whiteboard.canvas.describeCanvasElement
 import dev.whiteboard.core.model.*
+import dev.whiteboard.ui.InputAlertDialog
 import dev.whiteboard.ui.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -29,7 +30,6 @@ import kotlinx.coroutines.withContext
 fun ObjectNavigatorDialog(page: Page, dismiss: () -> Unit, select: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
-    val focus = LocalFocusManager.current
     val elements by produceState(page.elements, page.elements, query, context) {
         value = withContext(Dispatchers.Default) {
             val search = query.trim()
@@ -51,10 +51,10 @@ fun ObjectNavigatorDialog(page: Page, dismiss: () -> Unit, select: (String) -> U
             }
         }
     }
-    AlertDialog(
+    InputAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.objects)) },
-        text = {
+        text = { closeKeyboard ->
             Column {
                 Text(stringResource(R.string.objects_help))
                 OutlinedTextField(
@@ -69,20 +69,29 @@ fun ObjectNavigatorDialog(page: Page, dismiss: () -> Unit, select: (String) -> U
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        focus.clearFocus()
+                        closeKeyboard()
                     })
                 )
                 LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 360.dp)) {
                     items(elements, key = { it.id }) { element ->
                         ListItem(
                             headlineContent = { Text(describeCanvasElement(context, element)) },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button) { select(element.id) }
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button) {
+                                closeKeyboard()
+                                select(element.id)
+                            }
                         )
                     }
                     if (elements.isEmpty()) item { Text(stringResource(R.string.no_objects), Modifier.padding(vertical = 16.dp)) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.done)) } }
+        confirmButton = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }) { Text(stringResource(R.string.done)) }
+        },
+        dismissButton = {}
     )
 }
