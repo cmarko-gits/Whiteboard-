@@ -1,0 +1,223 @@
+package dev.whiteboard.format
+
+import dev.whiteboard.core.model.*
+import org.json.JSONArray
+import org.json.JSONObject
+
+typealias UnsupportedDocumentVersion = dev.whiteboard.core.model.UnsupportedDocumentVersion
+
+/** Explicit, versioned format: no reflective class names or executable serialized objects. */
+class DocumentCodec {
+    fun encodePageJson(page: Page): String = encodePage(page).toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) }
+    fun decodePageJson(source: String): Page {
+        require(source.length <= MAX_DOCUMENT_CHARACTERS)
+        JsonSafety.check(source)
+        return decodePage(JSONObject(source))
+    }
+
+    fun encodeElementJson(element: Element): String =
+        encodeElement(element).toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) }
+    fun decodeElementJson(source: String): Element {
+        require(source.length <= MAX_DOCUMENT_CHARACTERS)
+        JsonSafety.check(source)
+        return decodeElement(JSONObject(source))
+    }
+
+    fun encode(board: Board): String = JSONObject().apply {
+        put("version", VERSION)
+        put("id", board.id)
+        put("name", board.name)
+        put("createdAt", board.createdAt)
+        put("updatedAt", board.updatedAt)
+        put("activePageId", board.activePageId)
+        put("favorite", board.favorite)
+        put("folderId", board.folderId)
+        put("trashedAt", board.trashedAt)
+        put("pages", JSONArray().apply { board.pages.forEach { put(encodePage(it)) } })
+    }.toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large to save safely" } }
+
+    fun decode(source: String): Board {
+        require(source.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large" }
+        JsonSafety.check(source)
+        val root = JSONObject(source)
+        val version = root.getInt("version")
+        if (version !in 1..VERSION) throw UnsupportedDocumentVersion(version)
+        val pages = root.getJSONArray("pages")
+        require(pages.length() in 1..1000)
+        return Board(
+            id = root.getString(
+                "id"
+            ),
+            name = root.getString("name"), createdAt = root.getLong("createdAt"), updatedAt = root.getLong("updatedAt"),
+            pages = List(pages.length()) { decodePage(pages.getJSONObject(it)) }, activePageId = root.getString("activePageId"),
+            favorite = root.optBoolean("favorite"), folderId = root.optionalString("folderId"),
+            trashedAt = if (root.has("trashedAt") && !root.isNull("trashedAt")) root.getLong("trashedAt") else null
+        )
+    }
+
+    private fun encodePage(page: Page) = JSONObject().apply {
+        put("id", page.id)
+        put("name", page.name)
+        put("background", page.background.name)
+        put("backgroundColor", page.backgroundColor)
+        put(
+            "viewport",
+            JSONObject().apply {
+                putFloat("x", page.viewport.offset.x)
+                putFloat("y", page.viewport.offset.y)
+                putFloat("scale", page.viewport.scale)
+            }
+        )
+        put("objects", JSONArray().apply { page.elements.forEach { put(encodeElement(it)) } })
+    }
+    private fun decodePage(root: JSONObject): Page {
+        val objects = root.getJSONArray("objects")
+        require(objects.length() <= 100_000)
+        val view = root.getJSONObject("viewport")
+        return Page(
+            root.getString("id"),
+            root.getString("name"),
+            Background.valueOf(root.getString("background")),
+            root.getInt("backgroundColor"),
+            List(objects.length()) {
+                decodeElement(objects.getJSONObject(it))
+            },
+            Viewport(Point(view.float("x"), view.float("y")), view.float("scale"))
+        )
+    }
+    private fun encodeElement(element: Element): JSONObject = JSONObject().apply {
+        put("id", element.id)
+        put("bounds", JSONArray(listOf(element.bounds.left, element.bounds.top, element.bounds.right, element.bounds.bottom)))
+        when (element) {
+            is ElementGroup -> {
+                put("type", "group")
+                put("children", JSONArray().apply { element.children.forEach { put(encodeElement(it)) } })
+            }
+            is MediaElement -> {
+                put("type", "media")
+                put("assetId", element.assetId)
+                put("pdfPage", element.pdfPage)
+                put("rotation", element.rotation)
+                put("crop", JSONArray(listOf(element.crop.left, element.crop.top, element.crop.right, element.crop.bottom)))
+            }
+            is Stroke -> {
+                put("type", "stroke")
+                put("tool", element.tool.name)
+                put("style", encodeStyle(element.style))
+                put("points", JSONArray().apply { element.points.forEach { put(JSONArray(listOf(it.x, it.y))) } })
+            }
+            is Shape -> {
+                put("type", "shape")
+                put("kind", element.kind.name)
+                put("style", encodeStyle(element.style))
+                put("fill", element.fill)
+            }
+            is Line -> {
+                put("type", "line")
+                put("start", JSONArray(listOf(element.start.x, element.start.y)))
+                put("end", JSONArray(listOf(element.end.x, element.end.y)))
+                put("style", encodeStyle(element.style))
+                put("arrow", element.arrow)
+            }
+            is TextElement -> {
+                put("type", "text")
+                put("text", element.text)
+                put("color", element.color)
+                putFloat("fontSize", element.fontSize)
+                put("bold", element.bold)
+                put("italic", element.italic)
+                put("alignment", element.alignment.name)
+            }
+            is Note -> {
+                put("type", "note")
+                put("text", element.text)
+                put("color", element.color)
+                putFloat("fontSize", element.fontSize)
+            }
+        }
+    }
+    private fun decodeElement(root: JSONObject): Element {
+        val id = root.getString("id")
+        val b = root.getJSONArray("bounds")
+        val bounds = Bounds(b.getDouble(0).toFloat(), b.getDouble(1).toFloat(), b.getDouble(2).toFloat(), b.getDouble(3).toFloat())
+        return when (val type = root.getString("type")) {
+            "group" -> {
+                val children = root.getJSONArray("children")
+                require(children.length() in 2..100_000)
+                require((0 until children.length()).none { children.getJSONObject(it).getString("type") == "group" })
+                ElementGroup(id, List(children.length()) { decodeElement(children.getJSONObject(it)) })
+            }
+            "media" -> {
+                val c = root.getJSONArray("crop")
+                MediaElement(
+                    id,
+                    bounds,
+                    root.getString("assetId"),
+                    if (root.isNull("pdfPage")) null else root.getInt("pdfPage"),
+                    root.getInt("rotation"),
+                    Bounds(c.getDouble(0).toFloat(), c.getDouble(1).toFloat(), c.getDouble(2).toFloat(), c.getDouble(3).toFloat())
+                )
+            }
+            "stroke" -> {
+                val points = root.getJSONArray("points")
+                require(points.length() in 1..2_000_000)
+                Stroke(
+                    id,
+                    List(points.length()) {
+                        points.getJSONArray(it).point()
+                    },
+                    decodeStyle(root.getJSONObject("style")),
+                    Tool.valueOf(root.getString("tool"))
+                )
+            }
+            "shape" -> Shape(
+                id,
+                bounds,
+                Tool.valueOf(root.getString("kind")),
+                decodeStyle(root.getJSONObject("style")),
+                if (root.has("fill") &&
+                    !root.isNull("fill")
+                ) {
+                    root.getInt("fill")
+                } else {
+                    null
+                }
+            )
+            "line" -> Line(
+                id,
+                root.getJSONArray("start").point(),
+                root.getJSONArray("end").point(),
+                decodeStyle(root.getJSONObject("style")),
+                root.getBoolean("arrow")
+            )
+            "text" -> TextElement(
+                id,
+                bounds,
+                root.getString("text"),
+                root.getInt("color"),
+                root.float("fontSize"),
+                root.getBoolean("bold"),
+                root.getBoolean("italic"),
+                TextAlignment.valueOf(root.getString("alignment"))
+            )
+            "note" -> Note(id, bounds, root.getString("text"), root.getInt("color"), root.float("fontSize"))
+            else -> throw IllegalArgumentException("Unknown object type: $type")
+        }.also { it.renderBounds }
+    }
+    private fun encodeStyle(style: InkStyle) = JSONObject().apply {
+        put("color", style.color)
+        putFloat("width", style.width)
+        putFloat("opacity", style.opacity)
+    }
+    private fun decodeStyle(root: JSONObject) = InkStyle(root.getInt("color"), root.float("width"), root.float("opacity"))
+
+    // The JVM JSON library also has put(String, Float); Android's platform class only supports Double.
+    private fun JSONObject.putFloat(name: String, value: Float) = put(name, value.toDouble())
+    private fun JSONObject.float(name: String) = getDouble(name).toFloat()
+    private fun JSONArray.point() = Point(getDouble(0).toFloat(), getDouble(1).toFloat())
+    private fun JSONObject.optionalString(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
+    companion object {
+        const val VERSION = 3
+        const val MAX_DOCUMENT_CHARACTERS = 64 * 1024 * 1024
+    }
+}

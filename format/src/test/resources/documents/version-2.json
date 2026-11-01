@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "id": "00000000-0000-0000-0000-000000000011",
+  "name": "Legacy PDF",
+  "createdAt": 1700000000000,
+  "updatedAt": 1700000001000,
+  "activePageId": "00000000-0000-0000-0000-000000000012",
+  "favorite": true,
+  "folderId": null,
+  "trashedAt": null,
+  "pages": [{
+    "id": "00000000-0000-0000-0000-000000000012",
+    "name": "PDF 1",
+    "background": "PLAIN",
+    "backgroundColor": -1,
+    "viewport": { "x": 0, "y": 0, "scale": 1 },
+    "objects": [
+      { "id": "media-legacy", "type": "media", "bounds": [0,0,400,600],
+        "assetId": "00000000-0000-0000-0000-000000000013.pdf", "pdfPage": 0,
+        "rotation": 90, "crop": [0.1,0.2,0.9,0.8] },
+      { "id": "note-legacy", "type": "note", "bounds": [20,20,200,180],
+        "text": "Annotation", "color": -729437, "fontSize": 22 }
+    ]
+  }]
+}

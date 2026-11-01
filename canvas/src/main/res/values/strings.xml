@@ -1,0 +1,34 @@
+<resources>
+    <string name="canvas_description">Drawing canvas. Use Objects to browse all objects. Actions allow text, notes, shapes, zoom and pan without drawing gestures.</string>
+    <string name="canvas_object_unavailable">Object is no longer available</string>
+    <string name="canvas_select">Select object</string>
+    <string name="canvas_edit">Edit text</string>
+    <string name="canvas_delete">Delete object</string>
+    <string name="canvas_move_left">Move object left</string>
+    <string name="canvas_move_right">Move object right</string>
+    <string name="canvas_move_up">Move object up</string>
+    <string name="canvas_move_down">Move object down</string>
+    <string name="canvas_grow">Make object larger</string>
+    <string name="canvas_shrink">Make object smaller</string>
+    <string name="canvas_activate">Insert selected text or shape, or browse objects</string>
+    <string name="canvas_browse">Browse objects</string>
+    <string name="canvas_add_text">Add text at center</string>
+    <string name="canvas_add_note">Add note at center</string>
+    <string name="canvas_zoom_in">Zoom in</string>
+    <string name="canvas_zoom_out">Zoom out</string>
+    <string name="canvas_fit">Fit to content</string>
+    <string name="canvas_note">Note: %1$s</string>
+    <string name="canvas_text">Text: %1$s</string>
+    <string name="canvas_stroke">Drawing stroke</string>
+    <string name="canvas_line">Line</string>
+    <string name="canvas_arrow">Arrow</string>
+    <string name="canvas_rectangle">Rectangle</string>
+    <string name="canvas_square">Square</string>
+    <string name="canvas_ellipse">Ellipse</string>
+    <string name="canvas_circle">Circle</string>
+    <string name="canvas_triangle">Triangle</string>
+    <string name="canvas_diamond">Diamond</string>
+    <string name="canvas_image">Image</string>
+    <string name="canvas_pdf">PDF page</string>
+    <plurals name="canvas_group"><item quantity="one">Group of %d object</item><item quantity="other">Group of %d objects</item></plurals>
+</resources>

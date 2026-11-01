@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "00000000-0000-0000-0000-000000000001",
+  "name": "Legacy ćirilica",
+  "createdAt": 1700000000000,
+  "updatedAt": 1700000001000,
+  "activePageId": "00000000-0000-0000-0000-000000000002",
+  "favorite": false,
+  "pages": [{
+    "id": "00000000-0000-0000-0000-000000000002",
+    "name": "Page 1",
+    "background": "DOTS",
+    "backgroundColor": -1,
+    "viewport": { "x": -100, "y": 200, "scale": 1.5 },
+    "objects": [
+      { "id": "stroke-legacy", "type": "stroke", "bounds": [-12, -2, 102, 52], "tool": "PEN",
+        "style": { "color": -16777216, "width": 4, "opacity": 1 }, "points": [[-10,0],[100,50]] },
+      { "id": "text-legacy", "type": "text", "bounds": [100,100,500,300], "text": "Ћирилица / Đaci",
+        "color": -16777216, "fontSize": 24, "bold": true, "italic": false, "alignment": "CENTER" }
+    ]
+  }]
+}

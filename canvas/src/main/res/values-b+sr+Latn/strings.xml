@@ -1,0 +1,34 @@
+<resources>
+    <string name="canvas_description">Platno za crtanje. Lista Objekti prikazuje sve objekte. Akcije omogućavaju tekst, beleške, oblike, zumiranje i pomeranje bez gestova crtanja.</string>
+    <string name="canvas_object_unavailable">Objekat više nije dostupan</string>
+    <string name="canvas_select">Izaberi objekat</string>
+    <string name="canvas_edit">Uredi tekst</string>
+    <string name="canvas_delete">Obriši objekat</string>
+    <string name="canvas_move_left">Pomeri objekat ulevo</string>
+    <string name="canvas_move_right">Pomeri objekat udesno</string>
+    <string name="canvas_move_up">Pomeri objekat nagore</string>
+    <string name="canvas_move_down">Pomeri objekat nadole</string>
+    <string name="canvas_grow">Povećaj objekat</string>
+    <string name="canvas_shrink">Smanji objekat</string>
+    <string name="canvas_activate">Dodaj izabrani tekst ili oblik ili prikaži objekte</string>
+    <string name="canvas_browse">Prikaži objekte</string>
+    <string name="canvas_add_text">Dodaj tekst u sredinu</string>
+    <string name="canvas_add_note">Dodaj belešku u sredinu</string>
+    <string name="canvas_zoom_in">Uvećaj</string>
+    <string name="canvas_zoom_out">Umanji</string>
+    <string name="canvas_fit">Prikaži ceo sadržaj</string>
+    <string name="canvas_note">Beleška: %1$s</string>
+    <string name="canvas_text">Tekst: %1$s</string>
+    <string name="canvas_stroke">Potez crteža</string>
+    <string name="canvas_line">Linija</string>
+    <string name="canvas_arrow">Strelica</string>
+    <string name="canvas_rectangle">Pravougaonik</string>
+    <string name="canvas_square">Kvadrat</string>
+    <string name="canvas_ellipse">Elipsa</string>
+    <string name="canvas_circle">Krug</string>
+    <string name="canvas_triangle">Trougao</string>
+    <string name="canvas_diamond">Romb</string>
+    <string name="canvas_image">Slika</string>
+    <string name="canvas_pdf">PDF stranica</string>
+    <plurals name="canvas_group"><item quantity="one">Grupa od %d objekta</item><item quantity="few">Grupa od %d objekta</item><item quantity="other">Grupa od %d objekata</item></plurals>
+</resources>
