@@ -27,7 +27,7 @@ class ColorPickerComposeTest {
             "Saturation and brightness"
         ).fetchSemanticsNode().config[SemanticsActions.CustomActions]
         compose.runOnIdle { assertTrue(actions.first { it.label == "Increase saturation" }.action()) }
-        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithText("Apply").performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.runOnIdle {
             assertNotNull(chosen)
             assertNotEquals(original, chosen)
@@ -90,7 +90,7 @@ class ColorPickerComposeTest {
         compose.onNode(hasSetTextAction()).performTextReplacement("12ab34")
         compose.onNodeWithText("Save color").performScrollTo().performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.onNodeWithText("Remove saved color").assertExists()
-        compose.onNodeWithText("Apply").performClick()
+        compose.onNodeWithText("Apply").performSemanticsAction(SemanticsActions.OnClick) { it() }
         compose.runOnIdle {
             assertEquals(0xFF12AB34.toInt(), selected)
             assertEquals(listOf(0xFF12AB34.toInt()), palette)

@@ -67,7 +67,8 @@ class RealTalkBackTest {
         fun activate(node: AccessibilityNodeInfo) {
             var target = node
             while (!target.isClickable) target = checkNotNull(target.parent) { "No accessible click action" }
-            assertTrue(target.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
+            target.refresh()
+            if (!target.isAccessibilityFocused) assertTrue(target.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
             val until = SystemClock.uptimeMillis() + 5000
             while (target.refresh() && !target.isAccessibilityFocused && SystemClock.uptimeMillis() < until) {
                 target.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
@@ -114,7 +115,7 @@ class RealTalkBackTest {
                     assertTrue("$label must expose its checked state", node.isCheckable)
                     assertTrue("$label must expose a click action", node.isClickable)
                     val before = node.isChecked
-                    assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
+                    if (!node.isAccessibilityFocused) assertTrue(node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS))
                     val focusUntil = SystemClock.uptimeMillis() + 5000
                     while (node.refresh() && !node.isAccessibilityFocused && SystemClock.uptimeMillis() < focusUntil) {
                         node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)

@@ -49,7 +49,8 @@ class CanvasAccessibilityTest {
                 }
                 instrument.waitForIdleSync()
                 val target = node("Note: Keyboard contrast")
-                assertTrue(target.performAction(AccessibilityNodeInfo.ACTION_FOCUS))
+                // Older framework versions may focus the first virtual child with the host.
+                if (!target.isFocused) assertTrue(target.performAction(AccessibilityNodeInfo.ACTION_FOCUS))
                 instrument.waitForIdleSync()
                 assertTrue(target.refresh())
                 assertTrue(target.isFocused)

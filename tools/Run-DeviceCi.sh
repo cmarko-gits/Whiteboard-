@@ -8,8 +8,14 @@ run_release_smoke() {
   mkdir -p artifacts/device-release || return $?
   local unsigned=app/build/outputs/apk/release/app-release-unsigned.apk
   local signed=artifacts/device-release/whiteboard-ci-preview.apk
+  local key_directory
+  key_directory=$(mktemp -d "${RUNNER_TEMP}/whiteboard-signing.XXXXXX") || return $?
+  # Ephemeral CI-only identity; never include the key in uploaded reports.
+  keytool -genkeypair -keystore "$key_directory/ci.jks" -storetype JKS \
+    -alias whiteboard-ci -keyalg RSA -keysize 2048 -validity 2 -dname 'CN=Whiteboard CI' \
+    -storepass android -keypass android -noprompt || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" sign \
-    --ks "${HOME}/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android \
+    --ks "$key_directory/ci.jks" --ks-pass pass:android --key-pass pass:android \
     --out "$signed" "$unsigned" || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
   sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
