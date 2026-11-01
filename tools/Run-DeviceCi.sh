@@ -3,6 +3,24 @@
 set -uo pipefail
 
 mkdir -p artifacts
+# A recorded System UI startup timeout arrived ~47s after emulator launch, after the
+# runner had already reported boot completed. Let early boot services settle before
+# launching Gradle/install/input work; this is not a retry or dismissal of an ANR.
+boot_deadline=$((SECONDS + 60))
+while :; do
+  guest_uptime=$(timeout 5s adb shell cat /proc/uptime | awk '{print int($1)}' | tr -d '\r')
+  if [[ ! "$guest_uptime" =~ ^[0-9]+$ ]]; then
+    echo 'Cannot establish emulator uptime for startup qualification.' >&2
+    exit 1
+  fi
+  if ((guest_uptime >= 60)); then break; fi
+  if ((SECONDS >= boot_deadline)); then
+    echo 'Emulator did not reach a stable startup observation window.' >&2
+    exit 1
+  fi
+  sleep 1
+done
+echo "Starting device qualification at guest uptime ${guest_uptime}s."
 # A System UI ANR during boot blocks all framework accessibility/input assertions.
 # Keep it visible as infrastructure failure instead of dismissing it inside application tests.
 adb shell dumpsys activity lastanr > artifacts/device-boot-anr.txt
