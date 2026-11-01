@@ -31,9 +31,7 @@ class WorkspaceFlowTest {
         launchHome()
         val name = "Flow test ${System.currentTimeMillis()}"
         description("New board").click()
-        device.wait(Until.hasObject(By.text("Board name")), 10_000)
-        val field = checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull())
-        field.text = name
+        testDialogField(device, "Board name").text = name
         text("Confirm").click()
         description("Save")
         description("Pen").click()
@@ -64,8 +62,7 @@ class WorkspaceFlowTest {
         launchHome()
         val name = "Pages test ${System.currentTimeMillis()}"
         description("New board").click()
-        device.wait(Until.hasObject(By.text("Board name")), 10_000)
-        checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()).text = name
+        testDialogField(device, "Board name").text = name
         text("Confirm").click()
         description("More actions").click()
         text("Pages").click()

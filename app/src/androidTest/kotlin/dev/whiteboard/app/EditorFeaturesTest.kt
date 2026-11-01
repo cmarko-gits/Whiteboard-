@@ -159,14 +159,16 @@ class EditorFeaturesTest {
         val folder = "$prefix Z"
         val name = "Template ${System.currentTimeMillis()}"
         val folders = LocalFolderRepository(database)
+        var completed = false
         try {
             repeat(24) { folders.create("$prefix $it", null) }
             home()
             text("Folders").click()
             // The primary action must stay visible even when the folder list overflows.
             text("New folder").click()
-            checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()).text = folder
+            testDialogField(device, "Folder name").text = folder
             text("Confirm").click()
+            withTimeout(10_000) { folders.observeFolders().first { items -> items.any { it.name == folder } } }
             val until = android.os.SystemClock.uptimeMillis() + 10_000
             while (!device.hasObject(By.text(folder)) && android.os.SystemClock.uptimeMillis() < until) {
                 // The folder list is populated asynchronously after the dialog closes.
@@ -175,7 +177,7 @@ class EditorFeaturesTest {
             }
             text(folder).click()
             control("New board").click()
-            checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()).text = name
+            testDialogField(device, "Board name").text = name
             text("Grid").click()
             text("Confirm").click()
             control("Save").click()
@@ -186,7 +188,9 @@ class EditorFeaturesTest {
             val board = repository.savedBoards().single { it.name == name }
             assertNotNull(board.folderId)
             assertEquals(Background.GRID, board.activePage.background)
+            completed = true
         } finally {
+            if (!completed) failureCapture.snapshot("folders-before-cleanup")
             repository.savedBoards().filter { it.name == name }.forEach { repository.deletePermanently(it.id) }
             folders.observeFolders().first().filter { it.name.startsWith(prefix) }.forEach { folders.deleteKeepingContents(it.id) }
         }

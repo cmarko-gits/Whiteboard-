@@ -34,6 +34,11 @@ internal fun openTestBoard(device: UiDevice, name: String) {
 internal fun testBoardCard(device: UiDevice, name: String) =
     checkNotNull(device.wait(Until.findObject(By.text(name).clazz("android.widget.TextView")), 10_000)) { "Missing board card: $name" }
 
+/** Match the dialog's labeled input; a library search field may still exist underneath it. */
+internal fun testDialogField(device: UiDevice, label: String) = checkNotNull(
+    device.wait(Until.findObject(By.clazz("android.widget.EditText").hasDescendant(By.text(label))), 10_000)
+) { "Missing labeled dialog input: $label" }
+
 internal fun searchTestLibrary(device: UiDevice, query: String) {
     val search = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
     search.text = query
@@ -43,7 +48,10 @@ internal fun searchTestLibrary(device: UiDevice, query: String) {
 
 private fun hideTestKeyboard(device: UiDevice) {
     val shown = Regex("\\bmInputShown=true\\b")
-    if (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) return
+    if (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
+        device.waitForIdle()
+        return
+    }
     device.pressBack()
     val deadline = SystemClock.uptimeMillis() + 5_000
     while (shown.containsMatchIn(device.executeShellCommand("dumpsys input_method")) && SystemClock.uptimeMillis() < deadline) {
