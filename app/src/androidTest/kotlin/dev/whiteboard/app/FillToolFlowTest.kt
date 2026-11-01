@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
@@ -30,6 +31,17 @@ class FillToolFlowTest {
     private fun text(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.desc(value)), 10_000)) { value }
     private fun canvas(): UiObject2 = checkNotNull(device.wait(Until.findObject(By.descContains("Drawing canvas")), 10_000))
+    private fun canvasBounds(): android.graphics.Rect {
+        repeat(3) { attempt ->
+            try {
+                return canvas().visibleBounds
+            } catch (stale: StaleObjectException) {
+                if (attempt == 2) throw stale
+                device.waitForIdle()
+            }
+        }
+        error("Canvas hierarchy did not settle")
+    }
     private fun color(value: String) {
         control("Color picker").click()
         text("HEX color")
@@ -40,7 +52,7 @@ class FillToolFlowTest {
         device.waitForIdle()
     }
     private fun tap(x: Int, y: Int) {
-        val bounds = canvas().visibleBounds
+        val bounds = canvasBounds()
         device.click(bounds.left + x, bounds.top + y)
         device.waitForIdle()
     }
@@ -97,7 +109,8 @@ class FillToolFlowTest {
         assertEquals(0xFFF4E6A3.toInt(), page.backgroundColor)
 
         color("000000")
-        val bounds = canvas().visibleBounds
+        device.waitForIdle()
+        val bounds = canvasBounds()
         device.swipe(bounds.centerX(), bounds.centerY(), bounds.centerX() + bounds.width() / 4, bounds.centerY(), 20)
         device.waitForIdle()
         text("Saved on this device")

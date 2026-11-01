@@ -178,9 +178,11 @@ class EditorFeaturesTest {
             text("New folder").click()
             checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()).text = folder
             text("Confirm").click()
-            repeat(30) {
-                if (device.hasObject(By.text(folder))) return@repeat
-                checkNotNull(device.findObject(By.scrollable(true))).scroll(Direction.DOWN, 0.8f)
+            val until = android.os.SystemClock.uptimeMillis() + 10_000
+            while (!device.hasObject(By.text(folder)) && android.os.SystemClock.uptimeMillis() < until) {
+                // The folder list is populated asynchronously after the dialog closes.
+                val scroll = device.wait(Until.findObject(By.scrollable(true)), 1_000)
+                if (scroll != null) scroll.scroll(Direction.DOWN, 0.8f)
             }
             text(folder).click()
             control("New board").click()

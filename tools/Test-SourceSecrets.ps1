@@ -7,7 +7,11 @@ New-Item -ItemType Directory -Path $taskSnapshot -Force | Out-Null
 Push-Location $taskRoot
 try {
     # Includes untracked/hidden project sources; respects .gitignore, excluding generated files and local secrets.
-    $taskFiles = @(& rg --files --hidden -g '!.git/**')
+    $taskFiles = if (Get-Command rg -ErrorAction SilentlyContinue) {
+        @(& rg --files --hidden -g '!.git/**')
+    } else {
+        @(& git -c core.quotePath=false ls-files --cached --others --exclude-standard)
+    }
     if ($LASTEXITCODE -ne 0 -or $taskFiles.Count -eq 0) { throw 'Source inventory failed.' }
     foreach ($taskFile in $taskFiles) {
         $taskDestination = Join-Path $taskSnapshot $taskFile

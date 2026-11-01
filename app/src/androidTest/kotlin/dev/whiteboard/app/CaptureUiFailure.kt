@@ -14,7 +14,9 @@ class CaptureUiFailure : TestWatcher() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val name = description.methodName.replace(Regex("[^A-Za-z0-9_-]"), "_")
-        val directory = context.getExternalFilesDir(null) ?: return
+        val output = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
+        val directory = output?.let(::File) ?: context.getExternalFilesDir(null) ?: return
+        directory.mkdirs()
         runCatching { device.dumpWindowHierarchy(File(directory, "failure-$name.xml")) }
         runCatching { device.takeScreenshot(File(directory, "failure-$name.png")) }
     }
