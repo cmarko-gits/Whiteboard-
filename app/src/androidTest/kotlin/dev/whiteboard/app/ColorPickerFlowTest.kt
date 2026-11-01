@@ -95,14 +95,10 @@ class ColorPickerFlowTest {
     }
     private fun enterHex(value: String) {
         hex().click()
-        checkNotNull(
+        val input = checkNotNull(
             device.wait(Until.findObject(By.clazz("android.widget.EditText").focused(true)), 5_000)
         ) { "HEX input did not receive focus" }
-        check(value.matches(Regex("[A-Za-z0-9]{1,8}")))
-        // Keep the IME's selection/composition buffer in sync through real keyboard events.
-        device.pressKeyCode(android.view.KeyEvent.KEYCODE_A, android.view.KeyEvent.META_CTRL_ON)
-        device.pressKeyCode(android.view.KeyEvent.KEYCODE_DEL)
-        device.executeShellCommand("input text $value")
+        input.text = value
         device.waitForIdle()
         // Refresh cached accessibility text after the rendered input changes.
         if (Build.VERSION.SDK_INT >= 34) InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
@@ -197,6 +193,20 @@ class ColorPickerFlowTest {
         device.swipe(plane.centerX(), plane.centerY(), plane.left + plane.width() * 3 / 4, plane.top + plane.height() / 4, 12)
         assertNotEquals("12AB34", hex().text)
         enterHex("65B7F2")
+        // Commit the accessibility text replacement before starting a new IME session.
+        // Rotation is still exercised with the real keyboard visible and the exact value preserved.
+        finishHexEntry()
+        assertEquals("65B7F2", hex().text)
+        hex().click()
+        val keyboardDeadline = android.os.SystemClock.uptimeMillis() + 5_000
+        while (!Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method")) &&
+            android.os.SystemClock.uptimeMillis() < keyboardDeadline
+        ) {
+            android.os.SystemClock.sleep(50)
+        }
+        check(Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
+            "Rotation must exercise an open HEX keyboard"
+        }
         device.setOrientationLeft()
         device.waitForIdle()
         device.executeShellCommand("screencap -p /sdcard/whiteboard-color-picker-landscape.png")
