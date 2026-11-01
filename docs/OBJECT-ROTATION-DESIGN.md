@@ -27,7 +27,11 @@ Planiranje rotacije radi na Default dispatcher-u uz kooperativno otkazivanje. Pr
 
 JSON format je podignut na 4 jer stari čitači ne razumeju afinni sadržaj. Čitanje verzija 1–3 ostaje podržano; Room šema ostaje 4 jer se SQL struktura nije menjala. Dekoder zabranjuje singularne/prevelike matrice, ugnježdene okvire, necentrirani izvor i neslaganje ID-ja izvora i objekta. Prilozi, pretraga, stilovi i uređivanje sadržaja prolaze kroz isti geometrijski sloj.
 
-Dodato je 15 domenskih i šest format testova, šest Android renderer/native-input testova i jedan kompletan UI tok sa otkazivanjem, rotacijom grupe, Undo/Redo, čuvanjem, ponovnim otvaranjem i PNG izvozom. To su napisani testovi, bez potvrde izvršenja ove integracije. Prethodno potvrđenih 12 testova osnove i 163 JVM testa odnosi se isključivo na raniji commit 2a3763f.
+Dodato je 16 testova rotacije, sedam format testova, pet ViewModel testova, šest Android renderer/native-input testova, jedan kompletan UI tok i jedan backup/restore/PDF tok. Dodatnih pet testova komandi štiti redosled pri velikim izmenama, uključujući rotaciju 5000 od 10000 objekata. Dispatcher računanja je injektovan; paralelna izmena i otkazivanje proveravaju se kontrolisanim testnim scheduler-ima.
+
+Prvi integracioni CI 41341674388/source aafa34d prošao je verify. CI 41342367471/source 401168d takođe je prošao verify; njegovi Android poslovi su još u toku. Kasnija injekcija dispatcher-a, dva konkurentna ViewModel testa i optimizacija komandi još čekaju novu kompilaciju/regresiju. Prethodno potvrđenih 12 testova osnove i 163 JVM testa odnosi se isključivo na raniji commit 2a3763f; ne pripisivati taj broj integraciji.
+
+Primena standardnih komandi sa različitim nenegativnim odredištima spaja zadržane i izmenjene objekte u jednom prolazu posle sortiranja. Time velika proređena selekcija ne pomera veliki niz pri svakom ubacivanju. Za ponovljena/negativna odredišta čuva se ranije ponašanje; zasebni testovi pokrivaju clamping i Undo. Ovo je algoritamska optimizacija, bez tvrdnje o izmerenih 60 Hz na uređaju.
 
 ## Nalazi koji su vodili implementaciju
 

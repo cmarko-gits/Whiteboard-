@@ -37,10 +37,29 @@ data class EditCommand(val pageId: String, val deltas: List<ElementDelta>) : Doc
     override fun apply(board: Board, forward: Boolean): Board {
         val page = board.pages.first { it.id == pageId }
         val ids = deltas.flatMap { listOfNotNull(it.before?.element?.id, it.after?.element?.id) }.toSet()
-        val result = page.elements.filterNot { it.id in ids }.toMutableList()
+        val retained = page.elements.filterNot { it.id in ids }
         val additions = deltas.mapNotNull { if (forward) it.after else it.before }.sortedBy { it.index }
-        additions.forEach { result.add(it.index.coerceIn(0, result.size), it.element) }
-        return board.withPage(page.copy(elements = result.toList())).copy(activePageId = pageId)
+        val ordered = additions.indices.all { index ->
+            additions[index].index >= 0 && (index == 0 || additions[index].index > additions[index - 1].index)
+        }
+        val result = if (ordered) {
+            // Normal commands have distinct nonnegative destinations. Merge in one pass instead
+            // of shifting the retained array once for every replaced object in a large selection.
+            buildList(retained.size + additions.size) {
+                var next = 0
+                additions.forEachIndexed { count, addition ->
+                    val destination = addition.index.coerceAtMost(retained.size + count)
+                    while (size < destination) add(retained[next++])
+                    add(addition.element)
+                }
+                while (next < retained.size) add(retained[next++])
+            }
+        } else {
+            retained.toMutableList().apply {
+                additions.forEach { add(it.index.coerceIn(0, size), it.element) }
+            }.toList()
+        }
+        return board.withPage(page.copy(elements = result)).copy(activePageId = pageId)
     }
 }
 

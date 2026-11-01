@@ -37,10 +37,10 @@ class WorkspaceViewModelTest {
     private val settings = InMemorySettingsRepository(UserSettings(onboarded = true))
     private val files = FakeDocumentStorage()
     private val models = mutableListOf<WorkspaceViewModel>()
-    private fun model(computation: CoroutineDispatcher = main.dispatcher): WorkspaceViewModel {
+    private fun model(cpu: CoroutineDispatcher = main.dispatcher): WorkspaceViewModel {
         val dispatchers = object : AppDispatchers {
             override val io = main.dispatcher
-            override val computation = computation
+            override val computation = cpu
         }
         return WorkspaceViewModel(EditorPersistence(repository), ManagePreferences(settings), DocumentTransfers(files), dispatchers)
             .also(models::add)
