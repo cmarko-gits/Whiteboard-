@@ -1,4 +1,6 @@
-# Whiteboard za Android — lokalna verzija 0.4.0
+# Whiteboard za Android — lokalni kandidat 0.4.1
+
+Aktuelni kandidat, rezultati i otvorene provere: [LOCAL-0.4.1-CANDIDATE.md](docs/LOCAL-0.4.1-CANDIDATE.md). [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje čuvanje, backup, ograničenja i rad bez mreže. Poslednji prethodni kvalifikovani 0.4.0 paket i istorijski dokazi ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 
@@ -19,7 +21,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 
 Device skripta podrazumeva emulator-5554. Za drugi ciljni uređaj eksplicitno zadati DeviceSerial. U okruženju sa ograničenim resursima build i emulator rade naizmenično. Ne preuzimati novi emulator image bez potrebe; ograničenje dodatnog prostora je 3,4 GB.
 
-`tools/Smoke-Test.ps1` proverava optimizovani paket, recovery i rasporede. Zatim `tools/Test-WindowModes.ps1` proverava stvarni split-screen preko WindowManager-a, `tools/Test-Adaptive.ps1 -VersionName 0.4.0` font/prozore, a `tools/Test-Locales.ps1` sr-Latn i stvarnu RTL konfiguraciju. Te skripte koriste engleski početni interfejs, otvaraju sopstvenu Recovery_check test tablu i vraćaju izmenjenu konfiguraciju. Izabrani emulator nije fizička kvalifikacija svih uređaja.
+`tools/Smoke-Test.ps1` proverava optimizovani paket, recovery i rasporede. Zatim `tools/Test-WindowModes.ps1` proverava stvarni split-screen preko WindowManager-a, `tools/Test-Adaptive.ps1 -VersionName 0.4.1` font/prozore, a `tools/Test-Locales.ps1` sr-Latn i stvarnu RTL konfiguraciju. Te skripte koriste engleski početni interfejs, otvaraju sopstvenu Recovery_check test tablu i vraćaju izmenjenu konfiguraciju. Izabrani emulator nije fizička kvalifikacija svih uređaja.
 
 Verzija 0.4 dodaje pristupačne objekte platna, kompletan Objects navigator i alternative gestovima. Za zasebne testove sa LeakCanary/Shark i stvarnim TalkBack servisom koristiti uputstvo u [kvalifikacionom izveštaju](docs/LOCAL-QUALIFICATION.md). Redovni CI testovi ostaju bez tih eksplicitnih dijagnostičkih klasa.
 

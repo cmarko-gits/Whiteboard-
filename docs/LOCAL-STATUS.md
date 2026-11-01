@@ -1,5 +1,7 @@
 # Whiteboard 0.4.0 — lokalni status i QA
 
+Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.
+
 Datum: 1. novembar 2026. Aktivni obim ostaje lokalna Kotlin Android aplikacija. AI, backend, nalozi, cloud i Play objava nisu uključeni. Korisnik je izabrao nastavak bez fizičkog telefona.
 
 ## Rezultat ove iteracije
