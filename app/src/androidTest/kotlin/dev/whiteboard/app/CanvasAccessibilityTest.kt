@@ -70,8 +70,13 @@ class CanvasAccessibilityTest {
         context.startActivity(
             Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         )
-        device.waitForIdle()
-        device.findObject(By.text("Start creating"))?.click()
+        // A fresh installation can render onboarding after the first idle event.
+        // Wait for either onboarding or the library, rather than taking a one-time snapshot.
+        val deadline = android.os.SystemClock.uptimeMillis() + 10_000
+        while (!device.hasObject(By.desc("New board")) && android.os.SystemClock.uptimeMillis() < deadline) {
+            device.findObject(By.text("Start creating"))?.click()
+            device.waitForIdle(250)
+        }
         control("New board")
         checkNotNull(device.findObject(By.clazz("android.widget.EditText"))).text = board.name.substringAfter("Accessibility ")
         control("Search results")

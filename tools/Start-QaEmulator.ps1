@@ -17,7 +17,10 @@ if($taskOs.FreePhysicalMemory -lt ($MemoryMB+1024)*1024) { throw 'Insufficient f
 $taskBudgetPath=Join-Path $taskRoot 'artifacts/qualification-storage-baseline.json'
 if(Test-Path -LiteralPath $taskBudgetPath) {
     $taskBudget=Get-Content -LiteralPath $taskBudgetPath -Raw | ConvertFrom-Json
-    $taskReserve=if($Image -eq '37.1'){1000000000}else{2000000000}
+    $taskQaHome=Join-Path $taskRoot 'artifacts/qualification-avd'
+    $taskHasQaDisk=(Test-Path -LiteralPath (Join-Path $taskQaHome 'qualification-owned.txt')) -and
+        (Test-Path -LiteralPath (Join-Path $taskQaHome 'Whiteboard_QA.avd/userdata-qemu.img.qcow2'))
+    $taskReserve=if($Image -eq '37.1' -or $taskHasQaDisk){1000000000}else{2000000000}
     if((Get-PSDrive C).Free -lt $taskBudget.freeBytesAtStart-$taskBudget.maxAdditionalBytes+$taskReserve) {
         throw 'Insufficient storage headroom; do not start another emulator under the current qualification budget.'
     }
@@ -29,11 +32,6 @@ $taskPreviousAvdHome=$env:ANDROID_AVD_HOME
 try {
     if ($Image -eq '37.1') { $taskArguments=@('-avd','Small_Phone')+$taskArguments }
     else {
-        $taskBudgetPath=Join-Path $taskRoot 'artifacts/qualification-storage-baseline.json'
-        if (Test-Path -LiteralPath $taskBudgetPath) {
-            $taskBudget=Get-Content -LiteralPath $taskBudgetPath -Raw | ConvertFrom-Json
-            if ((Get-PSDrive C).Free -lt $taskBudget.freeBytesAtStart - 1400000000) { throw 'Insufficient remaining qualification storage budget for isolated QA userdata.' }
-        }
         # Fresh isolated QA userdata; never boots an older OS against the user's existing AVD data.
         # Google Play images can enforce a larger virtual partition than requested; monitor actual host allocation.
         $taskAvdHome=[IO.Path]::GetFullPath((Join-Path $taskRoot 'artifacts/qualification-avd'))
