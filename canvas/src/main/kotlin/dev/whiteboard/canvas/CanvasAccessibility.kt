@@ -29,9 +29,7 @@ internal class CanvasAccessibility(
     private var lastPageId: String? = null
     private var lastElements: List<Element>? = null
     private val focusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF315D4C.toInt()
         style = Paint.Style.STROKE
-        strokeWidth = 3 * host.resources.displayMetrics.density
     }
 
     fun changed() {
@@ -179,7 +177,16 @@ internal class CanvasAccessibility(
     fun drawFocus(canvas: Canvas) {
         if (keyboardFocusedVirtualViewId == INVALID_ID) return
         refresh()
-        nodes[keyboardFocusedVirtualViewId]?.let { canvas.drawRect(rectangle(it), focusPaint) }
+        nodes[keyboardFocusedVirtualViewId]?.let {
+            val bounds = rectangle(it)
+            // Two adjacent tones remain visible over arbitrary user-selected canvas colors.
+            focusPaint.color = android.graphics.Color.BLACK
+            focusPaint.strokeWidth = 6 * host.resources.displayMetrics.density
+            canvas.drawRect(bounds, focusPaint)
+            focusPaint.color = android.graphics.Color.WHITE
+            focusPaint.strokeWidth = 2 * host.resources.displayMetrics.density
+            canvas.drawRect(bounds, focusPaint)
+        }
     }
 
     companion object {

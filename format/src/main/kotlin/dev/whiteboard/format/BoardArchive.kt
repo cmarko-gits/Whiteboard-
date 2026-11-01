@@ -63,7 +63,7 @@ class BoardArchive(private val codec: DocumentCodec = DocumentCodec()) {
                 require(names.add(entry.name)) { "Duplicate archive entry" }
                 require(names.size <= MAX_BOARDS + 5001) { "Too many archive entries" }
                 val isAsset = entry.name.startsWith("assets/") && MediaElement.ASSET_NAME.matches(entry.name.removePrefix("assets/"))
-                require(entry.name == "whiteboard-version.txt" || entry.name.matches(Regex("boards/[0-9]+\\.json")) || isAsset) {
+                require(entry.name == "whiteboard-version.txt" || entry.name.matches(Regex("boards/[0-9]{1,4}\\.json")) || isAsset) {
                     "Unsupported archive entry"
                 }
                 val buffer = java.io.ByteArrayOutputStream()
@@ -72,11 +72,11 @@ class BoardArchive(private val codec: DocumentCodec = DocumentCodec()) {
                     val count = zip.read(chunk)
                     if (count < 0) break
                     require(buffer.size() + count <= MAX_ENTRY_BYTES) { "Archive entry is too large" }
+                    total += count
+                    require(total <= MAX_TOTAL_BYTES) { "Archive is too large" }
                     buffer.write(chunk, 0, count)
                 }
                 val bytes = buffer.toByteArray()
-                total += bytes.size
-                require(total <= MAX_TOTAL_BYTES) { "Archive is too large" }
                 if (isAsset) {
                     assets[entry.name.removePrefix("assets/")] = bytes
                 } else if (entry.name == "whiteboard-version.txt") {

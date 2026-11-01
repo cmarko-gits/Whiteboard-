@@ -42,6 +42,17 @@ class FillToolFlowTest {
         }
         error("Canvas hierarchy did not settle")
     }
+    private fun openBoard(name: String) {
+        repeat(3) { attempt ->
+            try {
+                text(name).click()
+                return
+            } catch (stale: StaleObjectException) {
+                if (attempt == 2) throw stale
+                device.waitForIdle()
+            }
+        }
+    }
     private fun color(value: String) {
         control("Color picker").click()
         text("HEX color")
@@ -76,7 +87,7 @@ class FillToolFlowTest {
         device.findObject(By.text("OK"))?.click()
         if (!device.hasObject(By.desc("New board"))) device.wait(Until.findObject(By.text("Start creating")), 10_000)?.click()
         control("New board")
-        text(board.name).click()
+        openBoard(board.name)
         control("Fill color").click()
         text("1:1").click()
         device.waitForIdle()
@@ -117,7 +128,7 @@ class FillToolFlowTest {
         assertEquals(page, repository.load(board.id).activePage)
         device.executeShellCommand("screencap -p /sdcard/whiteboard-fill-tool.png")
         control("Back to boards").click()
-        text(board.name).click()
+        openBoard(board.name)
         control("Fill color")
         assertEquals(page, repository.load(board.id).activePage)
     }

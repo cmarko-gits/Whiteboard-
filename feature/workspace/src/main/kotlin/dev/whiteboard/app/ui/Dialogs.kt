@@ -185,28 +185,12 @@ fun SettingsDialog(
                     })
                 }
             }
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Text(stringResource(R.string.finger_drawing), modifier = Modifier.weight(1f))
-                Switch(settings.fingerDrawing, viewModel::fingerDrawing)
-            }
+            SettingsSwitch(stringResource(R.string.finger_drawing), settings.fingerDrawing, viewModel::fingerDrawing)
             Text(stringResource(R.string.gesture_help), style = MaterialTheme.typography.bodySmall)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(stringResource(R.string.smart_shapes), Modifier.weight(1f))
-                Switch(settings.smartShapes, viewModel::smartShapes)
-            }
+            SettingsSwitch(stringResource(R.string.smart_shapes), settings.smartShapes, viewModel::smartShapes)
             Text(stringResource(R.string.smart_shapes_help), style = MaterialTheme.typography.bodySmall)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(stringResource(R.string.snap), Modifier.weight(1f))
-                Switch(settings.snap, viewModel::snap)
-            }
-            Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(stringResource(R.string.autosave), Modifier.weight(1f))
-                Switch(settings.autosave, viewModel::autosave)
-            }
+            SettingsSwitch(stringResource(R.string.snap), settings.snap, viewModel::snap)
+            SettingsSwitch(stringResource(R.string.autosave), settings.autosave, viewModel::autosave)
             HorizontalDivider(Modifier.padding(vertical = 18.dp))
             Text(stringResource(R.string.backup_title), fontWeight = FontWeight.SemiBold)
             Text(stringResource(R.string.backup_description), style = MaterialTheme.typography.bodySmall)

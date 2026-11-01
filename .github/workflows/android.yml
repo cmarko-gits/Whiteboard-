@@ -100,3 +100,6 @@ jobs:
             **/build/outputs/androidTest-results/
             **/build/outputs/connected_android_test_additional_output/
             artifacts/device-failures/
+            artifacts/device-release/
+            artifacts/*.png
+            artifacts/smoke-ui.xml

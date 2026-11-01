@@ -34,6 +34,55 @@ class CanvasAccessibilityTest {
     private val repository = LocalBoardRepository(database)
     private val owned = mutableListOf<String>()
 
+    @Test fun keyboardFocusRemainsVisibleOnLightDarkAndGreenPages() {
+        val note = Note(bounds = Bounds(100f, 100f, 300f, 260f), text = "Keyboard contrast", color = 0xFF315D4C.toInt())
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            var view: WhiteboardView? = null
+            scenario.onActivity { activity ->
+                view = WhiteboardView(activity)
+                activity.setContentView(view)
+            }
+            listOf(0xFFFFFFFF.toInt(), 0xFF000000.toInt(), 0xFF315D4C.toInt()).forEach { background ->
+                scenario.onActivity {
+                    view!!.update(Page(backgroundColor = background, elements = listOf(note)), Tool.SELECT, InkStyle(), emptySet())
+                    view!!.requestFocus()
+                }
+                instrument.waitForIdleSync()
+                val target = node("Note: Keyboard contrast")
+                assertTrue(target.performAction(AccessibilityNodeInfo.ACTION_FOCUS))
+                instrument.waitForIdleSync()
+                assertTrue(target.refresh())
+                assertTrue(target.isFocused)
+                scenario.onActivity {
+                    val canvasView = checkNotNull(view)
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        canvasView.width,
+                        canvasView.height,
+                        android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    try {
+                        canvasView.draw(android.graphics.Canvas(bitmap))
+                        val radius = (4 * canvasView.resources.displayMetrics.density).toInt() + 1
+                        var black = 0
+                        var white = 0
+                        for (y in 100 - radius..100 + radius) {
+                            for (x in 140 until 260) {
+                                when (bitmap.getPixel(x, y)) {
+                                    android.graphics.Color.BLACK -> black++
+                                    android.graphics.Color.WHITE -> white++
+                                }
+                            }
+                        }
+                        assertTrue("Missing dark focus border", black > 100)
+                        assertTrue("Missing light focus border", white > 100)
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun oldVirtualNodesCannotActOnANewPageWithTheSameImportedObjectId() {
         val first = Note(bounds = Bounds(100f, 100f, 300f, 260f), text = "First page object")
         val second = first.copy(text = "Second page object")

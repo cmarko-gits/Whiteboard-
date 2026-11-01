@@ -20,6 +20,7 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
     private val pathCache = LinkedHashMap<String, CachedPath>(128, 0.75f, true)
     private var cachedBytes = 0L
     private val cacheLimit = 32L * 1024 * 1024
+    private var pageBackground = Color.WHITE
 
     fun drawLiveStroke(canvas: Canvas, path: Path, first: Point?, singlePoint: Boolean, style: InkStyle) {
         if (first == null) return
@@ -38,6 +39,7 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
     }
 
     fun drawBackground(canvas: Canvas, page: Page, visible: Bounds, scale: Float) {
+        pageBackground = page.backgroundColor
         paint.reset()
         paint.isAntiAlias = true
         paint.color = page.backgroundColor
@@ -156,7 +158,10 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
                 paint.color = element.color
                 val b = element.bounds
                 canvas.drawRoundRect(b.left, b.top, b.right, b.bottom, 8f, 8f, paint)
-                drawText(canvas, b, element.text, 0xFF30352D.toInt(), element.fontSize, false, false, TextAlignment.LEFT, 16f)
+                drawText(
+                    canvas, b, element.text, NoteTextContrast.foreground(element.color, pageBackground),
+                    element.fontSize, false, false, TextAlignment.LEFT, 16f
+                )
             }
         }
     }

@@ -2,12 +2,40 @@
 # Preserve the original test exit status while collecting diagnostics before the runner stops its emulator.
 set -uo pipefail
 
+run_release_smoke() {
+  bash ./gradlew :app:assembleRelease -Pwhiteboard.leakDetection=false \
+    -Pkotlin.compiler.execution.strategy=in-process --max-workers=2 --no-parallel --console=plain || return $?
+  mkdir -p artifacts/device-release || return $?
+  local unsigned=app/build/outputs/apk/release/app-release-unsigned.apk
+  local signed=artifacts/device-release/whiteboard-ci-preview.apk
+  "${ANDROID_HOME}/build-tools/36.0.0/apksigner" sign \
+    --ks "${HOME}/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android \
+    --out "$signed" "$unsigned" || return $?
+  "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
+  sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
+  pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
+    -Package dev.whiteboard.app -ApkPath "$signed" 2>&1 | tee artifacts/device-release/smoke.log
+}
+
 if bash ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest \
   -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process \
   --max-workers=2 --no-parallel --console=plain; then
   test_exit=0
 else
   test_exit=$?
+fi
+
+if ((test_exit == 0)); then
+  if ! api=$(adb shell getprop ro.build.version.sdk | tr -d '\r') || [[ ! "$api" =~ ^[0-9]+$ ]]; then
+    echo "Cannot establish device API for optimized package qualification." >&2
+    test_exit=1
+  elif [[ "$api" == 26 || "$api" == 36 ]]; then
+    if run_release_smoke; then
+      echo "Optimized release smoke passed on API $api."
+    else
+      test_exit=$?
+    fi
+  fi
 fi
 
 if ((test_exit != 0)); then

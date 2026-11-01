@@ -404,7 +404,9 @@ private fun BoardCard(
                 if (board.trashedAt ==
                     null
                 ) {
-                    IconButton(onClick = favorite, modifier = Modifier.align(Alignment.TopEnd)) {
+                    IconToggleButton(checked = board.favorite, onCheckedChange = {
+                        favorite()
+                    }, modifier = Modifier.align(Alignment.TopEnd)) {
                         Icon(
                             if (board.favorite) Icons.Outlined.Star else Icons.Outlined.StarOutline,
                             stringResource(R.string.favorite),

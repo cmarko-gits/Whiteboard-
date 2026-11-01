@@ -8,7 +8,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
@@ -40,8 +39,7 @@ class ColorPickerFlowTest {
         repeat(5) {
             refreshPickerAccessibility()
             device.findObject(By.desc(value))?.let { return it }
-            val scroll = device.findObjects(By.scrollable(true)).lastOrNull() ?: return control(value)
-            scroll.scroll(Direction.DOWN, 0.65f)
+            if (!scrollPicker(forward = true)) return control(value)
             device.waitForIdle()
         }
         return control(value)
@@ -57,11 +55,29 @@ class ColorPickerFlowTest {
             if (node.refresh()) repeat(node.childCount) { node.getChild(it)?.let(queue::add) }
         }
     }
+    private fun scrollPicker(forward: Boolean): Boolean {
+        // A coordinate swipe across the color plane edits HSV instead of scrolling its parent.
+        val queue = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
+        val scrollable = mutableListOf<android.view.accessibility.AccessibilityNodeInfo>()
+        InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow?.let(queue::add)
+        var remaining = 1000
+        while (queue.isNotEmpty() && remaining-- > 0) {
+            val node = queue.removeFirst()
+            if (!node.refresh()) continue
+            if (node.isScrollable) scrollable += node
+            repeat(node.childCount) { node.getChild(it)?.let(queue::add) }
+        }
+        val action = if (forward) {
+            android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+        } else {
+            android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
+        }
+        return scrollable.lastOrNull()?.performAction(action) == true
+    }
     private fun pickerText(value: String): UiObject2 {
         repeat(5) {
             device.findObject(By.text(value))?.let { return it }
-            val scroll = device.findObjects(By.scrollable(true)).lastOrNull() ?: return text(value)
-            if (!scroll.scroll(Direction.DOWN, 0.65f)) return text(value)
+            if (!scrollPicker(forward = true)) return text(value)
             device.waitForIdle()
         }
         return text(value)
@@ -79,8 +95,7 @@ class ColorPickerFlowTest {
     private fun hex(): UiObject2 {
         repeat(5) {
             device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()?.let { return it }
-            val scroll = device.findObjects(By.scrollable(true)).lastOrNull() ?: error("Missing HEX input")
-            scroll.scroll(Direction.UP, 0.65f)
+            check(scrollPicker(forward = false)) { "Missing HEX input" }
             device.waitForIdle()
         }
         return checkNotNull(device.findObjects(By.clazz("android.widget.EditText")).lastOrNull()) { "Missing HEX input" }

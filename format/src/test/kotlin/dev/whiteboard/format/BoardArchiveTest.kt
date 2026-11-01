@@ -9,6 +9,51 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BoardArchiveTest {
+    @Test fun `compressed input cannot exceed one entry budget`() {
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry("assets/${newId()}.png"))
+            val chunk = ByteArray(8192)
+            repeat(BoardArchive.MAX_ENTRY_BYTES / chunk.size) { zip.write(chunk) }
+            zip.write(0)
+        }
+        assertTrue(output.size() < 100_000)
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            BoardArchive().readContents(ByteArrayInputStream(output.toByteArray()))
+        }
+        assertEquals("Archive entry is too large", error.message)
+    }
+
+    @Test fun `total decompression budget applies while reading the last entry`() {
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use { zip ->
+            zip.putNextEntry(ZipEntry("whiteboard-version.txt"))
+            zip.write('2'.code)
+            val chunk = ByteArray(8192)
+            repeat(4) {
+                zip.putNextEntry(ZipEntry("assets/${newId()}.png"))
+                repeat(BoardArchive.MAX_ENTRY_BYTES / chunk.size) { zip.write(chunk) }
+            }
+        }
+        assertTrue(output.size() < 100_000)
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            BoardArchive().readContents(ByteArrayInputStream(output.toByteArray()))
+        }
+        assertEquals("Archive is too large", error.message)
+    }
+
+    @Test fun `overlong numeric board paths are rejected before document parsing`() {
+        val output = ByteArrayOutputStream()
+        ZipOutputStream(output).use {
+            it.putNextEntry(ZipEntry("boards/${"1".repeat(60_000)}.json"))
+            it.write("{}".toByteArray())
+        }
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            BoardArchive().readContents(ByteArrayInputStream(output.toByteArray()))
+        }
+        assertEquals("Unsupported archive entry", error.message)
+    }
+
     @Test fun `backup retains editable document structure`() {
         val boards = listOf(Board(name = "One"), Board(name = "Two"))
         val output = ByteArrayOutputStream()

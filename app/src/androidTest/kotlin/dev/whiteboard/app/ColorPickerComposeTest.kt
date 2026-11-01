@@ -88,7 +88,8 @@ class ColorPickerComposeTest {
             }
         }
         compose.onNode(hasSetTextAction()).performTextReplacement("12ab34")
-        compose.onNodeWithText("Save color").performScrollTo().performClick()
+        compose.onNodeWithText("Save color").performScrollTo().performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Remove saved color").assertExists()
         compose.onNodeWithText("Apply").performClick()
         compose.runOnIdle {
             assertEquals(0xFF12AB34.toInt(), selected)
