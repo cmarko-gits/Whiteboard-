@@ -125,7 +125,9 @@ class ColorPickerFlowTest {
             val until = android.os.SystemClock.uptimeMillis() + 5_000
             while (Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method")) &&
                 android.os.SystemClock.uptimeMillis() < until
-            ) android.os.SystemClock.sleep(50)
+            ) {
+                android.os.SystemClock.sleep(50)
+            }
             check(!Regex("\\bmInputShown=true\\b").containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
                 "HEX keyboard did not close after Done"
             }
