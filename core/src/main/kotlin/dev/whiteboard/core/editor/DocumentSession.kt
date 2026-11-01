@@ -192,6 +192,16 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         require(cuts.map { it.original.id }.distinct().size == cuts.size)
         val originals = page.elements.flatMap { it.leaves() }.filterIsInstance<Stroke>().associateBy { it.id }
         if (cuts.any { originals[it.original.id] != it.original }) return false
+        val occupied = page.elements.flatMap { listOf(it.id) + it.leaves().map(Element::id) }.toSet()
+        val fragmentIds = mutableSetOf<String>()
+        cuts.forEach { cut ->
+            if (cut.fragments.size > PartialStrokeEraser.MAX_FRAGMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+            require(
+                cut.fragments.all { fragment ->
+                    fragmentIds.add(fragment.id) && (fragment.id == cut.original.id || fragment.id !in occupied)
+                }
+            ) { "Stroke fragments must not replace other objects" }
+        }
         val replacements = cuts.filter { it.fragments != listOf(it.original) }.associate { it.original.id to it.fragments }
         if (replacements.isEmpty()) return false
         val deltas = mutableListOf<ElementDelta>()

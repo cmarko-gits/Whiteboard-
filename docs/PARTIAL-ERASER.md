@@ -17,7 +17,7 @@ Native canvas čuva samo privremeni pregled tokom gesta. ViewModel prima završe
 
 ## Dokazi i trenutno stanje
 
-21 novi JVM test prolazi: geometrija, kapsula, retke/ponovljene tačke, veliki koordinatni opseg, deterministički nasumični slučajevi, grupe i redosled, stari snimci, Undo/Redo i granice memorije/broja objekata. Sa postojećim testovima: 148 JVM provera. Logovi: `artifacts/task-11-domain-tests-repeat.log` i `artifacts/task-11-android-build.log`.
+24 nova JVM test prolazi: geometrija, kapsula, retke/ponovljene tačke, veliki koordinatni opseg, deterministički nasumični slučajevi, grupe i redosled, stari snimci, Undo/Redo i granice memorije/broja objekata. Sa postojećim testovima: 151 JVM provera. Logovi: `artifacts/task-11-domain-tests-repeat.log` i `artifacts/task-11-android-build.log`.
 
 Android build, test APK i debug lint prolaze. Devet testova MotionEvent unosa i jedan ceo UI/čuvanje/PNG tok su napisani; izvršavanje na Android matrici još nije potvrđeno. F01 ostaje otvoren dok se ti rezultati ne pregledaju. Broj prolaznih JVM testova nije dokaz izvršenih Android testova.
 

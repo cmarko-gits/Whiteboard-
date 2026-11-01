@@ -100,4 +100,39 @@ class PartialEraseHistoryTest {
         assertSame(board, session.board)
         assertFalse(session.canUndo)
     }
+
+    @Test fun aFragmentCannotReplaceAnUnrelatedObjectOrItsGroup() {
+        val note = Note(bounds = Bounds(0f, 100f, 100f, 200f), text = "Keep me")
+        val group = ElementGroup(children = listOf(stroke, note))
+        val board = Board(name = "Identity", pages = listOf(Page(elements = listOf(group))))
+        listOf(note.id, group.id).forEach { occupiedId ->
+            val session = DocumentSession(board)
+            val forged = StrokeCut(stroke, listOf(stroke.copy(id = occupiedId)))
+            assertThrows(IllegalArgumentException::class.java) { session.eraseParts(listOf(forged)) }
+            assertSame(board, session.board)
+            assertFalse(session.canUndo)
+        }
+    }
+
+    @Test fun fragmentIdsMustBeUniqueAcrossAllCutsInOneGesture() {
+        val second = stroke.copy(id = newId())
+        val board = Board(name = "Duplicate fragments", pages = listOf(Page(elements = listOf(stroke, second))))
+        val session = DocumentSession(board)
+        val shared = newId()
+        val firstCut = StrokeCut(stroke, listOf(stroke.copy(id = shared)))
+        val secondCut = StrokeCut(second, listOf(second.copy(id = shared)))
+        assertThrows(IllegalArgumentException::class.java) { session.eraseParts(listOf(firstCut, secondCut)) }
+        assertSame(board, session.board)
+        assertFalse(session.canUndo)
+    }
+
+    @Test fun fragmentationLimitAlsoAppliesAtTheDomainBoundary() {
+        val board = Board(name = "Domain limit", pages = listOf(Page(elements = listOf(stroke))))
+        val session = DocumentSession(board)
+        val fragments = List(PartialStrokeEraser.MAX_FRAGMENTS + 1) { stroke.copy(id = newId()) }
+        val error = assertThrows(DocumentFailure::class.java) { session.eraseParts(listOf(StrokeCut(stroke, fragments))) }
+        assertEquals(DocumentError.EDIT_LIMIT, error.error)
+        assertSame(board, session.board)
+        assertFalse(session.canUndo)
+    }
 }

@@ -21,7 +21,7 @@ Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih fu
 
 Ovo je proširenje sadašnjeg lokalnog obima. Za svaku uvedenu funkciju podrazumevaju se domenski model/komande, UI, pristupačnost, čuvanje, format/migracije kada su potrebni i odgovarajući testovi.
 
-- [ ] F01 U toku na codex/partial-eraser (0.5.0). Implementirani parcijalni rez, izbor režima, čuvanje podešavanja i atomski Undo/Redo; 21 novi JVM test prolazi. Devet native-input i jedan UI/save/PNG Android test su napisani, izvršavanje još nije potvrđeno. Kriterijumi i dokazi: PARTIAL-ERASER.md. Prethodni APK 0.4.1 ima samo brisanje celog poteza.
+- [ ] F01 U toku na codex/partial-eraser (0.5.0). Implementirani parcijalni rez, izbor režima, čuvanje podešavanja i atomski Undo/Redo; 24 nova JVM test prolazi. Devet native-input i jedan UI/save/PNG Android test su napisani, izvršavanje još nije potvrđeno. Kriterijumi i dokazi: PARTIAL-ERASER.md. Prethodni APK 0.4.1 ima samo brisanje celog poteza.
 - [ ] F02 Proizvoljna rotacija vektorskih objekata i grupa, sa tačnom selekcijom/hit-testom i izvozom. Za medije dopuniti UI za ugao; sadašnja akcija rotira za 90°, iako model medija podržava širi opseg.
 - [ ] F03 Pomeranje objekta jedan nivo napred/nazad. Bring to Front/Send to Back već postoje.
 - [ ] F04 Eksplicitno poravnanje više izabranih objekata po ivicama i centrima. Automatski Snap/guide već postoji; ravnomerna raspodela razmaka može biti dodatni deo ove funkcije.
