@@ -168,7 +168,11 @@ class EditorFeaturesTest {
             text("New folder").click()
             testDialogField(device, "Folder name").text = folder
             text("Confirm").click()
-            withTimeout(10_000) { folders.observeFolders().first { items -> items.any { it.name == folder } } }
+            // The UI and fixture use separate Room instances without multi-instance invalidation.
+            // Poll a fresh query; collecting this instance's Flow can retain its pre-insert snapshot.
+            withTimeout(10_000) {
+                while (database.folders().all().none { it.name == folder }) delay(50)
+            }
             val until = android.os.SystemClock.uptimeMillis() + 10_000
             while (!device.hasObject(By.text(folder)) && android.os.SystemClock.uptimeMillis() < until) {
                 // The folder list is populated asynchronously after the dialog closes.
