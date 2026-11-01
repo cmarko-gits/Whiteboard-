@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import dev.whiteboard.app.workspace.WorkspaceViewModel
 import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.model.*
@@ -81,8 +82,10 @@ fun TextEditorDialog(
     AlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(if (request.note) R.string.note else R.string.text)) },
+        modifier = Modifier.systemBarsPadding().imePadding(),
+        properties = DialogProperties(decorFitsSystemWindows = false),
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 OutlinedTextField(text, {
                     text = it.take(20_000)
                 }, modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 240.dp), label = {

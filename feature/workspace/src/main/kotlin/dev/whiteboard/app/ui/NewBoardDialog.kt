@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -26,6 +29,8 @@ import dev.whiteboard.ui.R
 fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     var selected by rememberSaveable { mutableStateOf(BoardTemplate.BLANK) }
+    val confirmFocus = remember { FocusRequester() }
+    val cancelFocus = remember { FocusRequester() }
     AlertDialog(
         onDismissRequest = dismiss,
         modifier = Modifier.systemBarsPadding().imePadding(),
@@ -42,7 +47,9 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        focus.clearFocus()
+                        focus.clearFocus(force = true)
+                        // Give keyboard focus a stable destination, including on older Android dialogs.
+                        if (name.isNotBlank()) confirmFocus.requestFocus() else cancelFocus.requestFocus()
                         keyboard?.hide()
                     })
                 )
@@ -66,13 +73,25 @@ fun NewBoardDialog(dismiss: () -> Unit, create: (String, BoardTemplate) -> Unit)
         confirmButton = {
             val focus = LocalFocusManager.current
             val keyboard = LocalSoftwareKeyboardController.current
-            TextButton(onClick = {
-                focus.clearFocus()
-                keyboard?.hide()
-                create(name.trim(), selected)
-            }, enabled = name.isNotBlank()) { Text(stringResource(R.string.confirm)) }
+            TextButton(
+                onClick = {
+                    focus.clearFocus()
+                    keyboard?.hide()
+                    create(name.trim(), selected)
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.focusProperties {
+                    canFocus = name.isNotBlank()
+                }.focusRequester(confirmFocus)
+            ) {
+                Text(stringResource(R.string.confirm))
+            }
         },
-        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = {
+            TextButton(onClick = dismiss, modifier = Modifier.focusProperties { canFocus = true }.focusRequester(cancelFocus)) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
     )
 }
 

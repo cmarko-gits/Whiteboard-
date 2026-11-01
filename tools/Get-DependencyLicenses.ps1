@@ -5,7 +5,12 @@ param(
     [switch] $FetchMissing
 )
 $ErrorActionPreference = 'Stop'
-$taskCache = Join-Path $env:USERPROFILE '.gradle/caches/modules-2/files-2.1'
+$taskGradleHome = if ($env:GRADLE_USER_HOME) {
+    $env:GRADLE_USER_HOME
+} else {
+    Join-Path ([Environment]::GetFolderPath('UserProfile')) '.gradle'
+}
+$taskCache = Join-Path $taskGradleHome 'caches/modules-2/files-2.1'
 $taskPomDirectory = Join-Path (Split-Path -Parent $OutputPath) 'license-poms'
 New-Item -ItemType Directory -Path $taskPomDirectory -Force | Out-Null
 

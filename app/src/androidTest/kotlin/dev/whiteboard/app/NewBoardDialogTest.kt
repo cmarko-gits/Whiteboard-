@@ -27,7 +27,7 @@ class NewBoardDialogTest {
         input.performClick().performTextInput("Draft name")
         input.assertIsFocused().performImeAction()
         input.assertIsNotFocused().assertTextContains("Draft name")
-        compose.onNodeWithText("Confirm").assertIsEnabled()
+        compose.onNodeWithText("Confirm").assertIsEnabled().assertIsFocused()
         compose.runOnIdle {
             assertFalse(submitted)
             assertFalse(dismissed)

@@ -90,7 +90,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: bash ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest -Pwhiteboard.leakDetection=false --max-workers=2 --no-parallel --console=plain
+          script: bash ./tools/Run-DeviceCi.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -98,3 +98,5 @@ jobs:
           path: |
             **/build/reports/androidTests/
             **/build/outputs/androidTest-results/
+            **/build/outputs/connected_android_test_additional_output/
+            artifacts/device-failures/

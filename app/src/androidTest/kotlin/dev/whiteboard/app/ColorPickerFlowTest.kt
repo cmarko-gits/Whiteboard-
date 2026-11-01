@@ -38,12 +38,24 @@ class ColorPickerFlowTest {
     private fun control(value: String): UiObject2 = checkNotNull(device.wait(Until.findObject(By.desc(value)), 10_000)) { value }
     private fun savedColor(value: String): UiObject2 {
         repeat(5) {
+            refreshPickerAccessibility()
             device.findObject(By.desc(value))?.let { return it }
             val scroll = device.findObjects(By.scrollable(true)).lastOrNull() ?: return control(value)
             scroll.scroll(Direction.DOWN, 0.65f)
             device.waitForIdle()
         }
         return control(value)
+    }
+    private fun refreshPickerAccessibility() {
+        // Scroll/layout changes can leave stale descendant bounds in older framework caches.
+        // Refresh connected nodes through the public API instead of relying on API 34 clearCache().
+        val queue = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
+        InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow?.let(queue::add)
+        var remaining = 1000
+        while (queue.isNotEmpty() && remaining-- > 0) {
+            val node = queue.removeFirst()
+            if (node.refresh()) repeat(node.childCount) { node.getChild(it)?.let(queue::add) }
+        }
     }
     private fun pickerText(value: String): UiObject2 {
         repeat(5) {
