@@ -1,6 +1,10 @@
 # F05 — pametni konektori: ugovor i zavisnosti
 
-Status 2. novembra 2026: projektovanje; nema novog tipa dokumenta u aplikaciji i F05 nije implementiran. Sledeći korak posle kvalifikacije F04. Zahtev iz WHITEBOARD-VISION.md: pomeranje povezanog oblika automatski prilagođava vezu. Postojeća Arrow ostaje nezavisna linija i stari dokumenti ne menjaju ponašanje.
+Status 2. novembra 2026: započeto core jezgro na grani `codex/smart-connectors`. Nema Connector modela/UI-ja niti novog tipa dokumenta u aplikaciji; F05 nije završen. Aktivna app verzija ostaje 0.6.3, format 4. Zahtev iz WHITEBOARD-VISION.md: pomeranje povezanog oblika automatski prilagođava vezu. Postojeća Arrow ostaje nezavisna linija i stari dokumenti ne menjaju ponašanje.
+
+`ConnectionPort` i `PagePortIndex` predstavljaju prvi izolovani deo. Indeks je nepromenljiv, vezan za ID stranice i identitet liste elemenata; viewport ne utiče na world geometriju. Indeksira top-level i child ID-jeve, validira render okvir jednom po podržanom cilju i čuva samo njegov okvir/transformaciju za dalja port računanja. Grupa se ne skenira ponovo za svaku vezu. Stroke/Line i nepostojeći ID nisu dozvoljeni ciljevi; nevažeća geometrija prekida izgradnju pre objavljivanja indeksa. Konstrukcija ima checkpoint po objektu.
+
+Napisano je 14 JVM testova: stvarne konture svih šest oblika, lokalni trougao, tekst/beleška, affine rotation/scale/shear, legacy i affine medij, grupni/child portovi, odbijanje nepoznatih/nepodržanih ciljeva, degenerisani okviri, invalidacija snapshot-a, koordinatni limit, otkazivanje i grupa sa 10.000 članova. Testovi upoređuju portove i sa postojećim ShapeGeometry pravilima. Lokalni stil prolazi; CI izvršenje ovog jezgra još nije potvrđeno. Očekivan zbir grane je 244 JVM, dok Android tokovi ostaju 86 app + 13 data jer novi alat još nije povezan.
 
 ## Korisnički ugovor
 
