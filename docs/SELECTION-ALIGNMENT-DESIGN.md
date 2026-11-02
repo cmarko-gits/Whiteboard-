@@ -4,7 +4,9 @@ Status 2. novembra 2026: implementacija 0.6.3/code 11 pripremljena je na grani `
 
 `SelectionAlignment` računa translacije; zajednički `SelectionEditPlan` i `DocumentSession.applySelectionEdit` sada služe i rotaciji, uz iste provere zastarelog plana. ViewModel injektuje computation dispatcher, proverava otkazivanje i serijalizuje rotaciju/poravnanje. `AlignmentDialog` zaključava potvrdu do završetka i koristi EN/sr-Latn resurse. Nema promene JSON/Room verzije.
 
-Pripremljeno je 17 core, četiri ViewModel i jedan Android test (svih šest UI akcija, Cancel, Undo/Redo, Save/reopen i PNG). Minified smoke dodatno proverava poravnate world granice oba objekta i tačan Undo/Redo. Očekuje se 230 JVM i po 86 app + 13 data testova na pet profila; ovi brojevi nisu rezultat izvršenja. Lokalni stil/sintaksa prolaze, a puna CI matrica je uslov zatvaranja.
+Dodato je 17 core, četiri ViewModel i jedan Android test (svih šest UI akcija, Cancel, Undo/Redo, Save/reopen i PNG). CI 41507215597/source a230f11 potvrđuje svih 230 JVM testova: 157 core + 43 format + 5 data + 25 ViewModel, bez neuspeha/preskakanja. Minified smoke dodatno proverava granice oba objekta i tačan Undo/Redo. Po 86 app + 13 data testova na pet profila još nije potvrđeno; puna matrica je uslov zatvaranja.
+
+API 33 prvi pokušaj prekinut je pre pokretanja emulatora jer sdkmanager nije mogao otvoriti preuzeti Android Emulator ZIP (`ZipFile unknown archive`), uz uspešan prethodni build. Log je artifacts/task-14-a230f11-api33.log. GitHub je zahtev za ponavljanje tog jednog posla odbio dok ceo run još radi (403: workflow already running); ponoviti ga tek posle završetka ostalih poslova. Prvi neuspeh se ne briše i ovo nije app test prolaz.
 
 ## Ugovor
 

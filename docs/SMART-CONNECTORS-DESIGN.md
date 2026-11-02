@@ -6,7 +6,7 @@ Status 2. novembra 2026: projektovanje; nema novog tipa dokumenta u aplikaciji i
 
 Korisnik povezuje dva postojeća objekta aktivne stranice izborom početnog i završnog objekta. Dostupna je i Objects/tastatura/accessibility alternativa preciznom prevlačenju. Prva verzija ima pravu liniju i strelicu sa fiksnim portovima; ortogonalno rutiranje/izbegavanje prepreka i petlje ka istom objektu su zasebna proširenja.
 
-Portovi LEFT/TOP/RIGHT/BOTTOM/CENTER pripadaju lokalnom okviru oblika, beleške, teksta ili medija. Sredine ivica se kroz postojeći afinni okvir mapiraju u dokument, pa port prati rotaciju, ne samo AABB. Grupa može imati portove zajedničkog world okvira; njena pravila su eksplicitno drugačija od portova pojedinačne rotirane dece. Potez, drugi konektor i objekat druge stranice nisu cilj porta ove prve verzije.
+Portovi LEFT/TOP/RIGHT/BOTTOM/CENTER pripadaju lokalnoj geometriji oblika, beleške, teksta ili medija. Kod pravougaonog sadržaja koriste se sredine ivica; kod trougla/romba/elipse smer od lokalnog centra mora preseći stvarnu konturu, ne prazni AABB ugao. Podeliti tu geometriju sa postojećim ShapeGeometry pravilima. Rezultat se kroz afinni okvir mapira u dokument, pa port prati rotaciju. Grupa može imati portove zajedničkog world okvira; njena pravila su drugačija od portova pojedinačne rotirane dece. Potez, drugi konektor i objekat druge stranice nisu cilj porta prve verzije.
 
 Move, resize, rotacija i poravnanje pomeraju vezani kraj. Samo pomeranje vezanog konektora ne pomera ciljeve: korisnik prvo odvezuje kraj ili bira i njegove ciljeve. Promena stila/debljine ne menja identitet veze. Fill ne boji konektor. Cela konektorska linija je jedan objekat u slojevima i Undo istoriji.
 
@@ -15,6 +15,8 @@ Brisanje cilja odvezuje njegov kraj na poslednjem važećem world položaju; ost
 Copy/paste i dupliciranje cele stranice prvo prave kompletnu mapu starih/novih ID-jeva, uključujući decu grupa. Ako je cilj kopiran, vezivanje prelazi na njegov novi ID. Ako nije kopiran, kopirani kraj postaje slobodan na svom pomerenom world položaju. Nikada se ne povezuje slučajno sa starim objektom druge table. Clipboard mora zadržati geometriju i potrebne priloge.
 
 Grupisanje koje zadržava ID deteta zadržava i port tog deteta. Kada flatten/group/ungroup ukloni ID postojeće grupe, vezu ka tom grupnom okviru treba atomski odvezati na poslednjem položaju; Undo vraća grupu i vezu. Nije dozvoljeno ostaviti viseći ID. Struktura grupa ostaje ravna.
+
+U prvoj verziji konektor je objekat stranice, ne dete ElementGroup-a. Group akciju onemogućiti kada selekcija uključuje konektor; korisnik može grupisati njegove ciljeve, a spoljašnja veza i dalje prati stabilne child ID-jeve. Ne preskakati izabrani konektor prećutno i ne obećavati da slobodan kraj putuje sa grupom. Parser takođe odbija konektor unutar grupe. Šire grupisanje kompletnog grafa zahteva posebno definisano ponašanje i testove.
 
 ## Model i jedinstvena geometrija
 
@@ -36,7 +38,7 @@ Pri uvozu odbiti nepostojeći ID, vezu na konektor/drugu stranicu, nepoznat port
 
 ## Prihvatanje pre zatvaranja
 
-- Dva objekta: oba kraja prate move/resize/rotation/alignment i transient gest; cancel vraća prikaz. Port rotiranog pravougaonika prati njegovu stvarnu ivicu.
+- Dva objekta: oba kraja prate move/resize/rotation/alignment i transient gest; cancel vraća prikaz. Portovi rotiranog pravougaonika, trougla, romba i elipse pripadaju stvarnoj konturi.
 - Delete/cut, grupisanje/ungroup i Undo/Redo ne ostavljaju viseće ID-jeve i čuvaju slojeve.
 - Copy/paste delimične/potpune selekcije, kopiranje između tabli i duplicate-page imaju tačno remapirane ili odvezane krajeve.
 - Save/reopen, draft recovery, ZIP restore, PNG/JPG/PDF, thumbnail, Objects i accessibility koriste istu geometriju.
