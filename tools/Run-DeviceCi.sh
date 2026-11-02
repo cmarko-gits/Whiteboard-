@@ -21,11 +21,15 @@ while :; do
   sleep 1
 done
 echo "Starting device qualification at guest uptime ${guest_uptime}s."
-# A System UI ANR during boot blocks all framework accessibility/input assertions.
-# Keep it visible as infrastructure failure instead of dismissing it inside application tests.
+# Any ANR during this fresh boot blocks reliable framework accessibility/input assertions.
+# dumpsys lastanr reports "ANR time:" and an activity/process record, not necessarily
+# "ANR in com.android.systemui"; require its explicit clean-boot marker instead.
 adb shell dumpsys activity lastanr > artifacts/device-boot-anr.txt
-if grep -q 'ANR in com.android.systemui' artifacts/device-boot-anr.txt; then
-  echo 'System UI failed during emulator boot; application tests cannot run reliably.' >&2
+if ! grep -qi 'no ANR has occurred since boot' artifacts/device-boot-anr.txt; then
+  echo 'Emulator boot health is not clean; application tests cannot run reliably.' >&2
+  mkdir -p artifacts/device-failures
+  timeout 15s adb logcat -d > artifacts/device-failures/logcat.txt 2>&1 || true
+  timeout 15s adb exec-out screencap -p > artifacts/device-failures/current-screen.png 2>/dev/null || true
   exit 1
 fi
 {
