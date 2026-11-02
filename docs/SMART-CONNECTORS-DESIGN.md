@@ -4,7 +4,7 @@ Status 2. novembra 2026: započeto core jezgro na grani `codex/smart-connectors`
 
 `ConnectionPort` i `PagePortIndex` predstavljaju prvi izolovani deo. Indeks je nepromenljiv, vezan za ID stranice i identitet liste elemenata; viewport ne utiče na world geometriju. Indeksira top-level i child ID-jeve, validira render okvir jednom po podržanom cilju i čuva samo njegov okvir/transformaciju za dalja port računanja. Grupa se ne skenira ponovo za svaku vezu. Stroke/Line i nepostojeći ID nisu dozvoljeni ciljevi; nevažeća geometrija prekida izgradnju pre objavljivanja indeksa. Konstrukcija ima checkpoint po objektu.
 
-Napisano je 14 JVM testova: stvarne konture svih šest oblika, lokalni trougao, tekst/beleška, affine rotation/scale/shear, legacy i affine medij, grupni/child portovi, odbijanje nepoznatih/nepodržanih ciljeva, degenerisani okviri, invalidacija snapshot-a, koordinatni limit, otkazivanje i grupa sa 10.000 članova. Testovi upoređuju portove i sa postojećim ShapeGeometry pravilima. Lokalni stil prolazi; CI izvršenje ovog jezgra još nije potvrđeno. Očekivan zbir grane je 244 JVM, dok Android tokovi ostaju 86 app + 13 data jer novi alat još nije povezan.
+Svih 14 novih JVM testova prolazi: stvarne konture šest oblika, lokalni trougao, tekst/beleška, affine rotation/scale/shear, legacy i affine medij, grupni/child portovi, odbijanje nepoznatih/nepodržanih ciljeva, degenerisani okviri, invalidacija snapshot-a, koordinatni limit, otkazivanje i grupa sa 10.000 članova. Testovi upoređuju portove i sa postojećim ShapeGeometry pravilima. CI 41511522030/source 49a5de9 potvrđuje 244 JVM (171 core + 43 format + 5 data + 25 ViewModel), bez neuspeha/preskakanja, i verify gates. Dokaz: artifacts/task-15-49a5de9-evidence.json. Android regresija grane još traje; njen obim je 86 app + 13 data po profilu jer novi alat još nije povezan.
 
 ## Korisnički ugovor
 
@@ -51,3 +51,18 @@ Pri uvozu odbiti nepostojeći ID, vezu na konektor/drugu stranicu, nepoznat port
 - Prolaz aktuelne OS/tablet matrice, release/security provera i izmereno ponašanje velikog grafa vezuju se za tačan kandidat. Fizička olovka i fizički frame-time ostaju u H obimu.
 
 F06 mind-map roditelj/deca i F07 flowchart koriste ovaj lokalni model tek kada je kvalifikovan. AI, backend, cloud i nalozi ne uvode se ovim projektovanjem.
+
+## Preostala implementacija F05
+
+- [x] F05.1 Izolovano jezgro portova i 14 JVM testova, source 49a5de9. Ovo nije aktivan Connector alat.
+- [ ] F05.2 Uvesti tipove konektora/slobodnih i vezanih krajeva sa eksplicitnim invariantama, bez rekurzivnog povezivanja na konektore.
+- [ ] F05.3 Jedinstveni PageGeometry snapshot/razrešavanje geometrije, granice i invalidacija po listi/reviziji, uključujući transient preview.
+- [ ] F05.4 Atomske session komande: dodavanje/rebinding/odvezivanje, delete/cut/group/ungroup, budžet i tačan Undo/Redo.
+- [ ] F05.5 Dvoprolazni remap ID-jeva u ObjectClipboard i duplicate-page, uz pravilno odvezivanje nekopiranog cilja i očuvanje priloga.
+- [ ] F05.6 Format 5: DocumentCodec, DocumentDeltaCodec, ElementDigest, stari 1–4 dokumenti, recovery i ZIP backup/restore; Room menjati samo ako šema to zahteva.
+- [ ] F05.7 BoardRenderer, PageExporter i platform DocumentFiles (PNG/JPG/PDF, thumbnail/share) koriste isti resolved snapshot.
+- [ ] F05.8 WhiteboardView picking/snap/preview i konektorski gest, bez delimičnog upisa pri cancel-u ili odbijenom kraju.
+- [ ] F05.9 Editor, izbor portova/stila, Objects, keyboard/TalkBack alternativa i CanvasAccessibility granice/opisi koriste istu geometriju.
+- [ ] F05.10 Adversarial reference/koordinate/veličine i lifecycle/concurrency testovi; geometrijski i vizuelni testovi stvarnog praćenja cilja.
+- [ ] F05.11 Cela aktivna CI matrica i minified release smoke kompletne funkcije, uz proveru velikog grafa i očuvanje ranijih tokova.
+- [ ] F05.12 Verzija, paket, security/ABI/16 KB/signature provere, korisničko uputstvo i source/hash mapa kompletnog kandidata.
