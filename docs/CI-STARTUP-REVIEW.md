@@ -2,6 +2,8 @@
 
 Status 2. novembra 2026: promena pripremljena, izvršenje nove CI matrice još nije potvrđeno. Ne menja produkcijski APK kod, izbor OS profila ili test asercije. Kvalifikovani 0.6.3/source a230f11 ostaje zaseban dokaz.
 
+Prvi pokušaj nove skripte, source 5afa4d3/CI 41514731400, prolazi verify/244 JVM, ali svih pet device poslova staje pre boot-a: moj poziv `emulator -version` bira windowed qemu-system-x86_64, koji na headless hostu nema libpulse.so.0. Log i ci-emulator-version.txt to potvrđuju. Ispravka čita SDK package metadata, dok se stvarni emulator i dalje pokreće sa -no-window i zapisuje svoju verziju u log. Ne menja se skup Linux biblioteka ili Android testova radi ovog upita. Taj neuspešan pokušaj ostaje u artifacts/task-03-5afa4d3-*.
+
 ## Nalaz i granice zaključka
 
 CI 41511522030/source 49a5de9 prolazi verify sa 244 JVM, ali API 36 pokušaj prekida pre app testova zbog Quickstep startup ANR-a. Log pokazuje boot completed u 19:45:07.881 UTC, `input keyevent 82` u 19:45:07.890 i ANR sa vremenom 19:45:12, razlog: application does not have a focused window. Keyevent komanda završava tek oko 19:45:15.375. Dokazi: artifacts/task-15-49a5de9-api36.log, -api36-boot-anr.txt i originalni ZIP digest u evidence JSON-u.

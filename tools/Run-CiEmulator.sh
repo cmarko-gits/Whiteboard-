@@ -54,7 +54,13 @@ printf 'no\n' | avdmanager create avd --force --name "$avd" --package "system-im
 printf 'hw.cpu.ncore=2\nhw.keyboard=no\n' >> "$ANDROID_AVD_HOME/$avd.avd/config.ini"
 options=(-no-window -gpu software -no-snapshot -noaudio -no-boot-anim)
 if [[ "$api" == 36 ]]; then options=(-no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -feature -Vulkan); fi
-emulator -version > artifacts/ci-emulator-version.txt 2>&1
+# A bare `emulator -version` selects the GUI binary, which needs libpulse even on
+# a headless host. Record package metadata; the launched headless binary logs its version.
+if [[ -f "$ANDROID_HOME/emulator/source.properties" ]]; then
+  cat "$ANDROID_HOME/emulator/source.properties" > artifacts/ci-emulator-version.txt
+else
+  cat "$ANDROID_HOME/emulator/package.xml" > artifacts/ci-emulator-version.txt
+fi
 emulator -avd "$avd" -port 5554 "${options[@]}" > artifacts/ci-emulator.log 2>&1 &
 emulator_pid=$!
 
