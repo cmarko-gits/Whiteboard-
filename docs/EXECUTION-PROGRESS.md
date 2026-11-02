@@ -2,6 +2,12 @@
 
 ## Nastavak 2. novembra 2026.
 
+Najnoviji potvrđeni presek: **0.6.2/code 10, source 481ab64, CI 41504676373**, svih šest poslova uspešno. **12/F02** zatvoren u prethodnoj punoj 0.6.1 kohorti (a5fdeb7/41504499100); **13/F03** zatvoren za lokalni emulator obim u 0.6.2. Aktuelno 209 JVM + po 85 app/13 data na pet profila, bez grešaka/preskakanja; 307 jedinstvenih slučajeva. Minified smoke API 26 telefon/tablet i API 36 prolazi. Lokalni potpis, ZIP-P16, četiri ELF64, manifest/DEX, OSV 147, licence i source scan prolaze. Paket: LOCAL-0.6.2-CANDIDATE.md; dokazi artifacts/task-13-481ab64-*. Snimci konkretnog izvora pregledani su u navedenom ograničenom obimu. **8/Z08 završni uzorak** je zatvoren za emulator obim u 0.6.1; ostale otvorene Z/H provere nisu time zatvorene.
+
+**14/F04:** source a230f11, 0.6.3/code 11, codex/selection-alignment. Implementirano šest poravnanja; zajednički immutable plan sa rotacijom, injektovan computation dispatcher, otkazivanje/stale/budget zaštite i standardni dijalog. Pripremljeno 17 core + 4 ViewModel + jedan Android test i R8 geometry smoke. CI 41507215597 je u toku; očekivanih 230 JVM/86 app/13 data nije potvrđen rezultat. F04 ostaje otvoren. Prostor je oko 1 GB dodatno prema početnoj osnovi, bez novih lokalnih Gradle/emulator/SDK poslova. Raniji incident prekoračenja ostaje u evidenciji.
+
+Redovi ispod su prethodni presek dana i zadržavaju tadašnje statuse.
+
 - Provereni paket ostaje 0.5.1/source 550bd93; njegovu punu matricu i hash-eve ne pripisivati razvojnim 0.6 izvorima.
 - **12/F02:** CI 41494620712/source c127eb0 prolazi verify i API 26 telefon/tablet, API 30 i 33. Uključeni su novi rotacioni release tokovi na API 26; ranija greška tastature ispravljena je zaključavanjem unosa do uklanjanja dijaloga. API 36 je blokirao Quickstep ANR tokom podizanja emulatora, potvrđen snimkom i logcat-om. Taj pokušaj ostaje neuspešan; F02 nije zatvoren punom novom matricom.
 - **8/Z08:** 0.6.1/code 9 popravlja završni uzorak četkica/oblika, tanku liniju i validaciju pre upisa. CI 41501328904/source 490b764 potvrđuje 196 JVM, po 84 app + 13 data na API 26 telefon/tablet, 30 i 33; API 36 ima 83/84 app + 13/13 data. Jedini pad je subpixel test koji poredi nameravani unos sa nativno predstavljenim koordinatama. Source a5fdeb7 popravlja test: tačno poređenje sa stvarno dostavljenim MotionEvent koordinatama, uz zasebnu toleranciju ulaza 0.001. CI 41504499100 je u toku. Detalji: INPUT-GESTURE-REVIEW.md. RC1 iz ranijeg 8d05708 pokušaja nije kvalifikovan zbog API 36 startup ANR-a.
