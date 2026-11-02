@@ -8,6 +8,8 @@ Rekonstrukcija uvodi novo aplikaciono jezgro, Hilt graf, lokalnu navigaciju, bib
 
 ## Razvoj
 
+Na ovom računaru, dok važi limit od 3,4 GB dodatnog prostora, teške build/device provere izvršavaju se na GitHub CI-ju. Komande ispod su uputstvo za reprodukciju na odgovarajuće opremljenom razvojnom okruženju; ne pokretati lokalni Gradle i emulator istovremeno niti preuzimati nove system image-e u aktuelnoj sesiji.
+
 Otvoriti projekat u Android Studio-u, sa SDK 36 i JDK-om koji odgovara Gradle wrapper-u (ovde Android Studio JBR). Minimum je Android 8 / API 26, target API 36. SDK putanja ostaje u ignorisanom local.properties.
 
 ```powershell

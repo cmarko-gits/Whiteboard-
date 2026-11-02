@@ -1,5 +1,7 @@
 # Kvalifikacija lokalnog Whiteboard-a 0.4.0
 
+Ovo je istorijska kohorta 0.4.0. Aktuelni [0.6.2 kandidat](LOCAL-0.6.2-CANDIDATE.md) ima zasebnu CI matricu; stari TalkBack, heap i frame-time nalazi ispod nisu automatski ponovljeni za njega.
+
 Datum: 1. novembar 2026. Korisnik je izabrao nastavak bez fizičkog telefona. Ovaj pregled obuhvata dostupne emulatore i lokalne pakete; ne potvrđuje fizičku latenciju olovke, OEM ponašanje ili sve Android uređaje.
 
 ## Pristupačnost

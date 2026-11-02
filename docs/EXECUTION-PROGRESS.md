@@ -6,6 +6,8 @@ Najnoviji potvrđeni presek: **0.6.2/code 10, source 481ab64, CI 41504676373**, 
 
 **14/F04:** source a230f11, 0.6.3/code 11, codex/selection-alignment. Implementirano šest poravnanja; zajednički immutable plan sa rotacijom, injektovan computation dispatcher, otkazivanje/stale/budget zaštite i standardni dijalog. Pripremljeno 17 core + 4 ViewModel + jedan Android test i R8 geometry smoke. CI 41507215597 je u toku; očekivanih 230 JVM/86 app/13 data nije potvrđen rezultat. F04 ostaje otvoren. Prostor je oko 1 GB dodatno prema početnoj osnovi, bez novih lokalnih Gradle/emulator/SDK poslova. Raniji incident prekoračenja ostaje u evidenciji.
 
+**15/F05 projektovanje:** SMART-CONNECTORS-DESIGN.md definiše lokalne portove, praćenje geometrije, odvezivanje pri uklanjanju cilja, atomski Undo, remap ID-jeva pri kopiranju i zajednički page resolver. Sadašnji Element.bounds nema kontekst stranice, pa je popisan neophodan prelaz render/picking/export/clipboard/accessibility potrošača. Nema Connector koda ili formata 5 u aplikaciji; F05 ostaje otvoren i aktivni format je 4.
+
 Redovi ispod su prethodni presek dana i zadržavaju tadašnje statuse.
 
 - Provereni paket ostaje 0.5.1/source 550bd93; njegovu punu matricu i hash-eve ne pripisivati razvojnim 0.6 izvorima.
