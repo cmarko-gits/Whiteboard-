@@ -30,7 +30,7 @@ class WorkspaceFlowTest {
     @Test fun createDrawSaveAndReopenBoard() {
         launchHome()
         val name = "Flow test ${System.currentTimeMillis()}"
-        description("New board").click()
+        testLibraryCreateButton(device).click()
         testDialogField(device, "Board name").text = name
         text("Confirm").click()
         description("Save")
@@ -61,7 +61,7 @@ class WorkspaceFlowTest {
     @Test fun multiplePagesSurviveSaveAndReopen() {
         launchHome()
         val name = "Pages test ${System.currentTimeMillis()}"
-        description("New board").click()
+        testLibraryCreateButton(device).click()
         testDialogField(device, "Board name").text = name
         text("Confirm").click()
         description("More actions").click()

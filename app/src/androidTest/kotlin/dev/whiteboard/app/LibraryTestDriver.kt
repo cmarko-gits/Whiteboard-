@@ -6,7 +6,9 @@ import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
 /** Synchronizes fixture navigation with the visible library, including legacy tablet IMEs. */
@@ -22,6 +24,23 @@ internal fun launchTestLibrary(device: UiDevice) {
     }
     check(device.hasObject(By.desc("New board"))) { "Library did not become visible" }
     hideTestKeyboard(device)
+    testLibraryCreateButton(device)
+}
+
+/** The icon can be visible/enabled while its containing Material button is still loading. */
+internal fun testLibraryCreateButton(device: UiDevice): UiObject2 {
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (SystemClock.uptimeMillis() < deadline) {
+        try {
+            var target = device.findObject(By.desc("New board"))
+            while (target != null && !target.isClickable) target = target.parent
+            if (target?.isEnabled == true) return target
+        } catch (_: StaleObjectException) {
+            // Re-read the current hierarchy while the Activity/library finishes loading.
+        }
+        SystemClock.sleep(50)
+    }
+    error("Library create button did not become interactive")
 }
 
 internal fun openTestBoard(device: UiDevice, name: String) {

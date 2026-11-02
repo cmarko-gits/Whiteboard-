@@ -1,6 +1,6 @@
 # CI startup — sprečiti unos u nedovršen launcher
 
-Status 2. novembra 2026: promena pripremljena, izvršenje nove CI matrice još nije potvrđeno. Ne menja produkcijski APK kod, izbor OS profila ili test asercije. Kvalifikovani 0.6.3/source a230f11 ostaje zaseban dokaz.
+Status 2. novembra 2026: novi lifecycle prolazi stvarni startup na svih pet profila u CI 41515479543/source 66c4212. Verify/244 JVM i četiri cele device suite prolaze; API 33 ima jedan zaseban neuspeh UI test readiness-a. Nova fixture ispravka još nije izvršena na CI-ju. Kvalifikovani 0.6.3/source a230f11 ostaje zaseban dokaz.
 
 Prvi pokušaj nove skripte, source 5afa4d3/CI 41514731400, prolazi verify/244 JVM, ali svih pet device poslova staje pre boot-a: moj poziv `emulator -version` bira windowed qemu-system-x86_64, koji na headless hostu nema libpulse.so.0. Log i ci-emulator-version.txt to potvrđuju. Ispravka čita SDK package metadata, dok se stvarni emulator i dalje pokreće sa -no-window i zapisuje svoju verziju u log. Ne menja se skup Linux biblioteka ili Android testova radi ovog upita. Taj neuspešan pokušaj ostaje u artifacts/task-03-5afa4d3-*.
 
@@ -27,3 +27,13 @@ EXIT trap čuva stvarni neuspešan izlazni status, hvata dijagnostiku i zaustavl
 Lokalno prolaze Bash sintaksa, whitespace i Test-CiStartup: spreman launcher; odbijanje nacrtanog System UI-ja uz nedovršen launcher, null/drugi fokus, nepoznat format i zabrana lokalnog SDK/AVD pokretanja. Nisu izvršavani lokalni Android build/emulator poslovi.
 
 Za prihvatanje su potrebni stvarni uspešni startup/fokus/HAS_DRAWN i clean-boot izveštaji na svih pet CI profila, zatim 244 JVM, po 86 app + 13 data i minified smoke. Jedan zelen pokušaj ne dokazuje trajno odsustvo svih infrastrukturnih grešaka. Fizički/Vulkan profil i prava OS nadogradnja ostaju izvan ovog CI nalaza.
+
+## Stvarni nalazi izvora 66c4212
+
+Svi originalni artifact digest-i su provereni. Svih pet `ci-launcher-window.txt` izveštaja ponovo je lokalno provereno istim AWK pravilom; focus/HAS_DRAWN pripadaju launcher prozoru. I pre WindowManager koraka i pre app testova postoji eksplicitni clean marker. Dokaz: artifacts/task-03-66c4212-startup-proof.json. Time je novo pokretanje provereno na API 26 telefonu/tabletu i API 30/33/36, uz postojeća ograničenja uzorka.
+
+API 26 telefon/tablet, 30 i 36 prolaze po 86 app + 13 data; predviđeni release smoke tokovi takođe prolaze. API 33 ima 85/86 app + 13/13 data. WorkspaceFlowTest.createDrawSaveAndReopenBoard prekida na traženju Board name polja. Snimak i XML prikazuju biblioteku bez dijaloga; startup je čist. Dokazi: artifacts/task-03-66c4212-api33-flow.png/xml i originalni report ZIP.
+
+Pregled koda otkriva konkretnu rupu u sinhronizaciji fixture-a: launchTestLibrary je čekao vidljivu ikonicu New board, a Button je onemogućen dok LibraryUi.loading ne postane false. Potom je test kliktao tu ikonicu. Snapshot posle timeout-a ne dokazuje kakvo je enabled stanje bilo u trenutku klika, ali stari ugovor spremnosti nije garantovao interaktivan cilj.
+
+Ispravka dodaje testLibraryCreateButton: sveža hijerarhija, najbliži clickable vlasnik i enabled stanje, uz ograničeno čekanje i ponovno čitanje samo tokom StaleObject prelaza. launchTestLibrary čeka taj uslov; dva WorkspaceFlow toka klikću stvarno dugme. Klik se ne ponavlja, app dugme se ne omogućava pre vremena, a crtanje/Save/reopen asercije ostaju iste. Broj testova se ne povećava. Puna nova matrica ostaje uslov prihvatanja fixture ispravke.
