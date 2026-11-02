@@ -528,9 +528,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             MotionEvent.ACTION_POINTER_UP -> {
                 if (event.getPointerId(event.actionIndex) == activePointer) {
                     if (stylus) {
-                        if (tool == Tool.ERASER && !navigating) {
-                            erase(viewport.toDocument(Point(event.getX(event.actionIndex), event.getY(event.actionIndex))))
-                        }
+                        consumeRelease(Point(event.getX(event.actionIndex), event.getY(event.actionIndex)))
                         finishGesture()
                         clearGesture()
                         navigating = true
@@ -541,7 +539,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 previousScreen = null
             }
             MotionEvent.ACTION_UP -> {
-                if (tool == Tool.ERASER && !navigating && activePointer >= 0) erase(viewport.toDocument(Point(event.x, event.y)))
+                consumeRelease(Point(event.x, event.y))
                 if (tool == Tool.FILL) {
                     val up = viewport.toDocument(Point(event.x, event.y))
                     if ((down?.let { hypot(up.x - it.x, up.y - it.y) * viewport.scale } ?: 0f) > touchSlop) fillTap = false
@@ -559,10 +557,26 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         super.performClick()
         return true
     }
-    private fun addSample(point: Point) {
+    private fun consumeRelease(screen: Point) {
+        if (navigating || activePointer < 0) return
+        val point = viewport.toDocument(screen)
+        when (tool) {
+            Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> addSample(point, finalSample = true)
+            Tool.ERASER -> erase(point)
+            Tool.RECTANGLE, Tool.SQUARE, Tool.ELLIPSE, Tool.CIRCLE, Tool.TRIANGLE, Tool.DIAMOND, Tool.LINE, Tool.ARROW ->
+                down?.let { preview = createShape(it, point) }
+            else -> Unit
+        }
+    }
+    private fun addSample(point: Point, finalSample: Boolean = false) {
         val previous = samples.lastOrNull()
-        if (samples.size >= 2_000_000) return
-        if (previous == null || hypot(point.x - previous.x, point.y - previous.y) * viewport.scale >= 0.5f) {
+        if (samples.size >= 2_000_000) {
+            if (finalSample) samples[samples.lastIndex] = point
+            return
+        }
+        if (previous == null || previous != point &&
+            (finalSample || hypot(point.x - previous.x, point.y - previous.y) * viewport.scale >= 0.5f)
+        ) {
             if (previous == null) activePath.moveTo(point.x, point.y) else activePath.lineTo(point.x, point.y)
             samples.add(point)
         }
@@ -605,9 +619,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private fun finishGesture() {
         when (tool) {
             Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> if (samples.isNotEmpty()) {
-                onEvent(
-                    CanvasEvent.Add(Stroke(points = samples.toList(), style = ink, tool = tool))
-                )
+                commitAddition(Stroke(points = samples.toList(), style = ink, tool = tool))
             }
             Tool.ERASER -> {
                 if (partialFragments.isNotEmpty()) {
@@ -631,8 +643,19 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             }
             Tool.TEXT, Tool.NOTE -> down?.let { onEvent(CanvasEvent.EditText(it, note = tool == Tool.NOTE)) }
             Tool.FILL -> if (fillTap) down?.let { onEvent(CanvasEvent.Fill(it, ink.color)) }
-            else -> preview?.let { if (it.bounds.width >= 2 && it.bounds.height >= 2) onEvent(CanvasEvent.Add(it)) }
+            else -> preview?.let {
+                val meaningful = if (it is Line) {
+                    hypot(it.end.x - it.start.x, it.end.y - it.start.y) >= 2f
+                } else {
+                    it.bounds.width >= 2 && it.bounds.height >= 2
+                }
+                if (meaningful) commitAddition(it)
+            }
         }
+    }
+    private fun commitAddition(element: Element) {
+        element.renderBounds
+        onEvent(CanvasEvent.Add(element))
     }
     private fun createShape(start: Point, end: Point): Element {
         if (tool == Tool.LINE || tool == Tool.ARROW) return Line(start = start, end = end, style = ink, arrow = tool == Tool.ARROW)
