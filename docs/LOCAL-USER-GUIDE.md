@@ -1,6 +1,6 @@
 # Whiteboard — lokalno korišćenje
 
-Proveren lokalni razvojni paket je 0.6.2: [rezultati i ograničenja](LOCAL-0.6.2-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Proveren lokalni razvojni paket je 0.6.3: [rezultati i ograničenja](LOCAL-0.6.3-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 ## Table i biblioteka
 
@@ -22,7 +22,9 @@ More actions → Objects pretražuje celu stranicu, uključujući objekte van ek
 
 Od 0.6.1 Rotate selection otvara relativni ugao; prihvata decimalnu tačku ili zarez, kao i negativan ugao. Više objekata/grupa rotira se oko zajedničkog centra. Apply pravi jednu Undo komandu, a Cancel ne menja tablu. Promena veličine rotiranog teksta skalira njegov postojeći prikaz. Sačuvaj tablu da zadržiš promenu.
 
-U 0.6.2 Selection actions → Bring forward one layer / Send backward one layer pomera izbor preko jednog susednog neizabranog objekta. Uzastopni izabrani objekti ostaju blok; njihov međusobni redosled se ne menja. Na granici je stavka isključena. Bring to front / Send to back pomera na kraj/početak slojeva. Undo/Redo vraća jednu celu akciju. Napredni konektori i eksplicitno poravnanje još zahtevaju dalji rad/kvalifikaciju.
+Od 0.6.2 Selection actions → Bring forward one layer / Send backward one layer pomera izbor preko jednog susednog neizabranog objekta. Uzastopni izabrani objekti ostaju blok; njihov međusobni redosled se ne menja. Na granici je stavka isključena. Bring to front / Send to back pomera na kraj/početak slojeva. Undo/Redo vraća jednu celu akciju.
+
+U 0.6.3 izaberi najmanje dva objekta, zatim Selection actions → Alignment. Šest dugmadi poravnava ivice ili horizontalne/vertikalne centre prema zajedničkom okviru. Veličina i rotacija se čuvaju; grupa se pomera kao celina. Cancel ne menja tablu. Jedna akcija se vraća jednim Undo; zatim možeš Redo i Save. Pametni konektori još nisu gotov alat; postojeće Arrow linije su nezavisne.
 
 ## Čuvanje, oporavak i backup
 
