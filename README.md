@@ -1,6 +1,6 @@
-# Whiteboard za Android — lokalna 0.5.1, razvoj 0.6.0
+# Whiteboard za Android — proverena lokalna 0.6.1
 
-Provereni lokalni razvojni paket, rezultati i ograničenja: [LOCAL-0.5.1-CANDIDATE.md](docs/LOCAL-0.5.1-CANDIDATE.md). [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje čuvanje, backup, ograničenja i rad bez mreže. Grana codex/object-rotation razvija zasebnu 0.6.0 sa [rotacijom](docs/OBJECT-ROTATION-DESIGN.md); njeni rezultati se ne pripisuju paketu 0.5.1. Prethodni paketi i istorijski dokazi ostaju sačuvani.
+Provereni lokalni razvojni paket sa rotacijom i ispravkom završetka poteza, rezultati i ograničenja: [LOCAL-0.6.1-CANDIDATE.md](docs/LOCAL-0.6.1-CANDIDATE.md). [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje čuvanje, backup, ograničenja i rad bez mreže. Slojevi 0.6.2 i dalji rad na poravnanju zahtevaju sopstvenu kvalifikaciju; njihovi rezultati se ne pripisuju paketu 0.6.1. Prethodni paketi i istorijski dokazi ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 

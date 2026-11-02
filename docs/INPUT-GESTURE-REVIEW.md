@@ -1,6 +1,6 @@
 # Z08 — pregled završnog uzorka gesta
 
-Stanje 2. novembra 2026: ispravka 0.6.1/code 9 izvršena je na CI uređajima. Run 41501328904, source 490b764, prolazi verify i četiri profila (API 26 telefon/tablet, 30 i 33). API 36 izvršava svih 84 app testova, sa jednim neuspešnim testom preciznosti; puna kvalifikacija zato ostaje otvorena. Rotacija je uključena u ovu regresiju.
+Stanje 2. novembra 2026: nalaz završnog uzorka je zatvoren za lokalni emulator obim u 0.6.1/code 9, source a5fdeb7, CI 41504499100. Prolazi 196 JVM, svih pet profila po 84 app + 13 data bez grešaka/preskakanja i minified release smoke API 26 telefon/tablet i API 36. Rotacija je uključena u istu regresiju. Paket/dokazi: LOCAL-0.6.1-CANDIDATE.md. Fizička latencija/olovka nisu ovim merene.
 
 Pre ispravke `WhiteboardView.handleTouch` obrađivao je završnu ACTION_UP koordinatu za gumicu i Fill, dok su četkice završavale putanju bez poslednje koordinate, a oblik potvrđivao prethodni MOVE preview. Pri retkim događajima ili promeni položaja između poslednjeg MOVE i UP završetak je mogao odstupati od mesta podizanja prsta/olovke. ADB smoke snimak linije imao je kraći završetak od zadate krajnje tačke; to je trag za proveru, a ne merenje fizičke olovke.
 

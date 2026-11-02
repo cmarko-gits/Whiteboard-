@@ -1,6 +1,6 @@
 # Whiteboard — lokalno korišćenje
 
-Proveren lokalni razvojni paket je 0.5.1: [PARTIAL-ERASER.md](PARTIAL-ERASER.md). Verzija 0.6.0 sa rotacijom je zasebna razvojna grana i još nije kvalifikovana. Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Proveren lokalni razvojni paket je 0.6.1: [rezultati i ograničenja](LOCAL-0.6.1-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 ## Table i biblioteka
 
@@ -18,7 +18,9 @@ Color picker omogućava vizuelni izbor, šestocifreni HEX i RGB kontrole. Save c
 
 Sticky beleška automatski bira čitljiv tamni, crni ili beli tekst prema svojoj boji i boji stranice. Kod providne beleške preko slike ili drugog objekta čitljivost zavisi i od sadržaja ispod nje. Samostalni tekstualni objekat zadržava korisnikov izbor boje.
 
-More actions → Objects pretražuje celu stranicu, uključujući objekte van ekrana. Izbor otkriva objekat i selektuje ga. Pages upravlja stranicama. Selekcione komande i dostupne akcije objekta omogućavaju izmenu bez preciznog prevlačenja. Proizvoljna rotacija vektorskih objekata i napredni konektori još su u preostalom planu.
+More actions → Objects pretražuje celu stranicu, uključujući objekte van ekrana. Izbor otkriva objekat i selektuje ga. Pages upravlja stranicama. Selekcione komande i dostupne akcije objekta omogućavaju izmenu bez preciznog prevlačenja.
+
+U 0.6.1 Rotate selection otvara relativni ugao; prihvata decimalnu tačku ili zarez, kao i negativan ugao. Više objekata/grupa rotira se oko zajedničkog centra. Apply pravi jednu Undo komandu, a Cancel ne menja tablu. Promena veličine rotiranog teksta skalira njegov postojeći prikaz. Sačuvaj tablu da zadržiš promenu. Napredni konektori i eksplicitno poravnanje su preostali rad; nove slojne komande 0.6.2 imaju zasebnu kvalifikaciju.
 
 ## Čuvanje, oporavak i backup
 

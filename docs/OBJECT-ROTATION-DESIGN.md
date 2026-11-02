@@ -1,6 +1,6 @@
 # F02 — rotacija objekata: kriterijumi i projektovanje
 
-Stanje 1. novembra 2026: implementacija 0.6.0/code 8 pripremljena je na grani codex/object-rotation. Dijalog za relativni ugao, model, selekcija, Fill, čuvanje i renderer su povezani; integracioni testovi još nisu izvršeni. Ovaj dokument ne označava F02 kao završen.
+Stanje 2. novembra 2026: F02 je kvalifikovan za lokalni emulator obim u 0.6.1/code 9, source a5fdeb7, CI 41504499100. Prolazi 196 JVM i pet profila po 84 app + 13 data, uz minified release rotaciju/Undo/Redo/recovery/reopen na API 26 telefon/tablet i API 36. Paket, hash-evi i ograničenja su u LOCAL-0.6.1-CANDIDATE.md. Stvarni hardver i govorni TalkBack pregled ostaju zasebne otvorene stavke. Raniji razvojni podaci ispod imaju svoje izvore i ne predstavljaju aktuelni zbir testova.
 
 `AffineTransform2D` u core modelu podržava rotaciju oko zajedničkog centra, translaciju, neuniformno skaliranje/refleksiju, kompoziciju i inverziju, mapiranje AABB granica i direktno inverzno mapiranje tačke bez nove matrice pri svakom hit-testu. Matrica zadržava Double preciznost do mapiranja u postojeći Point model. Neispravne, singularne i numerički prevelike matrice se odbijaju. Quarter-turn uglovi ostaju tačni.
 
