@@ -1,6 +1,6 @@
 # Whiteboard 0.4.0 — lokalni status i QA
 
-Najnoviji kvalifikovani lokalni kandidat je [0.6.2/source 481ab64](LOCAL-0.6.2-CANDIDATE.md), sa punom CI matricom i zasebnim paketima/dokazima. Ostatak ovog dokumenta je istorijski 0.4.0 izveštaj. Tekući rad i nezavršene stavke: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
+Najnoviji kvalifikovani lokalni kandidat je [0.6.3/source a230f11](LOCAL-0.6.3-CANDIDATE.md), sa punom CI matricom i zasebnim paketima/dokazima. Ostatak ovog dokumenta je istorijski 0.4.0 izveštaj. Tekući rad i nezavršene stavke: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
 
 Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.
 

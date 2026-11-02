@@ -1,12 +1,12 @@
 # F04 — eksplicitno poravnanje selekcije
 
-Status 2. novembra 2026: implementacija 0.6.3/code 11 pripremljena je na grani `codex/selection-alignment`; testovi još nisu izvršeni. F03 ostaje na zasebnoj CI kvalifikaciji. Ovo nije potvrda završetka F04.
+Status 2. novembra 2026: F04 je kvalifikovan za lokalni emulator obim, 0.6.3/code 11/source a230f11, CI 41507215597 (attempt 2 posle ponavljanja jednog SDK posla). Prolazi 230 JVM i pet profila po 86 app + 13 data bez grešaka/preskakanja; minified release smoke API 26 telefon/tablet i API 36 prolazi. Paket, hash-evi, prvi neuspeh i ograničenja: LOCAL-0.6.3-CANDIDATE.md. Hardver i govorni TalkBack ostaju zasebni otvoreni zadaci.
 
 `SelectionAlignment` računa translacije; zajednički `SelectionEditPlan` i `DocumentSession.applySelectionEdit` sada služe i rotaciji, uz iste provere zastarelog plana. ViewModel injektuje computation dispatcher, proverava otkazivanje i serijalizuje rotaciju/poravnanje. `AlignmentDialog` zaključava potvrdu do završetka i koristi EN/sr-Latn resurse. Nema promene JSON/Room verzije.
 
-Dodato je 17 core, četiri ViewModel i jedan Android test (svih šest UI akcija, Cancel, Undo/Redo, Save/reopen i PNG). CI 41507215597/source a230f11 potvrđuje svih 230 JVM testova: 157 core + 43 format + 5 data + 25 ViewModel, bez neuspeha/preskakanja. Minified smoke dodatno proverava granice oba objekta i tačan Undo/Redo. Po 86 app + 13 data testova na pet profila još nije potvrđeno; puna matrica je uslov zatvaranja.
+Dodato je 17 core, četiri ViewModel i jedan Android test (svih šest UI akcija, Cancel, Undo/Redo, Save/reopen i PNG). Potvrđeno je 230 JVM: 157 core + 43 format + 5 data + 25 ViewModel, i po 86 app + 13 data na pet profila. Minified smoke proverava granice oba objekta i tačan Undo/Redo. Ukupno 329 jedinstvenih JVM/app/data slučajeva; matrica ne povećava taj broj.
 
-API 33 prvi pokušaj prekinut je pre pokretanja emulatora jer sdkmanager nije mogao otvoriti preuzeti Android Emulator ZIP (`ZipFile unknown archive`), uz uspešan prethodni build. Log je artifacts/task-14-a230f11-api33.log. GitHub je zahtev za ponavljanje tog jednog posla odbio dok ceo run još radi (403: workflow already running); ponoviti ga tek posle završetka ostalih poslova. Prvi neuspeh se ne briše i ovo nije app test prolaz.
+API 33 prvi pokušaj prekinut je pre emulatora jer sdkmanager nije mogao otvoriti preuzeti Android Emulator ZIP (`ZipFile unknown archive`), uz uspešan build. Log je artifacts/task-14-a230f11-api33.log. GitHub je zahtev za ponavljanje odbio dok je run radio (403); po završetku je jedan zahtev za taj posao prihvaćen (201) i posao 125500605556 prolazi na istom izvoru. Prvi neuspeh, request JSON i attempt metadata ostaju sačuvani.
 
 ## Ugovor
 
