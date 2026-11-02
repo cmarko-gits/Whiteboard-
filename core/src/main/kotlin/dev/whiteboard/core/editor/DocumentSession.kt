@@ -143,16 +143,23 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         }
         if (deltas.isNotEmpty()) execute(EditCommand(page.id, deltas))
     }
-    fun reorder(ids: Set<String>, front: Boolean) {
+    fun reorder(ids: Set<String>, front: Boolean): Boolean {
         val selected = page.elements.filter { it.id in ids }
         val rest = page.elements.filterNot { it.id in ids }
         val reordered = if (front) rest + selected else selected + rest
-        val originalIndices = page.elements.mapIndexed { index, element -> element.id to index }.toMap()
-        val deltas = reordered.mapIndexedNotNull { index, element ->
-            val original = originalIndices.getValue(element.id)
-            if (index == original) null else ElementDelta(LocatedElement(original, element), LocatedElement(index, element))
-        }
-        if (deltas.isNotEmpty()) execute(EditCommand(page.id, deltas))
+        return applyLayerOrder(reordered)
+    }
+    fun stepLayer(ids: Set<String>, step: LayerStep): Boolean = applyLayerOrder(LayerOrdering.step(page.elements, ids, step))
+
+    private fun applyLayerOrder(reordered: List<Element>): Boolean {
+        if (reordered === page.elements) return false
+        val before = page.elements.map(Element::id)
+        val after = reordered.map(Element::id)
+        if (before == after) return false
+        val command = LayerOrderChange(page.id, before, after)
+        if (command.estimatedBytes > historyByteLimit) throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        execute(command)
+        return true
     }
     fun rotate(ids: Set<String>, degrees: Double): Boolean = applyRotation(ObjectRotation.plan(page, ids, degrees, historyByteLimit))
 

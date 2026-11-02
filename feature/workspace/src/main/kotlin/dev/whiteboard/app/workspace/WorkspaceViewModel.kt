@@ -7,6 +7,7 @@ import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.concurrency.DefaultAppDispatchers
 import dev.whiteboard.core.editor.DocumentSession
+import dev.whiteboard.core.editor.LayerStep
 import dev.whiteboard.core.editor.ObjectClipboard
 import dev.whiteboard.core.editor.ObjectRotation
 import dev.whiteboard.core.editor.SmartShapeRecognizer
@@ -397,9 +398,11 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = copies.map { copy -> copy.id }.toSet())) }
         changed()
     }
-    fun reorderSelected(front: Boolean) {
-        session?.reorder(mutable.value.editor?.selectedIds.orEmpty(), front)
-        changed()
+    fun reorderSelected(front: Boolean) = work {
+        if (session?.reorder(mutable.value.editor?.selectedIds.orEmpty(), front) == true) changed()
+    }
+    fun stepSelectedLayer(step: LayerStep) = work {
+        if (session?.stepLayer(mutable.value.editor?.selectedIds.orEmpty(), step) == true) changed()
     }
     fun groupSelected() {
         val group = session?.group(mutable.value.editor?.selectedIds.orEmpty()) ?: return

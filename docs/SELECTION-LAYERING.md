@@ -1,25 +1,30 @@
 # F03 — pomeranje za jedan sloj
 
-Stanje: kriterijumi su pripremljeni; implementacija još nije započeta. F02 ostaje na svojoj CI kvalifikaciji. Ova funkcija ne dodaje format dokumenta ili SQL migraciju.
+Stanje 2. novembra 2026: implementacija je pripremljena na grani `codex/selection-layering`, 0.6.2/code 10. Lokalne provere stila, sintakse skripti i whitespace-a prolaze. JVM/Android testovi i puna CI kvalifikacija nove funkcije još nisu izvršeni. Format dokumenta ostaje 4, Room ostaje 4.
 
-## Ugovor ponašanja
+## Ponašanje
 
-Bring forward pomera svaki uzastopni blok izabranih objekata preko jednog narednog neizabranog objekta u z-redosledu stranice. Send backward radi obrnuto. Relativni redosled izabranih, kao i neizabranih objekata, ostaje isti. Postojeći Bring to front i Send to back ostaju krajnje pozicije.
+Bring forward one layer pomera svaki uzastopni blok izabranih objekata preko jednog narednog neizabranog objekta u z-redosledu stranice. Send backward one layer radi obrnuto. Relativni redosled izabranih i neizabranih objekata ostaje isti. Postojeći Bring to front i Send to back ostaju krajnje pozicije.
 
-Primer, gde su B/C izabrani: `A B C D E` → Bring forward → `A D B C E`. Za odvojenu selekciju B/D: `A B C D E` → `A C B E D`. Grupa je jedan objekat na nivou stranice; njena deca se ne preraspoređuju.
+Primer, gde su B/C izabrani: `A B C D E` → napred → `A D B C E`. Za odvojenu selekciju B/D: `A B C D E` → `A C B E D`. Grupa je jedan objekat na nivou stranice; njena deca se ne preraspoređuju.
 
-Jedna akcija je jedna Undo komanda i Redo vraća isti redosled. Granica, prazna selekcija i nepostojeći ID-jevi ne prave istoriju i ne brišu postojeći Redo. Geometrija, ID-jevi, transformacije, stilovi i prilozi ostaju isti objekti. Save/reopen i export moraju poštovati novi redosled.
+Jedna akcija je jedna Undo komanda; Redo vraća isti redosled. Granica, prazna selekcija i nepostojeći ID-jevi ne prave istoriju, ne menjaju saved/dirty stanje i ne brišu postojeći Redo. Geometrija, ID-jevi, transformacije, stilovi i prilozi ostaju isti objekti. Save/reopen i export poštuju novi redosled.
 
-## Projektovana primena
+## Arhitektura i zaštite
 
-Čist Kotlin sloj računa redosled; UI samo prosleđuje izabrane ID-jeve i smer. Čuvati promenu redosleda kao liste ID-jeva pre/posle, a primenjivati je na trenutne objekte. Pre upisa proveriti jedinstvenost, potpun skup ID-jeva i početni redosled, kako promena ne bi obrisala ili oživela objekat.
+`LayerOrdering` je čist Kotlin algoritam. Skeniranje u odgovarajućem smeru pomera svaki izabrani blok jednom. Nova lista se alocira tek kada postoji pomeranje; obrada je linearna u broju objekata.
 
-Istorija ne treba da računa kopije pune geometrije samo zbog promene sloja. Operacija ne menja priložene datoteke; trenutni dokument i postojeće komande brisanja/izmena ostaju vlasnici retention-a. Budžet istorije mora ostati eksplicitan. Obrada velikih stranica mora biti linearna, bez ponovljenog ubacivanja u sredinu velike liste.
+`LayerOrderChange` čuva samo liste ID-jeva pre/posle, a pri primeni koristi trenutne objekte. Proverava limit broja objekata, jedinstvenost, isti skup ID-jeva i očekivani početni redosled. Neispravna ili zastarela komanda ne može odbaciti ili oživeti sadržaj. Viewport i ostala svojstva stranice ostaju očuvani.
 
-Komande će biti u selekcionom meniju, imenovane u EN/sr-Latn resursima i dostupne tastaturi/accessibility navigaciji. Akcija koja ne može da pomeri selekciju treba da bude onemogućena.
+Istorija računa `128 + 16 * (before.size + after.size)` procenjenih bajtova. Prekoračenje budžeta odbija operaciju pre promene dokumenta. Oba postojeća krajnja pomeranja koriste istu komandu, pa veliko telo poteza ne troši budžet kao kopirana geometrija. Trenutni dokument i komande brisanja/izmena zadržavaju potrebne priloge; promena redosleda ne uvodi nove vlasnike datoteka.
 
-## Prihvatanje
+UI prosleđuje izabrane ID-jeve i smer preko ViewModel-a; postojeći mehanizam obrade greške i busy stanja ostaje zajednički. Stavke menija imaju EN/sr-Latn resurse i semantiku standardnog Material menija. Akcija na granici je onemogućena.
 
-Domenski testovi pokrivaju jedan objekat, uzastopne i odvojene selekcije, granice, grupe/rotirane medije, stabilne ID-jeve, Undo/Redo i očuvanje Redo pri no-op-u. Proveriti asset retention kroz reorder → delete → undo → redo i veliku stranicu.
+## Pripremljene provere
 
-Android tok bira objekte i izvršava obe nove akcije kroz meni, čuva i ponovo otvara dokument. Test renderera/PNG-a sa preklopljenim obojenim oblicima proverava vidljiv redosled. Potrebni su pogođeni JVM/device testovi, release gates i pregled CI matrice konkretnog izvora pre zatvaranja F03.
+- 12 domenskih testova: pojedinačni objekti, uzastopne/odvojene selekcije, granice, no-op i Redo/saved stanje, grupe/rotirani mediji, istorijski budžet, asset retention kroz brisanje/Undo/Redo, neispravne/zastarele komande i 10.000 objekata.
+- Jedan ViewModel test: selekcija, komanda, save/read, no-op, dirty stanje i Undo/Redo.
+- Jedan Android tok: obe akcije kroz meni, onemogućene granice, Save/reopen, Undo/Redo i stvarni PNG sa preklopljenim crvenim/plavim oblicima.
+- Minified release smoke na API 26 telefon/tablet i API 36: izbor pravougaonika, promena sloja i provera graničnih stanja kroz Undo/Redo. Postojeće provere rotacije, recovery-ja i adaptivnosti ostaju uključene.
+
+Očekivani obim ove verzije je 209 JVM, 85 redovnih app i 13 data testova po profilu, ali ovi brojevi nisu rezultat izvršenja. Zatvaranje F03 zahteva prolaz matrice API 26/30/33/36 i zasebnog API 26 tableta, release smoke i sigurnosnih/packaging provera konkretnog izvora. Testovi na fizičkom uređaju i slušanje TalkBack-a nisu ovim potvrđeni.

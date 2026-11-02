@@ -281,4 +281,6 @@
     <string name="rotation_invalid">Enter an angle between -36000 and 36000 degrees.</string>
     <string name="rotating">Rotating…</string>
     <string name="rotation_changed">The page changed during rotation. Try again.</string>
+    <string name="bring_forward">Bring forward one layer</string>
+    <string name="send_backward">Send backward one layer</string>
 </resources>

@@ -4,6 +4,7 @@ param(
     [string] $Package = 'dev.whiteboard.app.debug',
     [string] $ApkPath,
     [switch] $CheckRotation,
+    [switch] $CheckLayers,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -72,7 +73,21 @@ function Wait-Keyboard([bool] $Shown = $true) {
     throw "Keyboard visibility did not become $Shown; the keyboard regression is not qualified."
 }
 
+function Assert-LayerMenuState([bool] $ForwardEnabled) {
+    $taskNodes = @(Get-Ui)
+    foreach ($taskAction in @(
+        @{ Label = 'Bring forward one layer'; Enabled = $ForwardEnabled },
+        @{ Label = 'Send backward one layer'; Enabled = -not $ForwardEnabled }
+    )) {
+        $taskNode = $taskNodes | Where-Object text -eq $taskAction.Label | Select-Object -Last 1
+        if (-not $taskNode) { throw "Missing layer menu item: $($taskAction.Label)" }
+        $taskEnabled = $taskNode.SelectNodes('ancestor-or-self::node[@enabled="false"]').Count -eq 0
+        if ($taskEnabled -ne $taskAction.Enabled) { throw "Incorrect layer boundary state: $($taskAction.Label)" }
+    }
+}
+
 if ($LoadHelpersOnly) { return }
+if ($CheckLayers -and -not $CheckRotation) { throw 'Layer smoke requires the rotation rectangle fixture.' }
 if ($ApkPath) { Invoke-Adb install -r $ApkPath | Out-Null }
 $taskSize = (Invoke-Adb shell wm size) -join "`n"
 $taskDensity = (Invoke-Adb shell wm density) -join "`n"
@@ -157,6 +172,32 @@ try {
         if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne ($taskRotatedRectangle -join ',')) {
             throw 'Redo did not restore the rotated rectangle bounds in the optimized package.'
         }
+    }
+    if ($CheckLayers) {
+        Write-Output 'Checking single-layer ordering and Undo/Redo in the optimized package.'
+        Tap-Ui (Find-Ui -Description 'More actions')
+        Tap-Ui (Find-Ui -Text 'Objects')
+        Tap-Ui (Find-Ui -Class 'android.widget.EditText')
+        Wait-Keyboard
+        Invoke-Adb shell input text Rectangle | Out-Null
+        Tap-Ui (Find-Ui -Text 'Rectangle')
+        Wait-Keyboard $false
+        Tap-Ui (Find-Ui -Description 'Selection actions')
+        Assert-LayerMenuState $false
+        Tap-Ui (Find-Ui -Text 'Send backward one layer')
+        Tap-Ui (Find-Ui -Description 'Selection actions')
+        Assert-LayerMenuState $true
+        Invoke-Adb shell input keyevent 4 | Out-Null
+        Tap-Ui (Find-Ui -Description 'Undo')
+        Tap-Ui (Find-Ui -Description 'Selection actions')
+        Assert-LayerMenuState $false
+        Invoke-Adb shell input keyevent 4 | Out-Null
+        Tap-Ui (Find-Ui -Description 'Redo')
+        Tap-Ui (Find-Ui -Description 'Selection actions')
+        Assert-LayerMenuState $true
+        Invoke-Adb shell input keyevent 4 | Out-Null
+        Capture 'release-layer-order'
+        Write-Output 'PASS: optimized single-layer ordering and Undo/Redo boundary states.'
     }
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null

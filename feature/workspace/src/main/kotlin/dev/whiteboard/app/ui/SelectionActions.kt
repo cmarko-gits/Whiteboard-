@@ -17,6 +17,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.whiteboard.app.workspace.EditorUi
 import dev.whiteboard.app.workspace.WorkspaceViewModel
+import dev.whiteboard.core.editor.LayerOrdering
+import dev.whiteboard.core.editor.LayerStep
 import dev.whiteboard.core.model.*
 import dev.whiteboard.ui.*
 import dev.whiteboard.ui.R
@@ -32,6 +34,22 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 expanded = false
                 viewModel.rotateSelected()
             })
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.bring_forward)) },
+                enabled = LayerOrdering.canStep(editor.page.elements, editor.selectedIds, LayerStep.FORWARD),
+                onClick = {
+                    expanded = false
+                    viewModel.stepSelectedLayer(LayerStep.FORWARD)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.send_backward)) },
+                enabled = LayerOrdering.canStep(editor.page.elements, editor.selectedIds, LayerStep.BACKWARD),
+                onClick = {
+                    expanded = false
+                    viewModel.stepSelectedLayer(LayerStep.BACKWARD)
+                }
+            )
             DropdownMenuItem(text = { Text(stringResource(R.string.group)) }, enabled = editor.selectedIds.size > 1, onClick = {
                 expanded = false
                 viewModel.groupSelected()

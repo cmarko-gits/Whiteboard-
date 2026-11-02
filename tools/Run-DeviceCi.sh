@@ -66,7 +66,7 @@ run_release_smoke() {
     --out "$signed" "$unsigned" || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
   sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
-  local -a smoke_options=(-CheckRotation)
+  local -a smoke_options=(-CheckRotation -CheckLayers)
   # API 26 touch injection after a runtime density override is unreliable. Its tablet
   # coverage uses a separate real AVD profile; modern API 36 retains all resize cases.
   if [[ "$api" == 26 ]]; then smoke_options+=(-SkipAdaptiveResize); fi

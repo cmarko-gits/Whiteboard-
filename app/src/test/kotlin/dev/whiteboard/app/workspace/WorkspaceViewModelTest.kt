@@ -3,6 +3,7 @@ package dev.whiteboard.app.workspace
 import androidx.lifecycle.viewModelScope
 import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.concurrency.AppDispatchers
+import dev.whiteboard.core.editor.LayerStep
 import dev.whiteboard.core.model.*
 import dev.whiteboard.core.testing.*
 import dev.whiteboard.core.usecase.DocumentTransfers
@@ -66,6 +67,28 @@ class WorkspaceViewModelTest {
 
     @After fun clearModels() {
         models.forEach { it.viewModelScope.cancel() }
+    }
+
+    @Test fun aLayerStepSavesTheNewOrderAndANoopDoesNotDirtyTheSavedBoard() = runTest {
+        val model = model()
+        model.create("Layer steps").join()
+        val first = note("First")
+        val second = note("Second")
+        model.canvas(CanvasEvent.Add(first))
+        model.canvas(CanvasEvent.Add(second))
+        model.canvas(CanvasEvent.Select(setOf(first.id)))
+        model.stepSelectedLayer(LayerStep.FORWARD).join()
+        assertEquals(listOf(second, first), model.state.value.editor!!.page.elements)
+        assertEquals(setOf(first.id), model.state.value.editor!!.selectedIds)
+        model.save().join()
+        val id = model.state.value.editor!!.boardId
+        assertEquals(listOf(second, first), repository.load(id).activePage.elements)
+        model.stepSelectedLayer(LayerStep.FORWARD).join()
+        assertFalse(model.state.value.editor!!.dirty)
+        model.undo()
+        assertEquals(listOf(first, second), model.state.value.editor!!.page.elements)
+        model.redo()
+        assertEquals(listOf(second, first), model.state.value.editor!!.page.elements)
     }
 
     @Test fun rotatingThenEditingAndSavingANoteKeepsItsPlacementAndUndoHistory() = runTest {

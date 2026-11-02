@@ -282,4 +282,6 @@
     <string name="rotation_invalid">Unesi ugao od -36000 do 36000 stepeni.</string>
     <string name="rotating">Rotiranje…</string>
     <string name="rotation_changed">Stranica je promenjena tokom rotacije. Pokušaj ponovo.</string>
+    <string name="bring_forward">Pomeri jedan sloj napred</string>
+    <string name="send_backward">Pomeri jedan sloj nazad</string>
 </resources>
