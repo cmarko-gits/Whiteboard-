@@ -8,8 +8,10 @@ import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.concurrency.DefaultAppDispatchers
 import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.editor.LayerStep
+import dev.whiteboard.core.editor.ObjectAlignment
 import dev.whiteboard.core.editor.ObjectClipboard
 import dev.whiteboard.core.editor.ObjectRotation
+import dev.whiteboard.core.editor.SelectionAlignment
 import dev.whiteboard.core.editor.SmartShapeRecognizer
 import dev.whiteboard.core.model.*
 import dev.whiteboard.core.model.ThemeMode
@@ -55,7 +57,9 @@ data class WorkspaceUi(
     val message: UiNotice? = null,
     val exporting: Boolean = false,
     val rotating: Boolean = false,
-    val rotationSequence: Long = 0
+    val rotationSequence: Long = 0,
+    val aligning: Boolean = false,
+    val alignmentSequence: Long = 0
 )
 
 @HiltViewModel
@@ -321,7 +325,7 @@ class WorkspaceViewModel @Inject constructor(
         files.deleteAssets(pending.pages.flatMap { it.elements }.filterIsInstance<MediaElement>().map { it.assetId }.toSet())
     }
     fun rotateSelected(degrees: Double = 90.0) = work {
-        if (mutable.value.rotating) return@work
+        if (mutable.value.rotating || mutable.value.aligning) return@work
         val current = session ?: return@work
         val original = current.page
         val ids = mutable.value.editor?.selectedIds.orEmpty()
@@ -332,13 +336,34 @@ class WorkspaceViewModel @Inject constructor(
                 val calculation = currentCoroutineContext()
                 ObjectRotation.plan(original, ids, degrees, budget) { calculation.ensureActive() }
             }
-            if (session === current && current.applyRotation(plan)) {
+            if (session === current && current.applySelectionEdit(plan)) {
                 changed()
             } else if (plan.replacements.isNotEmpty() && mutable.value.editor?.boardId == current.board.id) {
                 mutable.update { it.copy(message = UiNotice(R.string.rotation_changed)) }
             }
         } finally {
             mutable.update { it.copy(rotating = false, rotationSequence = it.rotationSequence + 1) }
+        }
+    }
+    fun alignSelected(alignment: ObjectAlignment) = work {
+        if (mutable.value.rotating || mutable.value.aligning) return@work
+        val current = session ?: return@work
+        val original = current.page
+        val ids = mutable.value.editor?.selectedIds.orEmpty()
+        val budget = current.editBudgetBytes
+        mutable.update { it.copy(aligning = true) }
+        try {
+            val plan = withContext(dispatchers.computation) {
+                val calculation = currentCoroutineContext()
+                SelectionAlignment.plan(original, ids, alignment, budget) { calculation.ensureActive() }
+            }
+            if (session === current && current.applySelectionEdit(plan)) {
+                changed()
+            } else if (plan.replacements.isNotEmpty() && mutable.value.editor?.boardId == current.board.id) {
+                mutable.update { it.copy(message = UiNotice(R.string.alignment_changed)) }
+            }
+        } finally {
+            mutable.update { it.copy(aligning = false, alignmentSequence = it.alignmentSequence + 1) }
         }
     }
     fun cropSelected(crop: Bounds) {

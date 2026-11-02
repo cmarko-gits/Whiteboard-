@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.editor.LayerStep
+import dev.whiteboard.core.editor.ObjectAlignment
 import dev.whiteboard.core.model.*
 import dev.whiteboard.core.testing.*
 import dev.whiteboard.core.usecase.DocumentTransfers
@@ -67,6 +68,94 @@ class WorkspaceViewModelTest {
 
     @After fun clearModels() {
         models.forEach { it.viewModelScope.cancel() }
+    }
+
+    @Test fun alignmentPreservesSelectionAndSavedContentThroughUndoRedoAndNoop() = runTest {
+        val model = model()
+        model.create("Align").join()
+        val first = note("First")
+        val second = note("Second").copy(bounds = Bounds(300f, 300f, 500f, 500f))
+        model.canvas(CanvasEvent.Add(first))
+        model.canvas(CanvasEvent.Add(second))
+        model.selectAll()
+        model.alignSelected(ObjectAlignment.LEFT).join()
+        val expected = listOf(first, second.copy(bounds = Bounds(10f, 300f, 210f, 500f)))
+        assertEquals(expected, model.state.value.editor!!.page.elements)
+        assertEquals(setOf(first.id, second.id), model.state.value.editor!!.selectedIds)
+        assertFalse(model.state.value.aligning)
+        assertEquals(1L, model.state.value.alignmentSequence)
+        model.save().join()
+        assertEquals(expected, repository.load(model.state.value.editor!!.boardId).activePage.elements)
+        model.alignSelected(ObjectAlignment.LEFT).join()
+        assertFalse(model.state.value.editor!!.dirty)
+        model.undo()
+        assertEquals(listOf(first, second), model.state.value.editor!!.page.elements)
+        model.redo()
+        assertEquals(expected, model.state.value.editor!!.page.elements)
+    }
+
+    @Test fun aConcurrentEditCannotBeOverwrittenByAnAlignmentPlan() = runTest {
+        val cpu = StandardTestDispatcher(TestCoroutineScheduler())
+        val model = model(cpu)
+        model.create("Concurrent align").join()
+        val first = note("First")
+        val second = note("Second").copy(bounds = Bounds(300f, 300f, 500f, 500f))
+        model.canvas(CanvasEvent.Add(first))
+        model.canvas(CanvasEvent.Add(second))
+        model.selectAll()
+        val operation = model.alignSelected(ObjectAlignment.LEFT)
+        runCurrent()
+        assertTrue(model.state.value.aligning)
+        val updated = second.copy(text = "Keep newer content")
+        model.canvas(CanvasEvent.Replace(listOf(updated)))
+        cpu.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(operation.isCompleted)
+        assertFalse(model.state.value.aligning)
+        assertEquals(listOf(first, updated), model.state.value.editor!!.page.elements)
+        assertEquals(R.string.alignment_changed, model.state.value.message?.resource)
+    }
+
+    @Test fun cancellingAlignmentReleasesBusyStateAndKeepsTheOriginalDocument() = runTest {
+        val cpu = StandardTestDispatcher(TestCoroutineScheduler())
+        val model = model(cpu)
+        model.create("Cancel align").join()
+        model.canvas(CanvasEvent.Add(note("First")))
+        model.canvas(CanvasEvent.Add(note("Second").copy(bounds = Bounds(300f, 300f, 500f, 500f))))
+        model.selectAll()
+        val before = model.state.value.editor!!.page
+        val operation = model.alignSelected(ObjectAlignment.LEFT)
+        runCurrent()
+        operation.cancel()
+        cpu.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(operation.isCancelled)
+        assertFalse(model.state.value.aligning)
+        assertEquals(before, model.state.value.editor!!.page)
+        assertNull(model.state.value.message)
+    }
+
+    @Test fun aPendingAlignmentRejectsDuplicateAlignmentAndRotation() = runTest {
+        val cpu = StandardTestDispatcher(TestCoroutineScheduler())
+        val model = model(cpu)
+        model.create("Serialize transforms").join()
+        model.canvas(CanvasEvent.Add(note("First")))
+        model.canvas(CanvasEvent.Add(note("Second").copy(bounds = Bounds(300f, 300f, 500f, 500f))))
+        model.selectAll()
+        val operation = model.alignSelected(ObjectAlignment.LEFT)
+        runCurrent()
+        val duplicate = model.alignSelected(ObjectAlignment.RIGHT)
+        val rotation = model.rotateSelected(45.0)
+        runCurrent()
+        assertTrue(duplicate.isCompleted)
+        assertTrue(rotation.isCompleted)
+        assertEquals(0L, model.state.value.rotationSequence)
+        assertEquals(0L, model.state.value.alignmentSequence)
+        cpu.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(operation.isCompleted)
+        assertEquals(1L, model.state.value.alignmentSequence)
+        assertEquals(10f, model.state.value.editor!!.page.elements[1].bounds.left, 0f)
     }
 
     @Test fun aLayerStepSavesTheNewOrderAndANoopDoesNotDirtyTheSavedBoard() = runTest {

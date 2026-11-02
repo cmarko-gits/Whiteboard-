@@ -149,7 +149,7 @@ class ObjectRotationTest {
         val plan = ObjectRotation.plan(session.page, setOf(shape.id), 45.0)
         session.replace(shape.copy(fill = 0xFF112233.toInt()))
         val newer = session.page
-        assertFalse(session.applyRotation(plan))
+        assertFalse(session.applySelectionEdit(plan))
         assertSame(newer, session.page)
     }
 

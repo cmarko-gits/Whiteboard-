@@ -5,6 +5,7 @@ param(
     [string] $ApkPath,
     [switch] $CheckRotation,
     [switch] $CheckLayers,
+    [switch] $CheckAlignment,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -88,6 +89,7 @@ function Assert-LayerMenuState([bool] $ForwardEnabled) {
 
 if ($LoadHelpersOnly) { return }
 if ($CheckLayers -and -not $CheckRotation) { throw 'Layer smoke requires the rotation rectangle fixture.' }
+if ($CheckAlignment -and -not $CheckRotation) { throw 'Alignment smoke requires two rotated objects.' }
 if ($ApkPath) { Invoke-Adb install -r $ApkPath | Out-Null }
 $taskSize = (Invoke-Adb shell wm size) -join "`n"
 $taskDensity = (Invoke-Adb shell wm density) -join "`n"
@@ -198,6 +200,36 @@ try {
         Invoke-Adb shell input keyevent 4 | Out-Null
         Capture 'release-layer-order'
         Write-Output 'PASS: optimized single-layer ordering and Undo/Redo boundary states.'
+    }
+    if ($CheckAlignment) {
+        Write-Output 'Checking alignment and exact Undo/Redo in the optimized package.'
+        Tap-Ui (Find-Ui -Description 'More actions')
+        Tap-Ui (Find-Ui -Text 'Select all objects')
+        $taskBeforeRectangle = Get-Rect (Find-Ui -Description 'Rectangle')
+        $taskBeforeStroke = Get-Rect (Find-Ui -Description 'Drawing stroke')
+        Tap-Ui (Find-Ui -Description 'Selection actions')
+        Tap-Ui (Find-Ui -Text 'Alignment')
+        Tap-Ui (Find-Ui -Text 'Align left edges')
+        $taskAlignedRectangle = Get-Rect (Find-Ui -Description 'Rectangle')
+        $taskAlignedStroke = Get-Rect (Find-Ui -Description 'Drawing stroke')
+        $taskLeft = [Math]::Min($taskBeforeRectangle[0], $taskBeforeStroke[0])
+        if ([Math]::Abs($taskAlignedRectangle[0] - $taskLeft) -gt 2 -or
+            [Math]::Abs($taskAlignedStroke[0] - $taskLeft) -gt 2) {
+            throw 'The optimized alignment did not align both world frames to the left edge.'
+        }
+        $taskBeforeFrames = ($taskBeforeRectangle -join ',') + ':' + ($taskBeforeStroke -join ',')
+        $taskAlignedFrames = ($taskAlignedRectangle -join ',') + ':' + ($taskAlignedStroke -join ',')
+        if ($taskBeforeFrames -eq $taskAlignedFrames) { throw 'Alignment fixture was already aligned; no operation was proved.' }
+        Capture 'release-aligned-objects'
+        Tap-Ui (Find-Ui -Description 'Undo')
+        $taskUndoFrames = ((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') + ':' +
+            ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',')
+        if ($taskUndoFrames -ne $taskBeforeFrames) { throw 'Alignment Undo did not restore both object frames.' }
+        Tap-Ui (Find-Ui -Description 'Redo')
+        $taskRedoFrames = ((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') + ':' +
+            ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',')
+        if ($taskRedoFrames -ne $taskAlignedFrames) { throw 'Alignment Redo did not restore both object frames.' }
+        Write-Output 'PASS: optimized alignment, left-edge geometry and exact Undo/Redo.'
     }
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null

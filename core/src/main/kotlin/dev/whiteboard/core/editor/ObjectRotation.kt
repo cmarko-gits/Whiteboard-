@@ -2,14 +2,6 @@ package dev.whiteboard.core.editor
 
 import dev.whiteboard.core.model.*
 
-data class RotationPlan(val original: Page, val replacements: List<Element>) {
-    init {
-        require(replacements.map(Element::id).distinct().size == replacements.size)
-        val ids = original.elements.map(Element::id).toSet()
-        require(replacements.all { it.id in ids })
-    }
-}
-
 /** Immutable planning can run off the UI thread; applying the plan rechecks its original page. */
 object ObjectRotation {
     fun plan(
@@ -18,11 +10,13 @@ object ObjectRotation {
         degrees: Double,
         byteBudget: Long = 32L * 1024 * 1024,
         checkpoint: () -> Unit = {}
-    ): RotationPlan {
+    ): SelectionEditPlan {
         require(degrees.isFinite())
         require(byteBudget > 0)
         val selected = page.elements.filter { it.id in ids }
-        if (selected.isEmpty() || AffineTransform2D.rotation(degrees) == AffineTransform2D.IDENTITY) return RotationPlan(page, emptyList())
+        if (selected.isEmpty() || AffineTransform2D.rotation(degrees) == AffineTransform2D.IDENTITY) {
+            return SelectionEditPlan(page, emptyList())
+        }
         val retained = selected.sumOf { element ->
             2 * element.estimatedBytes() + 64L + 128L * element.leaves().count { it !is Stroke && it !is Line && it !is AffineElement }
         }
@@ -31,7 +25,7 @@ object ObjectRotation {
         val turn = AffineTransform2D.rotation(degrees, bounds.center)
         val rotated = selected.map { rotate(it, turn, checkpoint) }
         rotated.forEach { it.renderBounds }
-        return RotationPlan(page, rotated)
+        return SelectionEditPlan(page, rotated)
     }
 
     private fun rotate(element: Element, turn: AffineTransform2D, checkpoint: () -> Unit): Element {

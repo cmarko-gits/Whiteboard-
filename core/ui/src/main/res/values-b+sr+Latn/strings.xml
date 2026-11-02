@@ -284,4 +284,14 @@
     <string name="rotation_changed">Stranica je promenjena tokom rotacije. Pokušaj ponovo.</string>
     <string name="bring_forward">Pomeri jedan sloj napred</string>
     <string name="send_backward">Pomeri jedan sloj nazad</string>
+    <string name="alignment">Poravnanje</string>
+    <string name="alignment_help">Poravnaj izabrane objekte prema njihovom zajedničkom okviru bez promene veličine ili ugla.</string>
+    <string name="aligning">Poravnavanje objekata…</string>
+    <string name="align_left">Poravnaj leve ivice</string>
+    <string name="align_horizontal_center">Poravnaj horizontalne centre</string>
+    <string name="align_right">Poravnaj desne ivice</string>
+    <string name="align_top">Poravnaj gornje ivice</string>
+    <string name="align_vertical_center">Poravnaj vertikalne centre</string>
+    <string name="align_bottom">Poravnaj donje ivice</string>
+    <string name="alignment_changed">Selekcija se promenila tokom poravnavanja. Izaberi objekte i pokušaj ponovo.</string>
 </resources>

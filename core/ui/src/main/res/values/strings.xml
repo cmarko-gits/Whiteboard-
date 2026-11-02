@@ -283,4 +283,14 @@
     <string name="rotation_changed">The page changed during rotation. Try again.</string>
     <string name="bring_forward">Bring forward one layer</string>
     <string name="send_backward">Send backward one layer</string>
+    <string name="alignment">Alignment</string>
+    <string name="alignment_help">Align the selected objects to their combined frame without resizing or rotating them.</string>
+    <string name="aligning">Aligning objects…</string>
+    <string name="align_left">Align left edges</string>
+    <string name="align_horizontal_center">Align horizontal centers</string>
+    <string name="align_right">Align right edges</string>
+    <string name="align_top">Align top edges</string>
+    <string name="align_vertical_center">Align vertical centers</string>
+    <string name="align_bottom">Align bottom edges</string>
+    <string name="alignment_changed">The selection changed before alignment finished. Select the objects and try again.</string>
 </resources>

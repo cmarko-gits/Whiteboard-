@@ -26,14 +26,29 @@ import dev.whiteboard.ui.R
 @Composable
 internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, onProperties: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var alignment by rememberSaveable { mutableStateOf(false) }
+    val workspace by viewModel.state.collectAsState()
+    val transforming = workspace.rotating || workspace.aligning
     Text(pluralStringResource(R.plurals.objects_selected, editor.selectedIds.size, editor.selectedIds.size))
     Box {
         IconButton(onClick = { expanded = true }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
         DropdownMenu(expanded, { expanded = false }) {
-            DropdownMenuItem(text = { Text(stringResource(R.string.rotate)) }, onClick = {
-                expanded = false
-                viewModel.rotateSelected()
-            })
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rotate)) },
+                enabled = !transforming,
+                onClick = {
+                    expanded = false
+                    viewModel.rotateSelected()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.alignment)) },
+                enabled = !transforming && editor.page.elements.count { it.id in editor.selectedIds } >= 2,
+                onClick = {
+                    expanded = false
+                    alignment = true
+                }
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.bring_forward)) },
                 enabled = LayerOrdering.canStep(editor.page.elements, editor.selectedIds, LayerStep.FORWARD),
@@ -88,6 +103,9 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 }
             )
         }
+    }
+    if (alignment) {
+        AlignmentDialog(transforming, workspace.alignmentSequence, { alignment = false }) { viewModel.alignSelected(it) }
     }
 }
 

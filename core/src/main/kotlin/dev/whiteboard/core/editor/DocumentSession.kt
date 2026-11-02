@@ -161,9 +161,12 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         execute(command)
         return true
     }
-    fun rotate(ids: Set<String>, degrees: Double): Boolean = applyRotation(ObjectRotation.plan(page, ids, degrees, historyByteLimit))
+    fun rotate(ids: Set<String>, degrees: Double): Boolean = applySelectionEdit(ObjectRotation.plan(page, ids, degrees, historyByteLimit))
 
-    fun applyRotation(plan: RotationPlan): Boolean {
+    fun align(ids: Set<String>, alignment: ObjectAlignment): Boolean =
+        applySelectionEdit(SelectionAlignment.plan(page, ids, alignment, historyByteLimit))
+
+    fun applySelectionEdit(plan: SelectionEditPlan): Boolean {
         if (page.id != plan.original.id || page.elements !== plan.original.elements || plan.replacements.isEmpty()) return false
         val replacements = plan.replacements.associateBy(Element::id)
         val deltas = page.elements.mapIndexedNotNull { index, before ->

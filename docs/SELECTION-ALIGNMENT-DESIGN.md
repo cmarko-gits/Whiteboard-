@@ -1,6 +1,10 @@
 # F04 — eksplicitno poravnanje selekcije
 
-Status 2. novembra 2026: ugovor je definisan; implementacija i testovi nisu izvršeni. F03 ostaje na zasebnoj CI kvalifikaciji. Ovo nije potvrda završetka F04.
+Status 2. novembra 2026: implementacija 0.6.3/code 11 pripremljena je na grani `codex/selection-alignment`; testovi još nisu izvršeni. F03 ostaje na zasebnoj CI kvalifikaciji. Ovo nije potvrda završetka F04.
+
+`SelectionAlignment` računa translacije; zajednički `SelectionEditPlan` i `DocumentSession.applySelectionEdit` sada služe i rotaciji, uz iste provere zastarelog plana. ViewModel injektuje computation dispatcher, proverava otkazivanje i serijalizuje rotaciju/poravnanje. `AlignmentDialog` zaključava potvrdu do završetka i koristi EN/sr-Latn resurse. Nema promene JSON/Room verzije.
+
+Pripremljeno je 17 core, četiri ViewModel i jedan Android test (svih šest UI akcija, Cancel, Undo/Redo, Save/reopen i PNG). Minified smoke dodatno proverava poravnate world granice oba objekta i tačan Undo/Redo. Očekuje se 230 JVM i po 86 app + 13 data testova na pet profila; ovi brojevi nisu rezultat izvršenja. Lokalni stil/sintaksa prolaze, a puna CI matrica je uslov zatvaranja.
 
 ## Ugovor
 
