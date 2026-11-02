@@ -1,5 +1,15 @@
 # Izvršavanje preostalih zadataka
 
+## Nastavak 2. novembra 2026.
+
+- Provereni paket ostaje 0.5.1/source 550bd93; njegovu punu matricu i hash-eve ne pripisivati razvojnim 0.6 izvorima.
+- **12/F02:** CI 41494620712/source c127eb0 prolazi verify i API 26 telefon/tablet, API 30 i 33. Uključeni su novi rotacioni release tokovi na API 26; ranija greška tastature ispravljena je zaključavanjem unosa do uklanjanja dijaloga. API 36 je blokirao Quickstep ANR tokom podizanja emulatora, potvrđen snimkom i logcat-om. Taj pokušaj ostaje neuspešan; F02 nije zatvoren punom novom matricom.
+- **8/Z08:** 0.6.1/code 9, source 8d05708, grana codex/final-gesture-input, popravlja završni uzorak četkica/oblika, tanku liniju i validaciju pre upisa. Deset novih MotionEvent testova je napisano. CI 41498078737 je u toku; nema potvrde njihovog Android izvršenja. Detalji: INPUT-GESTURE-REVIEW.md.
+- **CI zdravlje:** stari grep nije prepoznavao stvarni format dumpsys lastanr niti Quickstep ANR. Pripremljena provera zahteva eksplicitni clean-boot marker; lokalno je proverena na sačuvanom zdravom API 36 izveštaju i stvarnom Quickstep padu (artifacts/task-08-ci-boot-health.json). Nova CI primena još nije potvrđena; neuspeh se ne uklanja pritiskom na Close/Wait.
+- **13/F03:** kriterijumi sledećeg slojnog pomeranja su u SELECTION-LAYERING.md; implementacija još nije započeta.
+
+Raniji preseci ispod zadržavaju svoje izvore i datume. Aktuelna hardverska/Play/cloud ograničenja ostaju na snazi.
+
 Datum: 1. novembar 2026. Brojevi odgovaraju korisniku prikazanom spisku od 47 stavki i ID-jevima iz LOCAL-REMAINING-TASKS.md. Na početku svake stavke navesti broj. Nastaviti na sledeću izvodljivu stavku kada zavisnost nedostaje; ne označavati neizvršeno kao završeno.
 
 ## Aktuelni presek, 20:57 CET

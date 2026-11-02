@@ -2,7 +2,7 @@
 
 Stanje 2. novembra 2026: ispravka 0.6.1/code 9 pripremljena je na grani codex/final-gesture-input; nova implementacija još nije izvršena na CI uređajima. Rotacija 0.6.0 ostaje na zasebnoj grani/kvalifikaciji.
 
-`WhiteboardView.handleTouch` obrađuje završnu ACTION_UP koordinatu za gumicu i Fill. Pen/Pencil/Marker/Highlighter trenutno završavaju putanju bez dodavanja te poslednje koordinate; oblik potvrđuje prethodni MOVE preview. Pri retkim događajima ili promeni položaja između poslednjeg MOVE i UP završetak može odstupati od mesta podizanja prsta/olovke. ADB smoke snimak linije ima kraći završetak od zadate krajnje tačke; to je trag za proveru, a ne merenje fizičke olovke.
+Pre ispravke `WhiteboardView.handleTouch` obrađivao je završnu ACTION_UP koordinatu za gumicu i Fill, dok su četkice završavale putanju bez poslednje koordinate, a oblik potvrđivao prethodni MOVE preview. Pri retkim događajima ili promeni položaja između poslednjeg MOVE i UP završetak je mogao odstupati od mesta podizanja prsta/olovke. ADB smoke snimak linije imao je kraći završetak od zadate krajnje tačke; to je trag za proveru, a ne merenje fizičke olovke.
 
 Potrebno je pre završne komande uključiti validan završni uzorak za alate crtanja i konačnu geometriju oblika, uz postojeća pravila minimalnog gesta, page/tool generation, pinch/cancel i ograničenja koordinata. ACTION_CANCEL ne sme potvrditi sadržaj; prekid stylus pokazivača takođe treba proveriti. Izmena ne sme dodati duplu ili slučajnu tačku posle odbijenog/otkazanog gesta.
 
