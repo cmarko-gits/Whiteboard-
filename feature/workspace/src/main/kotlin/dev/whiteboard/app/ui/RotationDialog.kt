@@ -24,17 +24,21 @@ import kotlin.math.abs
 @Composable
 internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, submit: (Double) -> Unit) {
     var angle by rememberSaveable { mutableStateOf("90") }
+    var submitted by rememberSaveable { mutableStateOf(false) }
+    val processing = busy || submitted
     val initialSequence = rememberSaveable { sequence }
     val degrees = angle.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() && abs(it) <= 36_000 }
     val applyFocus = remember { FocusRequester() }
     val cancelFocus = remember { FocusRequester() }
     InputDialog({
-        if (!busy) dismiss()
+        if (!processing) dismiss()
     }) { closeKeyboard ->
         LaunchedEffect(sequence) {
             if (sequence != initialSequence) {
                 // Close the dialog's current input session after the busy-state transition,
                 // while its window token is still attached, before removing the dialog.
+                closeKeyboard()
+                withFrameNanos { }
                 closeKeyboard()
                 dismiss()
             }
@@ -54,7 +58,7 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
                                 value = angle,
                                 onValueChange = { angle = it.take(18) },
                                 modifier = Modifier.fillMaxWidth(),
-                                enabled = !busy,
+                                enabled = !processing,
                                 singleLine = true,
                                 isError = degrees == null,
                                 label = { Text(stringResource(R.string.rotation_degrees)) },
@@ -67,7 +71,7 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
                                 },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = {
-                                    if (!busy) {
+                                    if (!processing) {
                                         closeKeyboard()
                                         if (degrees != null) applyFocus.requestFocus() else cancelFocus.requestFocus()
                                     }
@@ -80,24 +84,25 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
                                     closeKeyboard()
                                     dismiss()
                                 },
-                                enabled = !busy,
+                                enabled = !processing,
                                 modifier = Modifier.weight(1f, fill = false).focusProperties {
-                                    canFocus = !busy
+                                    canFocus = !processing
                                 }.focusRequester(cancelFocus)
                             ) { Text(stringResource(R.string.cancel)) }
                             Spacer(Modifier.width(8.dp))
                             TextButton(
                                 onClick = {
                                     degrees?.let {
+                                        submitted = true
                                         closeKeyboard()
                                         submit(it)
                                     }
                                 },
-                                enabled = degrees != null && !busy,
+                                enabled = degrees != null && !processing,
                                 modifier = Modifier.weight(1f, fill = false).focusProperties {
-                                    canFocus = degrees != null && !busy
+                                    canFocus = degrees != null && !processing
                                 }.focusRequester(applyFocus)
-                            ) { Text(stringResource(if (busy) R.string.rotating else R.string.apply)) }
+                            ) { Text(stringResource(if (processing) R.string.rotating else R.string.apply)) }
                         },
                         body = {
                             if (!compact) {
@@ -113,12 +118,12 @@ internal fun RotationDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, 
                                                 onClick = {
                                                     angle = value.toString()
                                                 },
-                                                enabled = !busy,
+                                                enabled = !processing,
                                                 label = { Text("$value°") }
                                             )
                                         }
                                     }
-                                    if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                                    if (processing) LinearProgressIndicator(Modifier.fillMaxWidth())
                                 }
                             }
                         }
