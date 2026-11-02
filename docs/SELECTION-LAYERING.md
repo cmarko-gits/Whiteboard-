@@ -1,6 +1,6 @@
 # F03 — pomeranje za jedan sloj
 
-Stanje 2. novembra 2026: implementacija je pripremljena na grani `codex/selection-layering`, 0.6.2/code 10. Lokalne provere stila, sintakse skripti i whitespace-a prolaze. JVM/Android testovi i puna CI kvalifikacija nove funkcije još nisu izvršeni. Format dokumenta ostaje 4, Room ostaje 4.
+Stanje 2. novembra 2026: F03 je kvalifikovan za lokalni emulator obim, 0.6.2/code 10, source `481ab64`, CI 41504676373. Prolazi 209 JVM i pet profila po 85 app + 13 data bez grešaka/preskakanja, uz minified release smoke API 26 telefon/tablet i API 36. Paket, hash-evi, pregled snimaka i ograničenja: LOCAL-0.6.2-CANDIDATE.md. Format dokumenta ostaje 4, Room 4.
 
 ## Ponašanje
 
@@ -27,4 +27,4 @@ UI prosleđuje izabrane ID-jeve i smer preko ViewModel-a; postojeći mehanizam o
 - Jedan Android tok: obe akcije kroz meni, onemogućene granice, Save/reopen, Undo/Redo i stvarni PNG sa preklopljenim crvenim/plavim oblicima.
 - Minified release smoke na API 26 telefon/tablet i API 36: izbor pravougaonika, promena sloja i provera graničnih stanja kroz Undo/Redo. Postojeće provere rotacije, recovery-ja i adaptivnosti ostaju uključene.
 
-Očekivani obim ove verzije je 209 JVM, 85 redovnih app i 13 data testova po profilu, ali ovi brojevi nisu rezultat izvršenja. Zatvaranje F03 zahteva prolaz matrice API 26/30/33/36 i zasebnog API 26 tableta, release smoke i sigurnosnih/packaging provera konkretnog izvora. Testovi na fizičkom uređaju i slušanje TalkBack-a nisu ovim potvrđeni.
+Izvršeni obim ove verzije je 209 JVM, 85 redovnih app i 13 data testova po profilu: 307 jedinstvenih slučajeva. CI matrica API 26/30/33/36 i zasebni API 26 tablet, release smoke i sigurnosne/packaging provere konkretnog izvora prolaze. Dokazi: artifacts/task-13-481ab64-evidence.json i task-13-481ab64-packages.json. Testovi na fizičkom uređaju i slušanje TalkBack-a nisu ovim potvrđeni.
