@@ -32,12 +32,13 @@ class FinalGestureInputTest {
         }
     }
 
-    private fun send(view: WhiteboardView, action: Int, point: Point) {
+    private fun send(view: WhiteboardView, action: Int, point: Point): Point {
         val now = SystemClock.uptimeMillis()
         if (action == MotionEvent.ACTION_DOWN) started = now
         val event = MotionEvent.obtain(started, now, action, point.x, point.y, 0)
         try {
             view.onTouchEvent(event)
+            return Point(event.x, event.y)
         } finally {
             event.recycle()
         }
@@ -72,9 +73,12 @@ class FinalGestureInputTest {
 
     @Test fun subpixelReleaseIsPreservedButATapDoesNotDuplicateItsPoint() = onView(Tool.PEN) { view, events ->
         send(view, MotionEvent.ACTION_DOWN, Point(10f, 20f))
-        send(view, MotionEvent.ACTION_UP, Point(10.2f, 20.1f))
+        val delivered = send(view, MotionEvent.ACTION_UP, Point(10.2f, 20.1f))
+        // Native MotionEvent storage can quantize decimal coordinates on newer Android releases.
+        assertEquals(10.2f, delivered.x, 0.001f)
+        assertEquals(20.1f, delivered.y, 0.001f)
         assertEquals(
-            listOf(Point(10f, 20f), Point(10.2f, 20.1f)),
+            listOf(Point(10f, 20f), delivered),
             (events.filterIsInstance<CanvasEvent.Add>().single().element as Stroke).points
         )
         events.clear()
