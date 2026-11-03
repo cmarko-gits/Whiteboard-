@@ -121,7 +121,8 @@ data class Page(
         }
         require(elements.sumOf { it.leaves().size } <= MAX_ELEMENTS && allIds.toSet().size == allIds.size)
     }
-    val contentBounds get() = elements.map { it.renderBounds }.reduceOrNull(Bounds::union)
+    val geometry: PageGeometry by lazy { PageGeometry(this) }
+    val contentBounds get() = geometry.contentBounds
     companion object {
         const val MAX_ELEMENTS = 100_000
     }

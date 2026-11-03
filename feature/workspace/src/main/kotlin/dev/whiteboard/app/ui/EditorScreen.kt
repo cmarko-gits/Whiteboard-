@@ -204,12 +204,7 @@ fun EditorScreen(
                         it.onBrowseObjects = { objects = true }
                         it.accessibilitySnapshot = { viewport ->
                             val snapshot = viewModel.state.value.editor
-                            CanvasAccessibilitySnapshot(
-                                snapshot?.page?.id.orEmpty(),
-                                snapshot?.page?.elements.orEmpty(),
-                                viewport,
-                                snapshot?.selectedIds.orEmpty()
-                            )
+                            snapshot?.let { CanvasAccessibilitySnapshot(it.page, viewport, it.selectedIds) }
                         }
                     }
                 },

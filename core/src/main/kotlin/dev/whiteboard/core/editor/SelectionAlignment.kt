@@ -19,7 +19,7 @@ object SelectionAlignment {
             it.id in ids
         }
         if (selected.size < 2) return SelectionEditPlan(page, emptyList())
-        val frames = selected.map { it.selectionBounds }
+        val frames = selected.map { page.geometry.selectionBounds(it) }
         val reference = frames.reduce(Bounds::union)
         val deltas = frames.map { frame ->
             when (alignment) {

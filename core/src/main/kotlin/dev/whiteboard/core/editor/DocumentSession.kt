@@ -110,7 +110,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     fun transformBy(id: String, translation: Point, factor: Float): Boolean {
         require(factor.isFinite() && factor in 0.1f..10f)
         val element = page.elements.firstOrNull { it.id == id } ?: return false
-        val bounds = element.selectionBounds
+        val bounds = page.geometry.selectionBounds(element)
         val halfWidth = (bounds.width * factor / 2).coerceAtLeast(0.05f)
         val halfHeight = (bounds.height * factor / 2).coerceAtLeast(0.05f)
         val x = bounds.center.x + translation.x

@@ -21,7 +21,7 @@ object ObjectRotation {
             2 * element.estimatedBytes() + 64L + 128L * element.leaves().count { it !is Stroke && it !is Line && it !is AffineElement }
         }
         if (retained > byteBudget) throw DocumentFailure(DocumentError.EDIT_LIMIT)
-        val bounds = selected.map { it.selectionBounds }.reduce(Bounds::union)
+        val bounds = selected.map { page.geometry.selectionBounds(it) }.reduce(Bounds::union)
         val turn = AffineTransform2D.rotation(degrees, bounds.center)
         val rotated = selected.map { rotate(it, turn, checkpoint) }
         rotated.forEach { it.renderBounds }

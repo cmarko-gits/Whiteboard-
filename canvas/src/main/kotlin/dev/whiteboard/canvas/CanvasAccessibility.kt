@@ -14,7 +14,10 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 
-data class CanvasAccessibilitySnapshot(val pageId: String, val elements: List<Element>, val viewport: Viewport, val selected: Set<String>)
+data class CanvasAccessibilitySnapshot(val page: Page, val viewport: Viewport, val selected: Set<String>) {
+    val pageId get() = page.id
+    val elements get() = page.elements
+}
 
 /** Bounded visible-node window; the Objects dialog provides access to the entire page. */
 internal class CanvasAccessibility(
@@ -49,7 +52,7 @@ internal class CanvasAccessibility(
             snapshot.viewport.toDocument(Point(host.width.toFloat(), host.height.toFloat()))
         )
         val elements = snapshot.elements.asReversed().asSequence()
-            .filter { it.renderBounds.intersects(visible) }.take(MAX_VISIBLE_NODES).toList().asReversed()
+            .filter { snapshot.page.geometry.renderBounds(it).intersects(visible) }.take(MAX_VISIBLE_NODES).toList().asReversed()
         val retained = elements.mapTo(mutableSetOf()) { it.id }
         ids.keys.retainAll(retained)
         nodes = elements.associateByTo(linkedMapOf()) { element -> ids.getOrPut(element.id) { ++sequence } }
@@ -62,9 +65,11 @@ internal class CanvasAccessibility(
     }
 
     private fun rectangle(element: Element): Rect {
-        val viewport = state().viewport
-        val start = viewport.toScreen(Point(element.renderBounds.left, element.renderBounds.top))
-        val end = viewport.toScreen(Point(element.renderBounds.right, element.renderBounds.bottom))
+        val snapshot = state()
+        val viewport = snapshot.viewport
+        val bounds = snapshot.page.geometry.renderBounds(element)
+        val start = viewport.toScreen(Point(bounds.left, bounds.top))
+        val end = viewport.toScreen(Point(bounds.right, bounds.bottom))
         val minimum = 48 * host.resources.displayMetrics.density
         val width = max(end.x - start.x, minimum)
         val height = max(end.y - start.y, minimum)

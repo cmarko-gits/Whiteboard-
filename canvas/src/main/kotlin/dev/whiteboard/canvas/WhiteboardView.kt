@@ -54,6 +54,13 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var dragOriginal = emptyList<Element>()
     private var selectionArea: Bounds? = null
     private var selectionPreview = emptyList<Element>()
+        set(value) {
+            val next = if (value.isEmpty()) null else page.geometry.preview(value)
+            field = value
+            previewGeometry = next
+            canvasAccessibility?.changed()
+        }
+    private var previewGeometry: PageGeometry? = null
     private var resizing = false
     private var preview: Element? = null
     private val samples = mutableListOf<Point>()
@@ -78,7 +85,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var guideY: Float? = null
     var onEvent: (CanvasEvent) -> Unit = {}
     var onBrowseObjects: () -> Unit = {}
-    var accessibilitySnapshot: ((Viewport) -> CanvasAccessibilitySnapshot)? = null
+    var accessibilitySnapshot: ((Viewport) -> CanvasAccessibilitySnapshot?)? = null
     private var canvasAccessibility: CanvasAccessibility? = null
     private var pendingFit = false
     fun requestInitialFit() {
@@ -114,7 +121,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         isClickable = true
         contentDescription = context.getString(R.string.canvas_description)
         canvasAccessibility = CanvasAccessibility(this, {
-            accessibilitySnapshot?.invoke(viewport) ?: CanvasAccessibilitySnapshot(page.id, page.elements, viewport, selectedIds)
+            previewGeometry?.let { CanvasAccessibilitySnapshot(it.page, viewport, selectedIds) }
+                ?: accessibilitySnapshot?.invoke(viewport) ?: CanvasAccessibilitySnapshot(page, viewport, selectedIds)
         }, ::performCanvasAccessibilityAction)
         ViewCompat.setAccessibilityDelegate(this, canvasAccessibility)
         setLayerType(LAYER_TYPE_HARDWARE, null)
@@ -145,7 +153,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     }
     fun revealElement(id: String) {
         val element = page.elements.firstOrNull { it.id == id } ?: return
-        viewport = Viewport.fit(element.renderBounds, width.toFloat(), height.toFloat(), 48 * density)
+        viewport = Viewport.fit(page.geometry.renderBounds(element), width.toFloat(), height.toFloat(), 48 * density)
         cameraChanged()
     }
     fun fitContent() {
@@ -352,10 +360,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvas.translate(viewport.offset.x, viewport.offset.y)
         canvas.scale(viewport.scale, viewport.scale)
         renderer.drawBackground(canvas, page, visible, viewport.scale)
-        val movingIds = selectionPreview.map { it.id }.toSet()
-        page.elements.forEach {
-            if (it.id !in erased && it.id !in movingIds &&
-                it.renderBounds.expand(10f).intersects(visible)
+        val geometry = previewGeometry ?: page.geometry
+        geometry.page.elements.forEach {
+            if (it.id !in erased &&
+                geometry.renderBounds(it).expand(10f).intersects(visible)
             ) {
                 it.withoutStrokes(erased)?.let { visibleElement ->
                     if (partialFragments.isEmpty()) {
@@ -368,9 +376,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         }
         renderer.drawLiveStroke(canvas, activePath, samples.firstOrNull(), samples.size == 1, ink)
         preview?.let { renderer.drawElement(canvas, it) }
-        selectionPreview.forEach { renderer.drawElement(canvas, it) }
         val selected = selectionPreview.ifEmpty { page.elements.filter { it.id in selectedIds } }
-        val selectedBounds = selected.map { it.selectionBounds }.reduceOrNull(Bounds::union)
+        val selectedBounds = selected.map { geometry.selectionBounds(it) }.reduceOrNull(Bounds::union)
         (selectionArea ?: selectedBounds)?.let {
             val b = it.expand(6 * density / viewport.scale)
             selectionPaint.color = 0xFF40836C.toInt()
@@ -426,9 +433,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     Tool.ERASER -> erase(point)
                     Tool.SELECT -> {
                         val current = page.elements.filter { it.id in selectedIds }
-                        val handle = current.map { it.selectionBounds }.reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
+                        val handle = current.map { page.geometry.selectionBounds(it) }
+                            .reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
                         resizing = handle != null && hypot(point.x - handle.right, point.y - handle.bottom) < 22 * density / viewport.scale
-                        val hit = page.elements.lastOrNull { it.hitTest(point, 12 * density / viewport.scale) }
+                        val hit = page.geometry.topmostAt(point, 12 * density / viewport.scale)
                         dragOriginal = when {
                             resizing -> current
                             hit?.id in selectedIds -> current
@@ -441,7 +449,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             viewport.toDocument(Point(width.toFloat(), height.toFloat()))
                         )
                         snapCandidates =
-                            page.elements.filter { it.id !in ids && it.renderBounds.intersects(visible) }.map { it.selectionBounds }
+                            page.elements.filter { it.id !in ids && page.geometry.renderBounds(it).intersects(visible) }
+                                .map { page.geometry.selectionBounds(it) }
                         onEvent(CanvasEvent.Select(ids))
                     }
                     else -> Unit
@@ -489,7 +498,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                         if (original.isEmpty()) {
                             selectionArea = Bounds.between(origin, point)
                         } else {
-                            val b = original.map { it.selectionBounds }.reduce(Bounds::union)
+                            val b = original.map { page.geometry.selectionBounds(it) }.reduce(Bounds::union)
                             val target = if (resizing) {
                                 Bounds(b.left, b.top, max(b.left + 24f, point.x), max(b.top + 24f, point.y))
                             } else {
@@ -511,7 +520,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             guideY = snapped?.guideY
                             val final = snapped?.bounds ?: target
                             selectionPreview = original.map { element ->
-                                val bounds = element.selectionBounds
+                                val bounds = page.geometry.selectionBounds(element)
                                 val topLeft = Point(bounds.left, bounds.top).remap(b, final)
                                 val bottomRight = Point(bounds.right, bounds.bottom).remap(b, final)
                                 element.transform(Bounds.between(topLeft, bottomRight))
@@ -634,7 +643,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             Tool.SELECT -> {
                 if (selectionPreview.isNotEmpty()) onEvent(CanvasEvent.Replace(selectionPreview))
                 selectionArea?.let { area ->
-                    onEvent(CanvasEvent.Select(page.elements.filter { it.renderBounds.intersects(area) }.map { it.id }.toSet()))
+                    val ids = page.elements.filter { page.geometry.renderBounds(it).intersects(area) }.map { it.id }.toSet()
+                    onEvent(CanvasEvent.Select(ids))
                 }
                 val single = dragOriginal.singleOrNull()
                 if (selectionPreview.isEmpty() && (single?.content() is TextElement || single?.content() is Note)) {
