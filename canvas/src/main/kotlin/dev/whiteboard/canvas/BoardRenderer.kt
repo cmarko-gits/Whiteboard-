@@ -16,15 +16,16 @@ import kotlin.math.*
 /** One renderer is shared by the editor, thumbnails and file export. */
 class BoardRenderer(private val assets: AssetProvider? = null, private val strictAssets: Boolean = false) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val pencilTexture by lazy { PencilTexture() }
     private data class CachedPath(val stroke: Stroke, val path: Path, val estimatedBytes: Long)
     private val pathCache = LinkedHashMap<String, CachedPath>(128, 0.75f, true)
     private var cachedBytes = 0L
     private val cacheLimit = 32L * 1024 * 1024
     private var pageBackground = Color.WHITE
 
-    fun drawLiveStroke(canvas: Canvas, path: Path, first: Point?, singlePoint: Boolean, style: InkStyle) {
+    fun drawLiveStroke(canvas: Canvas, path: Path, first: Point?, singlePoint: Boolean, style: InkStyle, tool: Tool = Tool.PEN) {
         if (first == null) return
-        configure(style)
+        configureStroke(style, tool)
         if (singlePoint) {
             paint.style = Paint.Style.FILL
             canvas.drawCircle(first.x, first.y, style.width / 2, paint)
@@ -144,7 +145,7 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
                 canvas.restore()
             }
             is Stroke -> {
-                configure(element.style)
+                configureStroke(element.style, element.tool)
                 if (element.points.size == 1) {
                     paint.style = Paint.Style.FILL
                     canvas.drawCircle(element.points[0].x, element.points[0].y, element.style.width / 2, paint)
@@ -198,6 +199,11 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
                 )
             }
         }
+    }
+
+    private fun configureStroke(style: InkStyle, tool: Tool) {
+        configure(style)
+        if (tool == Tool.PENCIL) pencilTexture.apply(paint, style.color)
     }
 
     private fun configure(style: InkStyle) {

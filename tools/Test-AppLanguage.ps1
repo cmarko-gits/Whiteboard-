@@ -17,7 +17,9 @@ function Open-LanguageSettings {
     if(@($nodes | Where-Object { $_.text -in @('Language','Jezik') }).Count){return}
     $back=@($nodes | Where-Object { $_.'content-desc' -in @('Back to boards','Nazad na table') })
     if($back.Count){Tap-Ui $back[-1];$nodes=@(Get-Ui)}
-    $settings=@($nodes | Where-Object { $_.'content-desc' -in @('Settings','Podešavanja') })
+    $settings=@($nodes | Where-Object {
+        $_.'content-desc' -in @('Settings','Podešavanja') -or $_.text -in @('Settings','Podešavanja')
+    })
     if($settings.Count -ne 1){throw 'Expected one library Settings control.'}
     Tap-Ui $settings[0]
     Find-Ui -Text 'Srpski (latinica)' | Out-Null

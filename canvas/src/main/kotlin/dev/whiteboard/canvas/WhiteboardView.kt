@@ -374,7 +374,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 }
             }
         }
-        renderer.drawLiveStroke(canvas, activePath, samples.firstOrNull(), samples.size == 1, ink)
+        renderer.drawLiveStroke(canvas, activePath, samples.firstOrNull(), samples.size == 1, ink, tool)
         preview?.let { renderer.drawElement(canvas, it) }
         val selected = selectionPreview.ifEmpty { page.elements.filter { it.id in selectedIds } }
         val selectedBounds = selected.map { geometry.selectionBounds(it) }.reduceOrNull(Bounds::union)

@@ -25,6 +25,14 @@ androidx.annotation:annotation:1.9.1
 https://developer.android.com/jetpack/androidx/releases/annotation#1.9.1
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
+androidx.appcompat:appcompat-resources:1.8.0
+https://developer.android.com/jetpack/androidx/releases/appcompat#1.8.0
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
+androidx.appcompat:appcompat:1.8.0
+https://developer.android.com/jetpack/androidx/releases/appcompat#1.8.0
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
 androidx.arch.core:core-common:2.2.0
 https://developer.android.com/jetpack/androidx/releases/arch-core#2.2.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -209,6 +217,10 @@ androidx.core:core:1.16.0
 https://developer.android.com/jetpack/androidx/releases/core#1.16.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
+androidx.cursoradapter:cursoradapter:1.0.0
+http://developer.android.com/tools/extras/support-library.html
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
 androidx.customview:customview-poolingcontainer:1.0.0
 https://developer.android.com/jetpack/androidx/releases/customview#1.0.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -269,8 +281,16 @@ androidx.documentfile:documentfile:1.0.0
 http://developer.android.com/tools/extras/support-library.html
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
+androidx.drawerlayout:drawerlayout:1.0.0
+http://developer.android.com/tools/extras/support-library.html
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
 androidx.dynamicanimation:dynamicanimation:1.0.0
 http://developer.android.com/tools/extras/support-library.html
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
+androidx.emoji2:emoji2-views-helper:1.4.0
+https://developer.android.com/jetpack/androidx/releases/emoji2#1.4.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
 androidx.emoji2:emoji2:1.4.0
@@ -281,8 +301,8 @@ androidx.exifinterface:exifinterface:1.4.2
 https://developer.android.com/jetpack/androidx/releases/exifinterface#1.4.2
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
-androidx.fragment:fragment:1.5.1
-https://developer.android.com/jetpack/androidx/releases/fragment#1.5.1
+androidx.fragment:fragment:1.5.4
+https://developer.android.com/jetpack/androidx/releases/fragment#1.5.4
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
 androidx.graphics:graphics-path:1.1.0
@@ -409,6 +429,10 @@ androidx.profileinstaller:profileinstaller:1.4.0
 https://developer.android.com/jetpack/androidx/releases/profileinstaller#1.4.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
+androidx.resourceinspection:resourceinspection-annotation:1.0.1
+https://developer.android.com/jetpack/androidx/releases/resourceinspection#1.0.1
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
 androidx.room:room-common-jvm:2.8.5
 https://developer.android.com/jetpack/androidx/releases/room#2.8.5
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
@@ -465,8 +489,8 @@ androidx.sqlite:sqlite:2.6.2
 https://developer.android.com/jetpack/androidx/releases/sqlite#2.6.2
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
-androidx.startup:startup-runtime:1.1.1
-https://developer.android.com/jetpack/androidx/releases/startup#1.1.1
+androidx.startup:startup-runtime:1.2.0
+https://developer.android.com/jetpack/androidx/releases/startup#1.2.0
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
 androidx.tracing:tracing:1.2.0
@@ -475,6 +499,14 @@ The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICE
 
 androidx.transition:transition:1.6.0
 https://developer.android.com/jetpack/androidx/releases/transition#1.6.0
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
+androidx.vectordrawable:vectordrawable-animated:1.1.0
+https://developer.android.com/jetpack/androidx
+The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
+
+androidx.vectordrawable:vectordrawable:1.1.0
+https://developer.android.com/jetpack/androidx
 The Apache Software License, Version 2.0 — http://www.apache.org/licenses/LICENSE-2.0.txt
 
 androidx.versionedparcelable:versionedparcelable:1.1.1
