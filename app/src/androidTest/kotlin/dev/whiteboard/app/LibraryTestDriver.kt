@@ -28,11 +28,11 @@ internal fun launchTestLibrary(device: UiDevice) {
 }
 
 /** The icon can be visible/enabled while its containing Material button is still loading. */
-internal fun testLibraryCreateButton(device: UiDevice): UiObject2 {
+internal fun testLibraryCreateButton(device: UiDevice, description: String = "New board"): UiObject2 {
     val deadline = SystemClock.uptimeMillis() + 10_000
     while (SystemClock.uptimeMillis() < deadline) {
         try {
-            var target = device.findObject(By.desc("New board"))
+            var target = device.findObject(By.desc(description))
             while (target != null && !target.isClickable) target = target.parent
             if (target?.isEnabled == true) return target
         } catch (_: StaleObjectException) {

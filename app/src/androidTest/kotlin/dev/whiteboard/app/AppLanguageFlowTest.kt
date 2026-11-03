@@ -11,7 +11,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.*
 import dev.whiteboard.app.workspace.WorkspaceViewModel
 import dev.whiteboard.core.model.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -32,14 +35,24 @@ class AppLanguageFlowTest {
     private fun englishScenario(block: (ActivityScenario<MainActivity>) -> Unit) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             var original = ""
+            lateinit var onboarding: Job
+            lateinit var initialModel: WorkspaceViewModel
             scenario.onActivity {
                 original = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-                ViewModelProvider(it)[WorkspaceViewModel::class.java].finishOnboarding()
+                initialModel = ViewModelProvider(it)[WorkspaceViewModel::class.java]
+                onboarding = initialModel.finishOnboarding()
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
             }
             try {
+                runBlocking {
+                    withTimeout(10_000) {
+                        onboarding.join()
+                        initialModel.state.first { it.settingsLoaded && it.settings.onboarded }
+                    }
+                }
+                instrument.waitForIdleSync()
                 check(device.wait(Until.gone(By.text("Start creating")), 10_000))
-                description("New board")
+                testLibraryCreateButton(device)
                 block(scenario)
             } finally {
                 instrument.runOnMainSync { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(original)) }
@@ -68,7 +81,7 @@ class AppLanguageFlowTest {
         text("Srpski (latinica)").click()
         text("Jezik")
         text("Gotovo").click()
-        description("Nova tabla").click()
+        testLibraryCreateButton(device, "Nova tabla").click()
         val name = "Locale flow ${SystemClock.uptimeMillis()}"
         testDialogField(device, "Naziv").text = name
         device.pressKeyCode(KeyEvent.KEYCODE_ENTER)
