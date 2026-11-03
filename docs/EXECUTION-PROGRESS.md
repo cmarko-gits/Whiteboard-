@@ -1,5 +1,17 @@
 # Izvršavanje preostalih zadataka
 
+## Nastavak 3. novembra 2026.
+
+Glavni spisak ima **47 stavki: 8 završenih i 39 otvorenih**. Završeni su Z01/Z02/Z03/Z07 i F01–F04. Posle svakog završenog zadatka prikazati broj preostalih glavnih stavki; podkorak F05 ne umanjuje taj broj dok cela funkcija ne prođe uslove prihvatanja.
+
+**15/F05.1 regresija potvrđena:** source 8cb5da146b53e9251b61a565beb0d5b2b6efcf86, [CI 41518088012](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41518088012), svih šest poslova uspešno u prvom pokušaju. Provereni originalni artifact SHA-256 i izveštaji: 244 JVM (171 core + 43 format + 5 data + 25 ViewModel), na svakom od pet profila 86 app + 13 data, bez grešaka/preskakanja; 343 jedinstvena slučaja. Minified smoke API 26 telefon/tablet i API 36 prolazi. Time je potvrđena i ispravka čekanja interaktivnog New board dugmeta. Ovo je regresija neaktivnog jezgra portova, ne gotov Connector alat. Dokaz: artifacts/task-08-8cb5da1-evidence.json. Razvojni paket 0.6.3/source a230f11 ostaje zaseban, sa svojim ranijim rezultatima i hash-evima.
+
+**15/F05.2 i početak F05.3:** source 0b3f169 uvodi Connector/ConnectorEnd vrednosti i PageConnectionGeometry. Batch resolver koristi jedan PagePortIndex, proverava lokalne reference, identitete, zbirni limit i stvarne line render granice; prekid ne objavljuje delimičan rezultat. Dodata su 23 JVM testa. CI je pokrenut; prolaz ovih novih testova još nije potvrđen. Model je namerno izvan Element hijerarhije dok session/format/render/picking/clipboard/export/accessibility integracija ne bude bezbedna. App ostaje 0.6.3/code 11, format 4; nema korisničkog konektorskog alata u postojećem APK-u.
+
+**1/Z01 održavanje prostora:** pri nastavku je zatečeno 3.661.246.464 dodatnih bajtova, iznad ograničenja 3.400.000.000; uzrok promene tokom pauze nije utvrđen. Sačuvani su izveštaj incidenta i tragovi lossless kompresije generisanih fajlova/retencije duplih CI binarnih unosa. Posle preuzimanja najnovijih dokaza izmereno je 3.256.176.640 dodatnih bajtova. Nema lokalnog Gradle/SDK/emulator rada. STORAGE-RETENTION-NOV03.md opisuje izvedene arhive i sačuvane originale; ograničenje ostaje aktivno i zahteva dalji nadzor.
+
+Raniji preseci slede ispod i ne predstavljaju aktuelni status novijeg izvora.
+
 ## Nastavak 2. novembra 2026.
 
 Najnoviji potvrđeni kandidat: **0.6.3/code 11/source a230f11**, CI 41507215597/attempt 2. **14/F04 je zatvoren za lokalni emulator obim:** 230 JVM (157+43+5+25), pet profila po 86 app + 13 data, nula grešaka/preskakanja; 329 jedinstvenih slučajeva. Release smoke na API 26 telefon/tablet i API 36 prolazi, uključujući geometriju poravnanja i tačan Undo/Redo. Prvi API 33 SDK ZIP neuspeh nije uklonjen; po završetku run-a ponovljen je samo taj posao na istom source-u i prošao je. Poreklo/signature/ZIP-P16/četiri ELF64/security/OSV 147/licence prolaze. Sadržaji APK unosa odgovaraju sva tri release smoke paketa, uz očekivane razlike potpisa. LOCAL-0.6.3-CANDIDATE.md i artifacts/task-14-a230f11-* vezuju nalaze za taj izvor.
