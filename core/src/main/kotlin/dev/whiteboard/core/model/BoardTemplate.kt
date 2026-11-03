@@ -31,7 +31,9 @@ object TemplateFactory {
                 listOf(TO_DO, IN_PROGRESS, DONE).forEachIndexed { index, label ->
                     title(content[label], 40f + index * 300, 140f, 270f)
                     note(
-                        content[NEW_TASK], 40f + index * 300, 240f,
+                        content[NEW_TASK],
+                        40f + index * 300,
+                        240f,
                         listOf(0xFFF4E6A3.toInt(), 0xFFD4E3F3.toInt(), 0xFFD5E7CF.toInt())[index]
                     )
                 }

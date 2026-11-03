@@ -19,8 +19,10 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SelectionPreviewTest {
     private val lower = Shape(
-        bounds = Bounds(50f, 50f, 350f, 350f), kind = Tool.RECTANGLE,
-        style = InkStyle(color = Color.RED), fill = Color.RED
+        bounds = Bounds(50f, 50f, 350f, 350f),
+        kind = Tool.RECTANGLE,
+        style = InkStyle(color = Color.RED),
+        fill = Color.RED
     )
     private val upper = lower.copy(id = newId(), bounds = Bounds(250f, 250f, 550f, 550f), fill = Color.BLUE)
     private val page = Page(background = Background.PLAIN, backgroundColor = Color.WHITE, elements = listOf(lower, upper))
