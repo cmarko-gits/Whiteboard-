@@ -71,7 +71,9 @@ run_release_smoke() {
   # coverage uses a separate real AVD profile; modern API 36 retains all resize cases.
   if [[ "$api" == 26 ]]; then smoke_options+=(-SkipAdaptiveResize); fi
   pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
-    -Package dev.whiteboard.app -ApkPath "$signed" "${smoke_options[@]}" 2>&1 | tee artifacts/device-release/smoke.log
+    -Package dev.whiteboard.app -ApkPath "$signed" "${smoke_options[@]}" 2>&1 | tee artifacts/device-release/smoke.log || return $?
+  pwsh -NoProfile -File ./tools/Test-AppLanguage.ps1 -AdbPath "$(command -v adb)" \
+    -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/app-language.log
 }
 
 if bash ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest \

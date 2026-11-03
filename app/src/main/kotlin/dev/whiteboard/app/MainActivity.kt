@@ -3,10 +3,10 @@ package dev.whiteboard.app
 import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import dagger.hilt.android.AndroidEntryPoint
 import dev.whiteboard.app.ui.LocalWhiteboardApp
@@ -17,7 +17,7 @@ import dev.whiteboard.ui.R
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     @Inject lateinit var media: LocalMediaStore
     private val workspace: WorkspaceViewModel by viewModels()
     private val library: LibraryViewModel by viewModels()

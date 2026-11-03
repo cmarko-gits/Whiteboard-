@@ -330,4 +330,9 @@
     <string name="template_content_api">API</string>
     <string name="template_content_database">Database</string>
     <string name="template_content_decisions_constraints">Decisions &amp; constraints</string>
+    <string name="app_language">Language</string>
+    <string name="app_language_help">Use the system language or choose a language for this app. Your boards keep their text.</string>
+    <string name="app_language_system">Follow system language</string>
+    <string name="app_language_english">English</string>
+    <string name="app_language_serbian">Srpski (latinica)</string>
 </resources>

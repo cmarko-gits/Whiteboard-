@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.compose.icons)
     implementation(libs.graphics.path)
     implementation(libs.activity.compose)
+    implementation(libs.appcompat)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.lifecycle.viewmodel.ktx)

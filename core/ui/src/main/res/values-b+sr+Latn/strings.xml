@@ -331,4 +331,9 @@
     <string name="template_content_api">API</string>
     <string name="template_content_database">Baza podataka</string>
     <string name="template_content_decisions_constraints">Odluke i ograničenja</string>
+    <string name="app_language">Jezik</string>
+    <string name="app_language_help">Koristi sistemski jezik ili izaberi jezik aplikacije. Tekst na tablama ostaje sačuvan.</string>
+    <string name="app_language_system">Prati sistemski jezik</string>
+    <string name="app_language_english">English</string>
+    <string name="app_language_serbian">Srpski (latinica)</string>
 </resources>

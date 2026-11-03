@@ -4,19 +4,23 @@ import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.whiteboard.app.BuildConfig
 import dev.whiteboard.app.workspace.LibraryViewModel
 import dev.whiteboard.app.workspace.LocalMediaStore
 import dev.whiteboard.app.workspace.WorkspaceUi
 import dev.whiteboard.app.workspace.WorkspaceViewModel
+import dev.whiteboard.core.model.AppLanguage
 import dev.whiteboard.ui.R
 import dev.whiteboard.ui.WhiteboardTheme
 import java.io.File
@@ -30,6 +34,8 @@ fun LocalWhiteboardApp(workspace: WorkspaceViewModel, library: LibraryViewModel,
     val savedScreens = rememberSaveableStateHolder()
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val language = remember(configuration) { AppLanguage.fromTags(AppCompatDelegate.getApplicationLocales().toLanguageTags()) }
     val documents = rememberLocalDocumentActions(workspace, media)
     val snackbar = remember { SnackbarHostState() }
     val notice = state.message ?: boards.message
@@ -108,6 +114,14 @@ fun LocalWhiteboardApp(workspace: WorkspaceViewModel, library: LibraryViewModel,
                     documents.restore()
                 },
                 canRestore = state.editor == null,
+                language = language,
+                onLanguage = { choice ->
+                    val locales = LocaleListCompat.forLanguageTags(choice.tag)
+                    if (locales != AppCompatDelegate.getApplicationLocales()) {
+                        workspace.flushRecovery()
+                        AppCompatDelegate.setApplicationLocales(locales)
+                    }
+                },
                 dismiss = { settingsOpen = false }
             )
         }

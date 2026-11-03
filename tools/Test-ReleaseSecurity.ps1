@@ -32,6 +32,9 @@ $taskManifest = @(Read-ApkXml 'AndroidManifest.xml')
 $taskApp = @($taskManifest | Where-Object Name -eq 'application')
 if ($taskApp.Count -ne 1) { throw 'Expected one application.' }
 $taskAttributes = $taskApp[0].Attributes
+if (@($taskManifest | Where-Object {
+    $_.Name -eq 'meta-data' -and $_.Attributes.name -eq 'androidx.emoji2.text.EmojiCompatInitializer'
+}).Count) { throw 'Automatic downloadable emoji font initialization is outside the offline release policy.' }
 if ($taskAttributes.debuggable -eq 'true' -or $taskAttributes.testOnly -eq 'true' -or
     $taskAttributes.allowBackup -ne 'false' -or $taskAttributes.fullBackupContent -ne 'false' -or
     $taskAttributes.usesCleartextTraffic -ne 'false' -or $taskAttributes.ContainsKey('networkSecurityConfig')) {

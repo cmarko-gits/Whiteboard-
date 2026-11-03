@@ -181,11 +181,15 @@ fun SettingsDialog(
     onBackup: () -> Unit,
     onRestore: () -> Unit,
     canRestore: Boolean,
+    language: AppLanguage?,
+    onLanguage: (AppLanguage) -> Unit,
     dismiss: () -> Unit
 ) {
     var notices by remember { mutableStateOf(false) }
     AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.settings)) }, text = {
         Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+            LanguagePicker(language, onLanguage)
+            HorizontalDivider(Modifier.padding(vertical = 12.dp))
             Text(stringResource(R.string.appearance), fontWeight = FontWeight.SemiBold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 ThemeMode.entries.forEach { mode ->
