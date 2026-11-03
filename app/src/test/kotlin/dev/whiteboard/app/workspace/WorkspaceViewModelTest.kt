@@ -49,6 +49,24 @@ class WorkspaceViewModelTest {
     }
     private fun note(text: String) = Note(bounds = Bounds(10f, 10f, 200f, 200f), text = text)
 
+    @Test fun creatingATemplateSavesTheCapturedLanguageAndOpeningNeverRelabelsUserContent() = runTest {
+        val model = model()
+        val content = TemplateContent(TemplateLabel.entries.associateWith { "Prevod ${it.name}" })
+        model.create("Moj naziv", template = BoardTemplate.KANBAN, content = content).join()
+        val editor = checkNotNull(model.state.value.editor)
+        val saved = repository.load(editor.boardId)
+        assertEquals("Moj naziv", saved.name)
+        assertEquals(content[TemplateLabel.PAGE_ONE], saved.activePage.name)
+        assertEquals(content[TemplateLabel.KANBAN_TITLE], (saved.activePage.elements.first() as TextElement).text)
+        val original = saved.activePage.elements.filterIsInstance<Note>().first()
+        model.canvas(CanvasEvent.Replace(listOf(original.copy(text = "Moj ručno izmenjeni zadatak"))))
+        model.save().join()
+        model.open(editor.boardId).join()
+        val reopened = checkNotNull(model.state.value.editor)
+        assertEquals("Moj ručno izmenjeni zadatak", (reopened.page.elements.first { it.id == original.id } as Note).text)
+        assertEquals(content[TemplateLabel.KANBAN_TITLE], (reopened.page.elements.first() as TextElement).text)
+    }
+
     @Test fun staleCanvasTextRequestsCannotRevertNewerGeometry() = runTest {
         val model = model()
         model.create("Accessible edits").join()

@@ -24,8 +24,12 @@ class EditorPersistence(private val repository: BoardRepository) {
         return OpenedBoard(saved, recovery)
     }
 
-    suspend fun create(name: String, folderId: String?, template: BoardTemplate): Board =
-        TemplateFactory.create(name.trim().take(120), template).copy(folderId = folderId).also { repository.save(it) }
+    suspend fun create(
+        name: String,
+        folderId: String?,
+        template: BoardTemplate,
+        content: TemplateContent = TemplateContent.ENGLISH
+    ): Board = TemplateFactory.create(name.trim().take(120), template, content).copy(folderId = folderId).also { repository.save(it) }
 
     suspend fun createPrivateCopy(source: Board, name: String): Board {
         val now = System.currentTimeMillis()

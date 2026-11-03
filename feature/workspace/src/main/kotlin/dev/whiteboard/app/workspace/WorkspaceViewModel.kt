@@ -87,9 +87,14 @@ class WorkspaceViewModel @Inject constructor(
         }
     }
 
-    fun create(name: String, folderId: String? = null, template: BoardTemplate = BoardTemplate.BLANK) = work {
+    fun create(
+        name: String,
+        folderId: String? = null,
+        template: BoardTemplate = BoardTemplate.BLANK,
+        content: TemplateContent = TemplateContent.ENGLISH
+    ) = work {
         mutable.update { it.copy(loading = true) }
-        val board = persistence.create(name, folderId, template)
+        val board = persistence.create(name, folderId, template, content)
         activate(board)
         if (board.activePage.elements.isNotEmpty()) mutable.update { it.copy(editor = it.editor?.copy(initialFit = true)) }
     }

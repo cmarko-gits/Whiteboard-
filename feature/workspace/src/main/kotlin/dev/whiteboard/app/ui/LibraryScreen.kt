@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -40,6 +41,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: WorkspaceViewModel, onSettings: () -> Unit) {
+    val context = LocalContext.current
     val closeKeyboard = rememberInputCloser()
     val openSettings = {
         closeKeyboard()
@@ -317,7 +319,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
     }
     if (create) {
         NewBoardDialog({ create = false }) { name, template ->
-            workspace.create(name, selectedFolder, template)
+            workspace.create(name, selectedFolder, template, localizedTemplateContent(context.resources))
             create = false
         }
     }
