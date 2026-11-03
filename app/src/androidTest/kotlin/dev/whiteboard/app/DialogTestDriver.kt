@@ -1,0 +1,83 @@
+package dev.whiteboard.app
+
+import android.graphics.Rect
+import android.os.SystemClock
+import android.view.accessibility.AccessibilityNodeInfo
+import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import java.util.Collections
+import java.util.IdentityHashMap
+
+private data class DialogProbe(val found: Boolean, val selected: Boolean = false, val scroll: Rect? = null)
+
+/** Read a new connected hierarchy; retain values rather than UiObject2 handles across recomposition. */
+@Suppress("DEPRECATION")
+private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
+    val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return DialogProbe(false)
+    val owned = Collections.newSetFromMap(IdentityHashMap<AccessibilityNodeInfo, Boolean>())
+    fun own(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? = node?.also { owned.add(it) }
+    val queue = ArrayDeque<AccessibilityNodeInfo>()
+    own(root)?.let(queue::add)
+    var scroll: Rect? = null
+    var remaining = 2000
+    try {
+        val expectedPackage = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        if (root.packageName?.toString() != expectedPackage) return DialogProbe(false)
+        while (queue.isNotEmpty() && remaining-- > 0) {
+            val node = queue.removeFirst()
+            if (!node.refresh()) continue
+            if (node.isScrollable && node.isVisibleToUser) {
+                val bounds = Rect().also(node::getBoundsInScreen)
+                if (!bounds.isEmpty) scroll = bounds
+            }
+            if (node.text?.toString() == label && node.isVisibleToUser) {
+                var owner: AccessibilityNodeInfo? = node
+                while (owner != null && !owner.isClickable) owner = own(owner.parent)
+                if (activate) {
+                    check(owner?.refresh() == true && owner.isEnabled && owner.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        "Dialog choice did not expose an actionable target: $label"
+                    }
+                }
+                return DialogProbe(true, owner?.isChecked == true || owner?.isSelected == true, scroll)
+            }
+            repeat(node.childCount) { own(node.getChild(it))?.let(queue::add) }
+        }
+        return DialogProbe(false, scroll = scroll)
+    } finally {
+        owned.forEach { it.recycle() }
+    }
+}
+
+/** Small overlapping physical swipes avoid API 26 accessibility page-scroll skipping a whole row. */
+private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, towardTop: Boolean) {
+    val deadline = SystemClock.uptimeMillis() + 20_000
+    var swipes = 0
+    while (SystemClock.uptimeMillis() < deadline) {
+        val probe = inspectDialogText(label, activate)
+        if (probe.found) return
+        val bounds = probe.scroll
+        if (bounds != null) {
+            check(++swipes <= 24) { "Dialog text was not reached by bounded scrolling: $label" }
+            val start = if (towardTop) 0.3f else 0.8f
+            val end = if (towardTop) 0.65f else 0.45f
+            check(
+                device.swipe(
+                    bounds.centerX(),
+                    bounds.top + (bounds.height() * start).toInt(),
+                    bounds.centerX(),
+                    bounds.top + (bounds.height() * end).toInt(),
+                    60
+                )
+            ) { "Dialog swipe could not be injected: $label" }
+            device.waitForIdle()
+        } else {
+            SystemClock.sleep(50)
+        }
+    }
+    error("Missing visible dialog text: $label")
+}
+
+internal fun clickTestDialogText(device: UiDevice, label: String) = reachDialogText(device, label, true, false)
+internal fun revealTestDialogText(device: UiDevice, label: String, towardTop: Boolean = false) =
+    reachDialogText(device, label, false, towardTop)
+internal fun testDialogChoiceSelected(label: String): Boolean = inspectDialogText(label, false).selected

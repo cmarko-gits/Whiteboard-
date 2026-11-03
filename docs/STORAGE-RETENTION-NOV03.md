@@ -28,3 +28,9 @@ Svi navedeni putevi su relativni korenu projekta i ignorisani u Git-u:
 - `artifacts/task-08-8cb5da1-evidence.json`: najnoviji preuzeti i digest-provereni CI rezultati.
 
 Posle preuzimanja novog CI kompleta izmereno je 3.256.176.640 dodatnih bajtova, ispod ograničenja. Ovo je vremenski presek, ne rezervacija prostora. Guard zadržava 134.217.728 bajtova rezerve pre preuzimanja. Novi CI verify upload više ne uključuje veliki debug APK; release APK/AAB i svi izveštaji ostaju uključeni. Nema lokalnog SDK/image preuzimanja ili Gradle/emulator pokretanja.
+
+## Dalji nastavak istog dana
+
+Originalni source-scan direktorijumi su i dalje zadržani. NTFS `compact /C` primenjen je samo na tih 18 snapshot direktorijuma: svih 4.904 fajla zadržalo je istu putanju, veličinu sadržaja i SHA-256 pre/posle, uz oko 12,8 MB više slobodnog volumena. Ovo je filesystem kompresija koja transparentno čuva iste fajlove; nema uklanjanja foldera ili ponavljanja ranije odbijene delete operacije. Manifest: artifacts/task-01-nov03-ntfs-retention.json.
+
+Dalja retencija superseded CI binarnih unosa, uz očuvane report unose i originalne/izvedene hash-eve: task-01-nov03-model-retention.json (0b3f169 verify), task-01-nov03-historical-device-retention.json (11 istorijskih arhiva) i task-01-nov03-ci-startup-retention.json (4fee1e8 verify i tri device arhive). Za osam starijih istorijskih arhiva originalni lokalni container hash je sačuvan, ali GitHub digest nije ponovo preuzet; ta razlika je eksplicitna u manifestu. Za novije osnove digest je upoređen sa sačuvanim digest-proverenim dokazima. Izvedene arhive nisu originalni GitHub ZIP-ovi. Aktuelni 0.6.3 a230f11 paket i njegovi raw device payload dokazi ostaju nepromenjeni.

@@ -62,6 +62,9 @@ class AppLanguageFlowTest {
                 check(device.wait(Until.gone(By.text("Start creating")), 10_000))
                 testLibraryCreateButton(device)
                 block(scenario)
+            } catch (error: Throwable) {
+                capture.snapshot("language-before-cleanup")
+                throw error
             } finally {
                 instrument.runOnMainSync { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(original)) }
                 instrument.waitForIdleSync()
@@ -91,10 +94,9 @@ class AppLanguageFlowTest {
         text("Gotovo").click()
         testLibraryCreateButton(device, "Nova tabla").click()
         val name = "Locale flow ${SystemClock.uptimeMillis()}"
-        val templates = UiScrollable(UiSelector().scrollable(true))
-        assertTrue(templates.scrollIntoView(UiSelector().text("Kanban")))
-        text("Kanban").click()
-        templates.scrollToBeginning(10)
+        testDialogField(device, "Naziv")
+        clickTestDialogText(device, "Kanban")
+        revealTestDialogText(device, "Naziv", towardTop = true)
         testDialogField(device, "Naziv").text = name
         text("Potvrdi").click()
         awaitTestKeyboardHidden(device)

@@ -51,32 +51,7 @@ class PartialEraserFlowTest {
     private fun choosePartialMode() {
         text("Appearance")
         device.waitForIdle()
-        // Scroll through connected nodes: old framework caches may retain pre-scroll touch coordinates.
-        repeat(6) {
-            val queue = ArrayDeque<android.view.accessibility.AccessibilityNodeInfo>()
-            InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow?.let(queue::add)
-            var scroll: android.view.accessibility.AccessibilityNodeInfo? = null
-            var remaining = 1000
-            while (queue.isNotEmpty() && remaining-- > 0) {
-                val node = queue.removeFirst()
-                if (!node.refresh()) continue
-                if (node.isScrollable && node.isVisibleToUser) scroll = node
-                if (node.text?.toString() == "Partial stroke" && node.isVisibleToUser) {
-                    var target: android.view.accessibility.AccessibilityNodeInfo? = node
-                    while (target != null && !target.isClickable) target = target.parent
-                    check(target?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true) {
-                        "Partial mode did not expose an actionable accessibility target"
-                    }
-                    return
-                }
-                repeat(node.childCount) { node.getChild(it)?.let(queue::add) }
-            }
-            check(scroll?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD) == true) {
-                "Partial stroke setting could not be reached by scrolling"
-            }
-            device.waitForIdle()
-        }
-        error("Missing connected Partial stroke setting")
+        clickTestDialogText(device, "Partial stroke")
     }
 
     @After fun cleanup(): Unit = runBlocking {
@@ -106,8 +81,7 @@ class PartialEraserFlowTest {
         val until = android.os.SystemClock.uptimeMillis() + 10_000
         var selected = false
         do {
-            selected = device.findObjects(By.checkable(true).checked(true))
-                .any { it.findObject(By.text("Partial stroke")) != null }
+            selected = testDialogChoiceSelected("Partial stroke")
             if (selected) break
             device.waitForIdle(100)
         } while (android.os.SystemClock.uptimeMillis() < until)

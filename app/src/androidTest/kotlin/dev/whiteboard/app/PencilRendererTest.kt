@@ -5,10 +5,12 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Path
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import dev.whiteboard.canvas.BoardRenderer
 import dev.whiteboard.canvas.PageExporter
 import dev.whiteboard.core.model.*
 import dev.whiteboard.format.DocumentCodec
+import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,9 +33,32 @@ class PencilRendererTest {
             assertTrue(grain.none { it == Color.WHITE })
             assertTrue(grain.any { it != Color.BLUE })
             assertTrue((40..220).all { pen.getPixel(it, 32) == Color.BLUE })
+            storeComparison(pencil, pen)
         } finally {
             pencil.recycle()
             pen.recycle()
+        }
+    }
+
+    private fun storeComparison(pencil: Bitmap, pen: Bitmap) {
+        val output = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir") ?: return
+        val comparison = Bitmap.createBitmap(520, 128, Bitmap.Config.ARGB_8888)
+        try {
+            comparison.eraseColor(Color.WHITE)
+            val canvas = Canvas(comparison)
+            val labels = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.BLACK
+                textSize = 16f
+            }
+            canvas.drawText("Pencil", 20f, 18f, labels)
+            canvas.drawText("Pen", 280f, 18f, labels)
+            canvas.drawBitmap(pencil, 0f, 24f, null)
+            canvas.drawBitmap(pen, 260f, 24f, null)
+            val file = File(output, "pencil-renderer-comparison.png")
+            file.parentFile?.mkdirs()
+            file.outputStream().use { assertTrue(comparison.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        } finally {
+            comparison.recycle()
         }
     }
 

@@ -34,7 +34,7 @@ function Assert-LanguageSelection([string]$Label) {
 
 function Restart-LanguageApp {
     Invoke-Adb shell am force-stop $Package | Out-Null
-    Invoke-Adb shell am start -W -n "$Package/dev.whiteboard.app.MainActivity" | Out-Null
+    Invoke-Adb -Arguments @('shell','am','start','-W','-n',"$Package/dev.whiteboard.app.MainActivity") | Out-Null
 }
 
 try {
