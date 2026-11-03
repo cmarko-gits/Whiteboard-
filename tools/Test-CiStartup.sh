@@ -47,4 +47,19 @@ WINDOW
 status=0
 GITHUB_ACTIONS=false bash tools/Run-CiEmulator.sh 26 pixel_2 || status=$?
 if ((status != 2)); then echo 'Local SDK/AVD guard did not refuse execution.' >&2; exit 1; fi
-echo 'PASS: focused/drawn launcher, four rejected states and local SDK/AVD guard.'
+
+# Test the pure config filter without touching any SDK or real AVD directory.
+configured=$(awk -f tools/Configure-CiAvd.awk <<'CONFIG'
+hw.device.name=pixel_2
+disk.dataPartition.size=10G
+hw.cpu.ncore=8
+ hw.keyboard = yes
+disk.dataPartition.size = 20G
+hw.lcd.width=1080
+CONFIG
+)
+expected=$'hw.device.name=pixel_2\nhw.lcd.width=1080\nhw.cpu.ncore=2\nhw.keyboard=no\ndisk.dataPartition.size=6G'
+if [[ "$configured" != "$expected" ]]; then echo 'Unexpected CI AVD configuration.' >&2; exit 1; fi
+again=$(printf '%s\n' "$configured" | awk -f tools/Configure-CiAvd.awk)
+if [[ "$again" != "$configured" ]]; then echo 'CI AVD configuration is not idempotent.' >&2; exit 1; fi
+echo 'PASS: launcher readiness, local SDK/AVD guard and bounded/idempotent CI device configuration.'

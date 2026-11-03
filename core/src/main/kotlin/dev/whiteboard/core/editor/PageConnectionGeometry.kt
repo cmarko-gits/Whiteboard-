@@ -3,8 +3,8 @@ package dev.whiteboard.core.editor
 import dev.whiteboard.core.model.*
 
 /**
- * Resolves a batch atomically against one immutable page. Construction rejects dangling or cyclic
- * references rather than silently detaching them. Explicit editing commands must handle detachment.
+ * Resolves a batch atomically against one immutable page. Construction rejects dangling references
+ * and connector targets rather than silently detaching them. Editing commands must handle detachment.
  * This is the connector portion of the future shared page geometry, not a document format change.
  */
 class PageConnectionGeometry(page: Page, connectors: List<Connector>, checkpoint: () -> Unit = {}) {

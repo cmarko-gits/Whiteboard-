@@ -1,6 +1,6 @@
 # F05 — pametni konektori: ugovor i zavisnosti
 
-Status 3. novembra 2026: core jezgro na grani `codex/smart-connectors`. Portovi prolaze punu regresiju. Source 0b3f169 uvodi Connector/ConnectorEnd i PageConnectionGeometry sa 23 nova testa, čije CI izvršavanje još traje. Model nije Element niti aktivan UI alat; nema novog tipa dokumenta u aplikaciji i F05 nije završen. Aktivna app verzija ostaje 0.6.3, format 4. Zahtev iz WHITEBOARD-VISION.md: pomeranje povezanog oblika automatski prilagođava vezu. Postojeća Arrow ostaje nezavisna linija i stari dokumenti ne menjaju ponašanje.
+Status 3. novembra 2026: core jezgro na grani `codex/smart-connectors`. Portovi prolaze punu regresiju. Source 0b3f169 uvodi Connector/ConnectorEnd i PageConnectionGeometry; svih 23 nova testa prolazi u verify poslu CI 41703271737. Ukupno 267 JVM (194+43+5+25), bez neuspeha/preskakanja, uz style/architecture/lint/release/security/license provere. API 36 je stao pre boot-a zbog manjka runner diska, pa nova puna Android matrica nije potvrđena. Model nije Element niti aktivan UI alat; nema novog tipa dokumenta u aplikaciji i F05 nije završen. Aktivna app verzija ostaje 0.6.3, format 4. Zahtev iz WHITEBOARD-VISION.md: pomeranje povezanog oblika automatski prilagođava vezu. Postojeća Arrow ostaje nezavisna linija i stari dokumenti ne menjaju ponašanje.
 
 `ConnectionPort` i `PagePortIndex` predstavljaju prvi izolovani deo. Indeks je nepromenljiv, vezan za ID stranice i identitet liste elemenata; viewport ne utiče na world geometriju. Indeksira top-level i child ID-jeve, validira render okvir jednom po podržanom cilju i čuva samo njegov okvir/transformaciju za dalja port računanja. Grupa se ne skenira ponovo za svaku vezu. Stroke/Line i nepostojeći ID nisu dozvoljeni ciljevi; nevažeća geometrija prekida izgradnju pre objavljivanja indeksa. Konstrukcija ima checkpoint po objektu.
 
@@ -57,8 +57,8 @@ F06 mind-map roditelj/deca i F07 flowchart koriste ovaj lokalni model tek kada j
 ## Preostala implementacija F05
 
 - [x] F05.1 Izolovano jezgro portova i 14 JVM testova, source 49a5de9. Ovo nije aktivan Connector alat.
-- [ ] F05.2 Tipovi Connector/ConnectorEnd i invarianti implementirani source 0b3f169; sedam novih model testova čeka CI potvrdu. Nema Element/format integracije.
-- [ ] F05.3 Početni PageConnectionGeometry batch resolver i 16 testova implementirani source 0b3f169; CI je u toku. Ostaje puna PageGeometry integracija sa svim potrošačima i transient preview tokovima.
+- [x] F05.2 Tipovi Connector/ConnectorEnd i invarianti, source 0b3f169; sedam model testova i provera nepodržanih referenci u resolver testovima prolaze u CI 41703271737/verify. Nema Element/format integracije.
+- [ ] F05.3 Početni PageConnectionGeometry batch resolver i 16 testova prolaze, source 0b3f169/CI 41703271737/verify. Ostaje puna PageGeometry integracija sa svim potrošačima i transient preview tokovima.
 - [ ] F05.4 Atomske session komande: dodavanje/rebinding/odvezivanje, delete/cut/group/ungroup, budžet i tačan Undo/Redo.
 - [ ] F05.5 Dvoprolazni remap ID-jeva u ObjectClipboard i duplicate-page, uz pravilno odvezivanje nekopiranog cilja i očuvanje priloga.
 - [ ] F05.6 Format 5: DocumentCodec, DocumentDeltaCodec, ElementDigest, stari 1–4 dokumenti, recovery i ZIP backup/restore; Room menjati samo ako šema to zahteva.

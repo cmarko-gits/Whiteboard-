@@ -41,3 +41,11 @@ Ispravka dodaje testLibraryCreateButton: sveža hijerarhija, najbliži clickable
 ## Prihvaćen nastavak, provereno 3. novembra 2026.
 
 Source 8cb5da146b53e9251b61a565beb0d5b2b6efcf86, [CI 41518088012](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41518088012), prolazi svih šest poslova u prvom pokušaju. Iz originalnih, digest-proverenih ZIP-ova pročitani su rezultati: 244 JVM i na svakom API 26 telefon/tablet, 30, 33 i 36 profilu 86 app + 13 data, bez grešaka ili preskakanja. Predviđeni minified release smoke tokovi prolaze. Dokaz: artifacts/task-08-8cb5da1-evidence.json. Time je fixture ispravka prihvaćena u punoj aktuelnoj matrici; prethodni neuspešni pokušaji ostaju sačuvani. Ovo ne proširuje zaključak na fizičke uređaje, druge GPU profile ili sve buduće startup pokušaje.
+
+## Sledeći uzorak: disk runner-a
+
+0b3f169/CI 41703271737/verify prolazi 267 JVM i sve gates. API 36 posao 126151824667 nije stigao do boot-a ili aplikacionih testova. Originalni digest-provereni artefakt čuva `ci-emulator.log`: emulator 37.2.13.0, available 8047.49 MB, need 12288.00 MB, userdata partition creation fatal. Ranija poruka o nedostajućem devices.xml nije zaključena kao glavni uzrok: emulator je nastavio do konkretne disk provere. Dokaz: artifacts/task-15-0b3f169-evidence.json i task-15-0b3f169-api36.log.
+
+[AOSP emulator kod](https://android.googlesource.com/platform/external/qemu/+/emu-master-dev/android-qemu2-glue/main.cpp) za API ≥24 pri inicijalnom kreiranju zahteva bar 6 GiB userdata i računa 1,2 puta konfigurisan kapacitet za slobodan host prostor. To objašnjava zašto smanjenje na 2 GiB nije odgovarajuća korekcija. Log odgovara nasleđenom 10 GiB zahtevu sa tim faktorom; trenutni zahtev runner-a je važniji od pretpostavke o sparse fizičkom fajlu.
+
+Konfiguracija sopstvenog CI AVD-a sada uklanja nasleđene/duple resource ključeve i postavlja CPU=2, keyboard=no, disk.dataPartition.size=6G. Ostale device vrednosti ostaju sačuvane. Pure AWK filter ima lokalni fixture za duplikate/razmake i idempotentnost; Bash sintaksa i zabrana lokalnog SDK/AVD izvršavanja prolaze. `ci-avd-config.txt` i `ci-host-disk.txt` ulaze u postojeći upload. Nema brisanja drugih runner SDK-ova, keševa ili korisničkih AVD-ova. Ovo ne zaobilazi startup health ni aplikacione testove; nova stvarna matrica ostaje uslov potvrde konfiguracije.

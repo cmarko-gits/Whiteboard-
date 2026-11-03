@@ -51,7 +51,13 @@ done
 if [[ "$installed" != true ]]; then echo 'SDK installation failed; no device tests ran.' >&2; exit 1; fi
 avd=whiteboard-ci
 printf 'no\n' | avdmanager create avd --force --name "$avd" --package "system-images;android-$api;default;x86_64" --device "$profile"
-printf 'hw.cpu.ncore=2\nhw.keyboard=no\n' >> "$ANDROID_AVD_HOME/$avd.avd/config.ini"
+config="$ANDROID_AVD_HOME/$avd.avd/config.ini"
+# Some inherited profiles request 10 GiB userdata (12 GiB with emulator safety overhead).
+# Use the upstream minimum of 6 GiB for this fresh, disposable test device.
+awk -f tools/Configure-CiAvd.awk "$config" > "$config.tmp"
+mv "$config.tmp" "$config"
+cp "$config" artifacts/ci-avd-config.txt
+df -Pk "$ANDROID_AVD_HOME" > artifacts/ci-host-disk.txt
 options=(-no-window -gpu software -no-snapshot -noaudio -no-boot-anim)
 if [[ "$api" == 36 ]]; then options=(-no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -feature -Vulkan); fi
 # A bare `emulator -version` selects the GUI binary, which needs libpulse even on
