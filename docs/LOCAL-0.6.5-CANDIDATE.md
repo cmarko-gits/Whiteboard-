@@ -1,0 +1,22 @@
+# Lokalni kandidat 0.6.5 / code 13
+
+Kvalifikovan 4. novembra 2026: izvor `5129627f1f26ab47c895bbd795c255b5a8e40964`, grana `codex/object-context-menu`, [CI 41888835384, pokušaj 2](https://github.com/cmarko-gits/Whiteboard-/actions/runs/41888835384). Svih šest poslova uspešno; ponovljen je samo API 26 tablet na istom izvoru posle zasebnog pada Android sistema. F18 je završen za emulator obim: **12/47 završeno, 35 otvoreno**. Prethodni [0.6.4/source 9589e12](LOCAL-0.6.4-CANDIDATE.md) ostaje sačuvan.
+
+Select → dugi pritisak otvara isti Selection actions meni kao toolbar. Najviši pogođeni objekat određuje cilj; već izabrani cilj zadržava celu postojeću višestruku selekciju. Edit, Duplicate i Delete koriste postojeće ViewModel/session komande, kao i clipboard, slojevi, grupisanje, rotacija, poravnanje i svojstva. Menu/Shift+F10 sa fokusom na platnu i imenovana accessibility akcija nude alternative dodiru. [Ugovor i životni ciklus](OBJECT-CONTEXT-MENU.md) opisuju otkazivanje i zaštitu od zastarelog gesta.
+
+Dodato je sedam Android slučajeva: četiri native testa, Edit/Undo i fizički Duplicate/Undo/Redo/save/reopen tok, kao i potvrda odloženo osposobljenog dugmeta tačno jednom. Pregledani XML-ovi potvrđuju 283 JVM (209 core + 43 format + 5 data + 26 ViewModel) i po 104 app + 13 data na API 26 telefonu/tabletu, API 30, 33 i 36: bez neuspeha, grešaka ili preskakanja. To je **400 jedinstvenih slučajeva**, bez brojanja OS ponavljanja kao novih testova. Na tri release profila prolaze R8 keyboard/private Copy sa očuvanom dvostrukom selekcijom i geometrijom, recovery/save/reopen i oba jezička process-restart slučaja, uz vraćen prvobitni jezik.
+
+JSON i Room ostaju 4; nema novih runtime zavisnosti, dozvola ili online funkccija. Stil/arhitektura, debug/release lint, 155 runtime notices/licenci, OSV bez prijavljenih poznatih nalaza, source scan i manifest/DEX/offline-font politika prolaze. To nije nezavisan pentest. Originalni GitHub ZIP digest-i provereni su pre izdvajanja ograničenih izveštaja; novi tablet artifact iz pokušaja 2 izabran je po ID-ju, uz sačuvan inventar obe verzije. VCS metapodatak paketa odgovara tačnom izvoru. Unsigned APK SHA-256 `ABFD23DF748DB25CABB18B8A8B7E270F96DA5E74116FAEEB01B2634EFD3828F9` odgovara security politici.
+
+Lokalni Android Debug v2/v3 potpis, ZIP-P16 i četiri ELF64 LOAD/RELRO provere prolaze; paket sadrži arm64-v8a, armeabi-v7a, x86 i x86_64 biblioteke. Svih 381 ZIP unosa odgovara sadržaju i v1 MANIFEST.MF sva tri CI release APK-a; izuzeta su samo četiri imenovana v1 signer RSA/SF unosa, uz očekivanu razliku v2/v3 signing blokova zbog različitih razvojnih ključeva.
+
+| Paket | Bajtovi | SHA-256 |
+|---|---:|---|
+| `artifacts/whiteboard-local-0.6.5-preview.apk` | 2.472.066 | `894DC2945DBA1CE733653DCED134DCFCF472796F3A11BB608B80ED065B529174` |
+| `artifacts/whiteboard-local-0.6.5-unsigned.aab` | 5.174.104 | `29C692D221DF16FE75B75D410C1873320479C10FD8BC91B42BC3F7EA100C6408` |
+
+Pregledani su stvarni long-press snimci telefona i tableta iz ovog izvora: tekst i dostupne/onemogućene akcije su čitljivi, dugi telefonski meni koristi skrolovanje. To nije ručni pregled svih tema/boja ili slušni TalkBack. Dokazi: `artifacts/task-28-5129627-evidence.json`, `-packages.json`, `-release-content-match.json`, `-visual-review.json` i povezani signature/security/native izveštaji. Potpis je razvojni, AAB unsigned. Fizički uređaji, slušni TalkBack, hardversko profilisanje, in-place OS upgrade i Play objava ostaju otvorene ili odložene stavke.
+
+Prvi pokušaj istog izvora prolazi svih pet skupova app/data testova i standardni R8 meni. API 26 tablet zatim pada tokom jezičkog relaunch-a: log beleži `FATAL EXCEPTION IN SYSTEM PROCESS: android.display`, `IndexOutOfBoundsException` u `AppWindowToken.onWindowReplacementTimeout`, zatim nestanak sistemskih servisa i `Broken pipe (32)`. Nije označen kao prolaz ili pripisan aplikaciji bez dokaza. Originalni tablet ZIP, log i `-attempt1-evidence.json` ostaju sačuvani; jedan ciljani ponovljeni tablet posao prolazi na istom izvoru, bez promene produkcionog koda ili kriterijuma.
+
+Raniji e0037d1, 48fd1f5 i 270f0ba pokušaji nisu kvalifikovani. Njihovi stvarni meniji i native/većina UI tokova prolaze, a sačuvani nalazi dokumentuju pogrešne testne nazive, čekanje na Apply, pogrešno očekivanje jednostruke selekcije i oznaku native Button fixture-a. Izveštaji i razlike ostaju u OBJECT-CONTEXT-MENU.md i artifacts/task-28-*-evidence.json.

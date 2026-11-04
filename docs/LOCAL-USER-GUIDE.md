@@ -1,6 +1,6 @@
 # Whiteboard — lokalno korišćenje
 
-Proveren lokalni razvojni paket je 0.6.4: [rezultati i ograničenja](LOCAL-0.6.4-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Proveren lokalni razvojni paket je 0.6.5: [rezultati i ograničenja](LOCAL-0.6.5-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 ## Table i biblioteka
 
@@ -9,6 +9,8 @@ New board otvara naziv i izbor šablona. Početni tekst i ime prve stranice nove
 Move to Trash zadržava tablu za kasniji Restore. Delete permanently? traži potvrdu i nepovratno briše izabranu tablu. Trash nema automatski vremenski rok brisanja u ovoj verziji.
 
 ## Crtanje, boje i objekti
+
+U Select režimu drži prst na objektu da otvoriš Selection actions. Ako je objekat već izabran, ostaje cela višestruka selekcija. Edit uređuje pojedinačan tekst/belešku; Duplicate i Delete koriste istu Undo/Redo istoriju. Dugi meni možeš skrolovati. Sa fokusom na platnu koriste se Menu ili Shift+F10; accessibility čvor nudi Object actions. Pomeranje prsta, drugi dodir i promena stranice otkazuju nedovršen dugi pritisak.
 
 Toolbar bira olovku, marker, oblike, tekst, sticky belešku, selekciju, pomeranje i gumicu. Settings → Eraser bira Whole stroke za brisanje celog poteza ili Partial stroke za brisanje dela preko kog pređeš. Jedan završen gest se vraća jednim Undo; otkazan gest ne briše sadržaj. Izbor režima se pamti. Pencil ima grafitno zrno uz izabranu boju, širinu i providnost; isti izgled koristi se u dokumentu i izvozu. Pressure/tilt nisu deo ove verzije.
 

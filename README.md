@@ -1,6 +1,6 @@
-# Whiteboard za Android — proverena lokalna 0.6.4
+# Whiteboard za Android — proverena lokalna 0.6.5
 
-Provereni lokalni razvojni paket dodaje izbor jezika, lokalizovan početni sadržaj šablona i grafitni Pencil prikaz uz prethodnu rotaciju, slojeve i šest poravnanja. Rezultati i ograničenja: [LOCAL-0.6.4-CANDIDATE.md](docs/LOCAL-0.6.4-CANDIDATE.md). [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje čuvanje, backup, ograničenja i rad bez mreže. Jezgro pametnih konektora još nije korisnički alat. Prethodni paketi i istorijski dokazi ostaju sačuvani.
+Provereni lokalni razvojni paket dodaje meni objekata dugim pritiskom, tastaturom i accessibility akcijom, uz izbor jezika, lokalizovane šablone, grafitni Pencil, rotaciju, slojeve i poravnanje. Rezultati i ograničenja: [LOCAL-0.6.5-CANDIDATE.md](docs/LOCAL-0.6.5-CANDIDATE.md). [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje čuvanje, backup, ograničenja i rad bez mreže. Jezgro pametnih konektora još nije korisnički alat. Prethodni paketi i istorijski dokazi ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 

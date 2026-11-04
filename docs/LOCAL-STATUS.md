@@ -1,6 +1,6 @@
 # Whiteboard 0.4.0 — lokalni status i QA
 
-Najnoviji kvalifikovani lokalni kandidat je [0.6.4/source 9589e12](LOCAL-0.6.4-CANDIDATE.md): 283 JVM i pet profila po 97 app + 13 data, uz release/security/package provere. Meni iz 0.6.5 još je kandidat. Ostatak ovog dokumenta je istorijski 0.4.0 izveštaj. Tekući rad i nezavršene stavke: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
+Najnoviji kvalifikovani lokalni kandidat je [0.6.5/source 5129627](LOCAL-0.6.5-CANDIDATE.md): 283 JVM i pet profila po 104 app + 13 data, uz release/security/package provere. F18 je zatvoren za emulator obim; prvi tablet SystemServer pad i ciljani retry su sačuvani. Ostatak ovog dokumenta je istorijski 0.4.0 izveštaj. Tekući rad i nezavršene stavke: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
 
 Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.
 

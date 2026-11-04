@@ -10,7 +10,7 @@ Feature pretvara 37 resource ključeva u potpun immutable TemplateContent snimak
 
 Page.geometry povezuje postojeće bounds/picking/preview potrošače sa jednim immutable snapshot-om; preview čuva slojeve i ne menja session. Connector/ConnectorEnd i batch port resolver još su izolovano jezgro, izvan Element/format/UI integracije. Njihovo postojanje ne znači aktivan konektorski alat. Pencil koristi jednu determinističnu 32×32 teksturu i najviše 16 tint filtera po renderer-u, bez dodatnog rada po svakom uzorku tačke ili novih runtime zavisnosti.
 
-Aktuelni accessibility prozor ima najviše 512 vidljivih virtuelnih čvorova; Objects ostaje potpun pretraživ navigator stranice. Istorijski broj 256 u starijoj 0.4 dopuni ispod pripada toj kohorti. Kandidat 0.6.5 uvodi kontrolisano otvaranje istog Selection actions menija, uz native otkazivu long-press odgodu, tastaturu i imenovanu virtual-node akciju. Akcije i Undo ostaju u postojećem ViewModel/session toku; njegova kvalifikacija još traje: OBJECT-CONTEXT-MENU.md.
+Aktuelni accessibility prozor ima najviše 256 vidljivih virtuelnih čvorova, prema MAX_VISIBLE_NODES u CanvasAccessibility; Objects ostaje potpun pretraživ navigator stranice. Kandidat 0.6.5 uvodi kontrolisano otvaranje istog Selection actions menija, uz native otkazivu long-press odgodu, tastaturu i imenovanu virtual-node akciju. Akcije i Undo ostaju u postojećem ViewModel/session toku; njegova kvalifikacija još traje: OBJECT-CONTEXT-MENU.md.
 
 ## Granice i vlasništvo
 
