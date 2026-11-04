@@ -1,5 +1,11 @@
 # Izvršavanje preostalih zadataka
 
+## Nastavak 4. novembra 2026.
+
+CI 41724232978/source b8fefa5 završio je verify uspešno (283 JVM i svi release/security/notices gates), ali svih pet Android poslova pada na novoj helper proveri već izabranog Partial stroke reda. Digest-provereni XML-ovi API 26 telefon/tablet i API 36 pokazuju `checkable=true`, `checked=true`, `clickable=false` na samom radio redu. Helper je nastavljao do udaljenog clickable pretka i gubio stanje. Pripremljena korekcija zaustavlja obilazak na prvom checkable ili clickable pretku i ponovni izbor već označene opcije tretira kao uspešan izbor, bez dodatnog klika. Provera stvarnog označenog stanja, DataStore persistence, Undo/Redo/save/PNG asercije ostaju obavezne. LanguagePicker accessibility test uključuje povezanu native proveru izabranih opcija i ponovni izbor. Glavni broj je i dalje 8 završenih / 39 otvorenih.
+
+Pri nastavku je izmereno 3.951.038.464 dodatnih bajtova na C:, iznad limita 3.400.000.000. Uzrok promene tokom pauze nije utvrđen; ceo radni direktorijum sadrži oko 756 MB logičkih fajlova, a nema aktivnog Java/emulator procesa. Nove CI arhive nisu zapisivane na disk; XML dokazi čitani su samo u memoriji uz originalni SHA-256. Nema novog lokalnog build-a, SDK/image download-a ili emulatora. Priprema distribucione kopije ostaje blokirana disk guard-om i neuspešnom matricom; stabilni 0.6.3 paket nije zamenjen.
+
 ## Nastavak 3. novembra 2026.
 
 **Najnoviji presek za 24/F14, 25/F15 i 29/F19:** CI 41716444192/source febd8e0 prolazi verify: 283 JVM (209 core + 43 format + 5 data + 26 ViewModel), stil/arhitektura, debug/release lint, 155 runtime notices, OSV bez prijavljenih poznatih nalaza i proširena manifest/DEX politika. Sva tri nova Pencil testa prolaze na svih pet profila. API 30 prolazi 97 app + 13 data; API 26 tablet i API 36 prolaze iste suite i standardni R8 smoke, ali language restart skripta pada na PowerShell vezivanju `-W`. API 26 telefon otkriva dva scroll fixture pada, API 33 zastarelu UiObject2 referencu u partial-eraser testu. Svi neuspesi su sačuvani u artifacts/task-29-febd8e0-evidence.json. Pripremljene su ograničene fizičke scroll provere sa svežom accessibility hijerarhijom, provera stvarnih ADB argumenata bez uređaja i raniji failure snimak. Novi source zahteva sopstvenu punu matricu; nijedna od tri glavne stavke još nije zatvorena.

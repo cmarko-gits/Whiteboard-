@@ -32,9 +32,14 @@ private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
             }
             if (node.text?.toString() == label && node.isVisibleToUser) {
                 var owner: AccessibilityNodeInfo? = node
-                while (owner != null && !owner.isClickable) owner = own(owner.parent)
+                // Compose can remove ACTION_CLICK from a selected radio row. Its checked state
+                // still belongs to that row; climbing only to a clickable ancestor loses it.
+                while (owner != null && !owner.isClickable && !owner.isCheckable) owner = own(owner.parent)
                 if (activate) {
-                    check(owner?.refresh() == true && owner.isEnabled && owner.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    check(
+                        owner?.refresh() == true && owner.isEnabled &&
+                            (owner.isChecked || owner.isSelected || owner.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+                    ) {
                         "Dialog choice did not expose an actionable target: $label"
                     }
                 }
