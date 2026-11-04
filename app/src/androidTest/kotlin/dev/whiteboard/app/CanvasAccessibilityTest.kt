@@ -243,6 +243,7 @@ class CanvasAccessibilityTest {
                 bounds.exactCenterY(),
                 0
             )
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
             try {
                 assertTrue(instrument.uiAutomation.injectInputEvent(event, true))
             } finally {
