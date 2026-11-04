@@ -240,9 +240,9 @@ try {
         $taskBeforeMenuRectangle = (Get-Rect (Find-Ui -Description 'Rectangle')) -join ','
         $taskBeforeMenuStroke = (Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ','
         Invoke-Adb shell input keyevent 82 | Out-Null
-        Find-Ui -Text 'Rotate' | Out-Null
+        Find-Ui -Text 'Rotate 90 degrees' | Out-Null
         Capture 'release-object-menu'
-        Tap-Ui (Find-Ui -Text 'Copy')
+        Tap-Ui (Find-Ui -Text 'Copy within Whiteboard')
         Find-Ui -Description 'More actions' | Out-Null
         if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne $taskBeforeMenuRectangle -or
             ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',') -ne $taskBeforeMenuStroke) {

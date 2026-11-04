@@ -166,7 +166,7 @@ class CanvasAccessibilityTest {
         device.waitForIdle()
         assertTrue(node("Note: Accessible note").performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK))
         checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "Edited by accessible action"
-        text("Apply").click()
+        clickTestDialogText(device, "Apply")
         control("Save").click()
         text("Saved on this device")
         val saved = repository.load(board.id).activePage.elements.single() as Note
@@ -198,7 +198,7 @@ class CanvasAccessibilityTest {
         val board = open(emptyList())
         assertTrue(node("Drawing canvas").performAction(CanvasResources.id.canvas_add_note))
         checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "Note without a drawing gesture"
-        text("Apply").click()
+        clickTestDialogText(device, "Apply")
         control("Save").click()
         text("Saved on this device")
         assertEquals(1, repository.load(board.id).activePage.elements.size)
@@ -216,7 +216,7 @@ class CanvasAccessibilityTest {
         assertTrue(target.performAction(CanvasResources.id.canvas_object_actions))
         clickTestDialogText(device, "Edit")
         checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "Edited through object menu"
-        text("Apply").click()
+        clickTestDialogText(device, "Apply")
         control("Save").click()
         text("Saved on this device")
         assertEquals(listOf(original.copy(text = "Edited through object menu")), repository.load(board.id).activePage.elements)
@@ -256,7 +256,7 @@ class CanvasAccessibilityTest {
         } finally {
             inject(android.view.MotionEvent.ACTION_UP)
         }
-        text("Rotate")
+        text(context.getString(dev.whiteboard.ui.R.string.rotate))
         capture.snapshot("object-menu-long-press")
         clickTestDialogText(device, "Duplicate")
         text("Unsaved changes")
