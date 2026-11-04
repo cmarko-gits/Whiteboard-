@@ -1,4 +1,4 @@
-# Lokalna arhitektura — kvalifikovana 0.6.4 i razvoj 0.6.5
+# Lokalna arhitektura — kvalifikovana 0.6.5 i razvoj F05
 
 Odluka od 31. oktobra 2026. zamenjuje online arhitekturu za trenutni obim rada. Istorijske odluke ostaju u ARCHITECTURE.md. Korisnikov prilog se primenjuje na lokalnu aplikaciju; mrežni primeri ne dodaju mrežne zavisnosti.
 
@@ -10,7 +10,9 @@ Feature pretvara 37 resource ključeva u potpun immutable TemplateContent snimak
 
 Page.geometry povezuje postojeće bounds/picking/preview potrošače sa jednim immutable snapshot-om; preview čuva slojeve i ne menja session. Connector/ConnectorEnd i batch port resolver još su izolovano jezgro, izvan Element/format/UI integracije. Njihovo postojanje ne znači aktivan konektorski alat. Pencil koristi jednu determinističnu 32×32 teksturu i najviše 16 tint filtera po renderer-u, bez dodatnog rada po svakom uzorku tačke ili novih runtime zavisnosti.
 
-Aktuelni accessibility prozor ima najviše 256 vidljivih virtuelnih čvorova, prema MAX_VISIBLE_NODES u CanvasAccessibility; Objects ostaje potpun pretraživ navigator stranice. Kandidat 0.6.5 uvodi kontrolisano otvaranje istog Selection actions menija, uz native otkazivu long-press odgodu, tastaturu i imenovanu virtual-node akciju. Akcije i Undo ostaju u postojećem ViewModel/session toku; njegova kvalifikacija još traje: OBJECT-CONTEXT-MENU.md.
+Aktuelni accessibility prozor ima najviše 256 vidljivih virtuelnih čvorova, prema MAX_VISIBLE_NODES u CanvasAccessibility; Objects ostaje potpun pretraživ navigator stranice. Kvalifikovana 0.6.5 uvodi kontrolisano otvaranje istog Selection actions menija, uz native otkazivu long-press odgodu, tastaturu i imenovanu virtual-node akciju. Akcije i Undo ostaju u postojećem ViewModel/session toku: OBJECT-CONTEXT-MENU.md i LOCAL-0.6.5-CANDIDATE.md.
+
+Razvoj F05.3 odvaja PageContent od Page metapodataka: viewport/naziv/pozadina dele isti validirani content snapshot i lenju world geometriju. PageGeometry facade pokazuje aktuelnu stranicu; izmena liste ili ID-ja invalidira sadržaj. Portovi i batch resolver su u core/model, sa otkazivim pripremanjem i objavljivanjem potpunog indeksa. PAGE-GEOMETRY-SNAPSHOTS.md razdvaja ovaj izvor od kvalifikovanog APK-a i opisuje ograničenja. Connector još nije korisnički alat ili Element u formatu 4.
 
 ## Granice i vlasništvo
 

@@ -1,6 +1,4 @@
-package dev.whiteboard.core.editor
-
-import dev.whiteboard.core.model.*
+package dev.whiteboard.core.model
 
 /**
  * Resolves a batch atomically against one immutable page. Construction rejects dangling references
@@ -14,27 +12,15 @@ class PageConnectionGeometry(page: Page, connectors: List<Connector>, checkpoint
     private val lines: Map<String, Line>
 
     init {
-        var objectCount = connectors.size.toLong()
+        checkpoint()
+        val objectCount = page.content.objectCount.toLong() + definitions.size
         val ids = HashSet<String>()
-        page.elements.forEach { element ->
-            checkpoint()
-            ids.add(element.id)
-            if (element is ElementGroup) {
-                objectCount += element.children.size
-                element.children.forEach { child ->
-                    checkpoint()
-                    ids.add(child.id)
-                }
-            } else {
-                objectCount++
-            }
-        }
         require(objectCount <= Page.MAX_ELEMENTS) { "Too many page objects" }
         definitions.forEach { connector ->
             checkpoint()
-            require(ids.add(connector.id)) { "Duplicate connection object ID" }
+            require(!page.content.containsId(connector.id) && ids.add(connector.id)) { "Duplicate connection object ID" }
         }
-        val ports = PagePortIndex(page, checkpoint)
+        val ports = page.geometry.connectionPorts(checkpoint)
         fun point(end: ConnectorEnd): Point = when (end) {
             is ConnectorEnd.Free -> end.point
             is ConnectorEnd.Bound -> ports.point(end.targetId, end.port)

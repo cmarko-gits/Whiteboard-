@@ -1,13 +1,11 @@
-package dev.whiteboard.core.editor
-
-import dev.whiteboard.core.model.*
+package dev.whiteboard.core.model
 
 /** Immutable world port geometry for one element-list snapshot, independent of viewport or Android. */
-class PagePortIndex(page: Page, checkpoint: () -> Unit = {}) {
-    private val pageId = page.id
-    private val elements = page.elements
+class PagePortIndex internal constructor(private val pageId: String, private val elements: List<Element>, checkpoint: () -> Unit) {
+    constructor(page: Page, checkpoint: () -> Unit = {}) : this(page.id, page.elements, checkpoint)
+
     private val targets: Map<String, Target> = buildMap {
-        page.elements.forEach { element ->
+        elements.forEach { element ->
             checkpoint()
             target(element)?.let { put(element.id, it) }
             if (element is ElementGroup) {

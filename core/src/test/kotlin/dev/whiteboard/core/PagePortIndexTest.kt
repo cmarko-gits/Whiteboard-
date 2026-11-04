@@ -1,6 +1,5 @@
 package dev.whiteboard.core
 
-import dev.whiteboard.core.editor.PagePortIndex
 import dev.whiteboard.core.model.*
 import java.util.concurrent.CancellationException
 import org.junit.Assert.*

@@ -9,7 +9,10 @@ class PageGeometry internal constructor(val page: Page) {
         return element.hitTest(point, tolerance)
     }
 
-    val contentBounds: Bounds? by lazy { page.elements.map(::renderBounds).reduceOrNull(Bounds::union) }
+    val contentBounds: Bounds? get() = page.contentBounds
+
+    /** Reused across metadata-only copies; content edits and page identity changes invalidate it. */
+    fun connectionPorts(checkpoint: () -> Unit = {}): PagePortIndex = page.content.connectionPorts(checkpoint)
 
     fun topmostAt(point: Point, tolerance: Float): Element? {
         require(tolerance.isFinite() && tolerance >= 0f)

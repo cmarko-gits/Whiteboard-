@@ -105,29 +105,6 @@ data class Note(
     override fun duplicate() = copy(id = newId())
 }
 
-data class Page(
-    val id: String = newId(),
-    val name: String = "Page 1",
-    val background: Background = Background.DOTS,
-    val backgroundColor: Int = 0xFFFAFBF7.toInt(),
-    val elements: List<Element> = emptyList(),
-    val viewport: Viewport = Viewport()
-) {
-    init {
-        require(elements.size <= MAX_ELEMENTS)
-        require(elements.map { it.id }.distinct().size == elements.size)
-        val allIds = elements.flatMap { element ->
-            if (element is ElementGroup) listOf(element.id) + element.children.map { it.id } else listOf(element.id)
-        }
-        require(elements.sumOf { it.leaves().size } <= MAX_ELEMENTS && allIds.toSet().size == allIds.size)
-    }
-    val geometry: PageGeometry by lazy { PageGeometry(this) }
-    val contentBounds get() = geometry.contentBounds
-    companion object {
-        const val MAX_ELEMENTS = 100_000
-    }
-}
-
 data class Board(
     val id: String = newId(),
     val name: String,
