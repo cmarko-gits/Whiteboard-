@@ -4,7 +4,7 @@ Datum: 1. novembar 2026. Spisak je izveden iz LOCAL-REBUILD-PLAN.md, LOCAL-STATU
 
 Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih funkcija proizvoda. Postojeće lokalne funkcije, njihovi prolazni testovi i ograničenja ostaju opisani u LOCAL-STATUS.md. Fizički uređaji su odloženi po izboru korisnika. AI, backend, cloud, nalozi, saradnja i Play objava nisu vraćeni u aktivni obim.
 
-Presek 3. novembra 2026: **8/47 glavnih stavki završeno, 39 ostaje**. Podkorake prikazivati zasebno; završetak dela F05 ne znači završetak cele stavke.
+Presek 4. novembra 2026: **11/47 glavnih stavki završeno, 36 ostaje**. Podkorake prikazivati zasebno; završetak dela F05 ne znači završetak cele stavke.
 
 ## Z — završetak sadašnje lokalne verzije i inženjerskog procesa
 
@@ -36,12 +36,12 @@ Ovo je proširenje sadašnjeg lokalnog obima. Za svaku uvedenu funkciju podrazum
 - [ ] F11 Storage ekran: veličine tabli/priloga/cache-a/Trash-a, raspoloživ prostor, bezbedno čišćenje potrošnog cache-a i pristup backup akcijama. Aktivni dokument, recovery, istorija i clipboard ne smeju izgubiti potrebne priloge.
 - [ ] F12 SVG izvoz uz definisano ponašanje za tekst, fontove, slike/PDF podloge i grupe. PNG/JPG/PDF izvoz već postoji.
 - [ ] F13 Podešavanja mreže/pozadine, kao što su razmak i izgled linija/tačaka. Izbor grid/dots/ruled i boje pozadine već postoji.
-- [ ] F14 Implementiran izbor sistemskog, engleskog i srpskog latiničnog jezika kroz AppCompat. Domenski parser, accessibility i stvarni UI/recreation testovi postoje; puna matrica i minified process-restart provera za b8fefa5/CI 41724232978 još traju. APP-LANGUAGE.md navodi kriterijume; neuspešni prethodni fixture/host-script pokušaji su sačuvani.
-- [ ] F15 Implementirano svih 37 početnih template tekstova i naziv prve stranice kroz EN/sr-Latn resurse, sa engleskim fallback-om i bez prevođenja ranije sačuvanog sadržaja. Core/ViewModel/Android testovi prolaze u c201456/CI 41707278041; taj paket je odbijen naknadnom offline font politikom. Čeka aktuelni objedinjeni kandidat b8fefa5/CI 41724232978 i njegove release gates. TEMPLATE-LOCALIZATION.md.
+- [x] F14 Kvalifikovan izbor sistemskog, engleskog i srpskog latiničnog jezika kroz AppCompat, 0.6.4/code 12/source 9589e12/CI 41874486383. Parser, radio accessibility, stvarni UI/recreation/nesnimljena tabla i process-restart provere prolaze. Cela matrica: 283 JVM, pet profila po 97 app + 13 data; R8 i oba jezička process-restart slučaja na API 26 telefonu/tabletu i API 36. LOCAL-0.6.4-CANDIDATE.md i APP-LANGUAGE.md; fizički/OS-upgrade dokazi ostaju otvoreni.
+- [x] F15 Kvalifikovano svih 37 početnih template tekstova i naziv prve stranice kroz EN/sr-Latn resurse, sa engleskim fallback-om i bez prevođenja ranije sačuvanog sadržaja. Core/ViewModel/native resource/codec/export tokovi prolaze u 0.6.4/source 9589e12/CI 41874486383, uz punu matricu i release/security gates. Paket i granice: LOCAL-0.6.4-CANDIDATE.md; ugovor: TEMPLATE-LOCALIZATION.md. Raniji odbijeni pokušaji ostaju sačuvani.
 - [ ] F16 Dodatne porodice fontova uz dosledan prikaz/izvoz i proverene licence. Veličina, bold, italic, boja i poravnanje već postoje.
 - [ ] F17 Checklist/task beleške sa sačuvanim checkbox stanjem, uređivanjem i Undo/Redo. Obične sticky notes već postoje.
 - [ ] F18 Kontekstni meni objekta na dugi pritisak, sa odgovarajućom keyboard/accessibility alternativom. Akcije već postoje kroz selekcione i accessibility kontrole; touch long-press meni nije implementiran.
-- [ ] F19 Implementirana deterministična grafitna tekstura kroz zajednički renderer. Sva tri nova native/render/codec/export testa prolaze na svih pet profila u febd8e0/CI 41716444192; taj pokušaj nije potpuno zelen zbog drugih UI fixture i release-script grešaka. Čeka punu b8fefa5 matricu, vizuelni pregled stvarnog render artefakta i kvalifikovan paket. PENCIL-RENDERING.md.
+- [x] F19 Kvalifikovana deterministična grafitna tekstura kroz zajednički renderer, 0.6.4/source 9589e12/CI 41874486383. Sva tri native/render/codec/export testa prolaze na svih pet profila, uz punu matricu i release/security gates. API 30 PNG stvarnog renderera pregledan je uz originalni artifact/entry SHA-256: zrno Pencil-a i ravnomeran Pen bez prenosa stila. LOCAL-0.6.4-CANDIDATE.md i PENCIL-RENDERING.md. Pressure/tilt ostaje O/H obim.
 
 ## O — dodatne opcije, nisu uslovi završetka lokalne 0.4
 

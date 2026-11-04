@@ -6,4 +6,4 @@ TemplateLabel daje stabilne semantičke ključeve, a TemplateContent čuva potpu
 
 Implementacija obuhvata 37 string resursa po jeziku. Tri nova core testa proveravaju sve šablone, očuvanje geometrije/stila i validaciju/izolaciju snimka. ViewModel test proverava kreiranje, sačuvani prevod, ručnu izmenu i reopen bez ponovnog prevođenja. Dva Android testa koriste stvarne en/sr-Latn/de resource konfiguracije, sve šablone, DocumentCodec roundtrip i bitmap izvoz.
 
-Status: implementirano, čeka CI. F15 se ne zatvara pre prolaza JVM, Android matrice i postojećih release/security gates. Ovo nije F14 birač jezika, niti pretvara Mind Map/Flowchart šablon u budući F06/F07 editor.
+Status: F15 zatvoren za lokalni emulator obim u 0.6.4/source 9589e12/CI 41874486383: svih šest poslova, 283 JVM i pet puta 97 app + 13 data prolaze, uz release/security/package gates. Paket, hash-evi i granice: LOCAL-0.6.4-CANDIDATE.md. F14 birač jezika ima zaseban ugovor; Mind Map/Flowchart šabloni ostaju običan početni sadržaj dok budući F06/F07 editori ne budu implementirani.

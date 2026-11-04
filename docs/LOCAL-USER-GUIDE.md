@@ -1,16 +1,16 @@
 # Whiteboard — lokalno korišćenje
 
-Proveren lokalni razvojni paket je 0.6.3: [rezultati i ograničenja](LOCAL-0.6.3-CANDIDATE.md). Interfejs koristi jezik sistema, sa engleskim i sr-Latn resursima. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Proveren lokalni razvojni paket je 0.6.4: [rezultati i ograničenja](LOCAL-0.6.4-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 ## Table i biblioteka
 
-New board otvara naziv i izbor šablona. Folders organizuje lokalne table; Favorites prikazuje omiljene table. Pretraga obuhvata i tekst u dokumentima. Meni Actions for… sadrži raspoložive akcije za tu tablu.
+New board otvara naziv i izbor šablona. Početni tekst i ime prve stranice nove table koriste izabrani jezik; kasnija promena jezika ne prevodi ranije upisan sadržaj. Folders organizuje lokalne table; Favorites prikazuje omiljene table. Pretraga obuhvata i tekst u dokumentima. Meni Actions for… sadrži raspoložive akcije za tu tablu.
 
 Move to Trash zadržava tablu za kasniji Restore. Delete permanently? traži potvrdu i nepovratno briše izabranu tablu. Trash nema automatski vremenski rok brisanja u ovoj verziji.
 
 ## Crtanje, boje i objekti
 
-Toolbar bira olovku, marker, oblike, tekst, sticky belešku, selekciju, pomeranje i gumicu. U 0.5.1 Settings → Eraser bira Whole stroke za brisanje celog poteza ili Partial stroke za brisanje dela preko kog pređeš. Jedan završen gest se vraća jednim Undo; otkazan gest ne briše sadržaj. Izbor režima se pamti. Prethodni APK 0.4.1 ima samo brisanje celog poteza. Pencil trenutno koristi zajednički način iscrtavanja poteza.
+Toolbar bira olovku, marker, oblike, tekst, sticky belešku, selekciju, pomeranje i gumicu. Settings → Eraser bira Whole stroke za brisanje celog poteza ili Partial stroke za brisanje dela preko kog pređeš. Jedan završen gest se vraća jednim Undo; otkazan gest ne briše sadržaj. Izbor režima se pamti. Pencil ima grafitno zrno uz izabranu boju, širinu i providnost; isti izgled koristi se u dokumentu i izvozu. Pressure/tilt nisu deo ove verzije.
 
 Fill color menja boju pogođenog podržanog oblika/beleške ili pozadine kada se dodirne prazna površina. Započeti potez prevlačenjem ne potvrđuje fill tap. Undo/Redo vraćaju izmene. Canvas background u More actions bira izgled i boju stranice.
 
