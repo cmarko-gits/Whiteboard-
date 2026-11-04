@@ -36,11 +36,11 @@ private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
                 // still belongs to that row; climbing only to a clickable ancestor loses it.
                 while (owner != null && !owner.isClickable && !owner.isCheckable) owner = own(owner.parent)
                 if (activate) {
-                    check(
-                        owner?.refresh() == true && owner.isEnabled &&
-                            (owner.isChecked || owner.isSelected || owner.performAction(AccessibilityNodeInfo.ACTION_CLICK))
-                    ) {
-                        "Dialog choice did not expose an actionable target: $label"
+                    // Text injection can precede the recomposition that enables Apply. Wait on a
+                    // fresh hierarchy without scrolling away from the already visible control.
+                    if (owner?.refresh() != true || !owner.isEnabled) return DialogProbe(false)
+                    if (!owner.isChecked && !owner.isSelected && !owner.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                        return DialogProbe(false)
                     }
                 }
                 return DialogProbe(true, owner?.isChecked == true || owner?.isSelected == true, scroll)
@@ -79,7 +79,7 @@ private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, 
             SystemClock.sleep(50)
         }
     }
-    error("Missing visible dialog text: $label")
+    error("Dialog text did not become available for the requested action: $label")
 }
 
 internal fun clickTestDialogText(device: UiDevice, label: String) = reachDialogText(device, label, true, false)

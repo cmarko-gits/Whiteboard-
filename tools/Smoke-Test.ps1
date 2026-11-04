@@ -234,9 +234,9 @@ try {
         Write-Output 'PASS: optimized alignment, left-edge geometry and exact Undo/Redo.'
     }
     if ($CheckObjectMenu) {
-        # Focus the native canvas through a real Select tap on the fixture's straight stroke.
+        # Focus the native canvas; tapping an already selected object preserves the two-object selection.
         Tap-Ui (Find-Ui -Description 'Drawing stroke')
-        Find-Ui -Text '1 selected' | Out-Null
+        Find-Ui -Text '2 selected' | Out-Null
         $taskBeforeMenuRectangle = (Get-Rect (Find-Ui -Description 'Rectangle')) -join ','
         $taskBeforeMenuStroke = (Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ','
         Invoke-Adb shell input keyevent 82 | Out-Null
@@ -244,6 +244,7 @@ try {
         Capture 'release-object-menu'
         Tap-Ui (Find-Ui -Text 'Copy within Whiteboard')
         Find-Ui -Description 'More actions' | Out-Null
+        Find-Ui -Text '2 selected' | Out-Null
         if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne $taskBeforeMenuRectangle -or
             ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',') -ne $taskBeforeMenuStroke) {
             throw 'Opening the object menu or Copy changed object geometry.'

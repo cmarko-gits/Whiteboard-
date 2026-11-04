@@ -1,6 +1,16 @@
-# Lokalna arhitektura — 0.5.1 i razvoj 0.6.0
+# Lokalna arhitektura — kvalifikovana 0.6.4 i razvoj 0.6.5
 
 Odluka od 31. oktobra 2026. zamenjuje online arhitekturu za trenutni obim rada. Istorijske odluke ostaju u ARCHITECTURE.md. Korisnikov prilog se primenjuje na lokalnu aplikaciju; mrežni primeri ne dodaju mrežne zavisnosti.
+
+## Aktuelne dopune, 4. novembar 2026.
+
+Provereni izvor je 0.6.4/9589e12: LOCAL-0.6.4-CANDIDATE.md. AppCompatActivity i AppCompatDelegate pripadaju composition root-u; domen ima samo AppLanguage vrednosti bez Android Context-a. Jedan framework mehanizam čuva izabrani jezik, uz AppCompat auto-storage pre API 33 i sistemsko čuvanje od API 33. Nema paralelnog DataStore jezičkog ključa.
+
+Feature pretvara 37 resource ključeva u potpun immutable TemplateContent snimak pri potvrdi nove table. ViewModel/use-case ga prosleđuje domenskom TemplateFactory-ju. Čuva se stvarni tekst dokumenta; promena jezika ne ponavlja generisanje starog sadržaja. JSON i Room ostaju 4.
+
+Page.geometry povezuje postojeće bounds/picking/preview potrošače sa jednim immutable snapshot-om; preview čuva slojeve i ne menja session. Connector/ConnectorEnd i batch port resolver još su izolovano jezgro, izvan Element/format/UI integracije. Njihovo postojanje ne znači aktivan konektorski alat. Pencil koristi jednu determinističnu 32×32 teksturu i najviše 16 tint filtera po renderer-u, bez dodatnog rada po svakom uzorku tačke ili novih runtime zavisnosti.
+
+Aktuelni accessibility prozor ima najviše 512 vidljivih virtuelnih čvorova; Objects ostaje potpun pretraživ navigator stranice. Istorijski broj 256 u starijoj 0.4 dopuni ispod pripada toj kohorti. Kandidat 0.6.5 uvodi kontrolisano otvaranje istog Selection actions menija, uz native otkazivu long-press odgodu, tastaturu i imenovanu virtual-node akciju. Akcije i Undo ostaju u postojećem ViewModel/session toku; njegova kvalifikacija još traje: OBJECT-CONTEXT-MENU.md.
 
 ## Granice i vlasništvo
 

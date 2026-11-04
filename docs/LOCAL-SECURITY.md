@@ -1,5 +1,7 @@
 # Lokalna bezbednosna provera — istorijska osnova i 0.5.1
 
+Najnoviji kvalifikovani izvor je [0.6.4/9589e12](LOCAL-0.6.4-CANDIDATE.md), CI 41874486383: 155 runtime komponenti/licenci/notices, OSV bez prijavljenih poznatih nalaza, source scan i proširena manifest/DEX/offline-font politika prolaze. EmojiCompatInitializer nije automatski pokrenut; koriste se sistemski emoji/fontovi. Lokalni razvojni potpis, ZIP-P16, četiri ELF64 i sadržaj prema tri CI release paketa provereni su uz tačan hash. Ostatak ovog dokumenta opisuje istorijsku osnovu i trajne granice poverenja. Kandidat 0.6.5 još nije kvalifikovan.
+
 Datum: 1. novembar 2026. Obim je aktivna lokalna Android aplikacija i tekući izvorni fajlovi. Ovo je inženjerski pregled sa automatizovanim regresionim proverama; nije nezavisan pentest niti tvrdnja da nema svih ranjivosti. Raniji backend/cloud izveštaj nije dokaz za ovu verziju.
 
 Za provereni paket 0.5.1 merodavni su tačan commit, SHA-256 i gates u [LOCAL-0.5.1-CANDIDATE.md](LOCAL-0.5.1-CANDIDATE.md), kao i `artifacts/task-11-family-packages.json`. Dalje navedeni promenljivi artifacts/security fajlovi mogu pripadati kasnijem kandidatu; ne pripisivati njihov sadržaj ranijem APK-u bez poređenja hash-a. Razvojna rotacija 0.6.0 uvodi validaciju afinih matrica, granice koordinata i budžeta, ID/source ograničenja i odbijanje zastarelog plana; završni CI i pregled njenog tačnog paketa ostaju zaseban uslov.
