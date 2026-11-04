@@ -31,4 +31,5 @@
     <string name="canvas_image">Slika</string>
     <string name="canvas_pdf">PDF stranica</string>
     <plurals name="canvas_group"><item quantity="one">Grupa od %d objekta</item><item quantity="few">Grupa od %d objekta</item><item quantity="other">Grupa od %d objekata</item></plurals>
+    <string name="canvas_object_actions">Radnje nad objektom</string>
 </resources>

@@ -6,6 +6,7 @@ param(
     [switch] $CheckRotation,
     [switch] $CheckLayers,
     [switch] $CheckAlignment,
+    [switch] $CheckObjectMenu,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -90,6 +91,7 @@ function Assert-LayerMenuState([bool] $ForwardEnabled) {
 if ($LoadHelpersOnly) { return }
 if ($CheckLayers -and -not $CheckRotation) { throw 'Layer smoke requires the rotation rectangle fixture.' }
 if ($CheckAlignment -and -not $CheckRotation) { throw 'Alignment smoke requires two rotated objects.' }
+if ($CheckObjectMenu -and -not $CheckRotation) { throw 'Object menu smoke requires the selected-object fixture.' }
 if ($ApkPath) { Invoke-Adb install -r $ApkPath | Out-Null }
 $taskSize = (Invoke-Adb shell wm size) -join "`n"
 $taskDensity = (Invoke-Adb shell wm density) -join "`n"
@@ -230,6 +232,23 @@ try {
             ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',')
         if ($taskRedoFrames -ne $taskAlignedFrames) { throw 'Alignment Redo did not restore both object frames.' }
         Write-Output 'PASS: optimized alignment, left-edge geometry and exact Undo/Redo.'
+    }
+    if ($CheckObjectMenu) {
+        # Focus the native canvas through a real Select tap on the fixture's straight stroke.
+        Tap-Ui (Find-Ui -Description 'Drawing stroke')
+        Find-Ui -Text '1 selected' | Out-Null
+        $taskBeforeMenuRectangle = (Get-Rect (Find-Ui -Description 'Rectangle')) -join ','
+        $taskBeforeMenuStroke = (Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ','
+        Invoke-Adb shell input keyevent 82 | Out-Null
+        Find-Ui -Text 'Rotate' | Out-Null
+        Capture 'release-object-menu'
+        Tap-Ui (Find-Ui -Text 'Copy')
+        Find-Ui -Description 'More actions' | Out-Null
+        if (((Get-Rect (Find-Ui -Description 'Rectangle')) -join ',') -ne $taskBeforeMenuRectangle -or
+            ((Get-Rect (Find-Ui -Description 'Drawing stroke')) -join ',') -ne $taskBeforeMenuStroke) {
+            throw 'Opening the object menu or Copy changed object geometry.'
+        }
+        Write-Output 'PASS: optimized keyboard object menu and private Copy without geometry changes.'
     }
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null

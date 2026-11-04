@@ -23,7 +23,8 @@ data class CanvasAccessibilitySnapshot(val page: Page, val viewport: Viewport, v
 internal class CanvasAccessibility(
     private val host: View,
     private val state: () -> CanvasAccessibilitySnapshot,
-    private val action: (Int, Element?) -> Boolean
+    private val action: (Int, Element?) -> Boolean,
+    private val objectMenuAvailable: () -> Boolean = { false }
 ) : ExploreByTouchHelper(host) {
     private var dirty = true
     private var sequence = 0
@@ -119,6 +120,14 @@ internal class CanvasAccessibility(
                 AccessibilityNodeInfoCompat.AccessibilityActionCompat(
                     AccessibilityNodeInfoCompat.ACTION_LONG_CLICK,
                     host.context.getString(R.string.canvas_edit)
+                )
+            )
+        }
+        if (objectMenuAvailable()) {
+            node.addAction(
+                AccessibilityNodeInfoCompat.AccessibilityActionCompat(
+                    R.id.canvas_object_actions,
+                    host.context.getString(R.string.canvas_object_actions)
                 )
             )
         }

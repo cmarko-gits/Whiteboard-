@@ -14,8 +14,8 @@ android {
         applicationId = "dev.whiteboard.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.6.4"
+        versionCode = 13
+        versionName = "0.6.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures {

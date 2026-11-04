@@ -85,6 +85,17 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var guideY: Float? = null
     var onEvent: (CanvasEvent) -> Unit = {}
     var onBrowseObjects: () -> Unit = {}
+    var onObjectMenu: ((Set<String>) -> Unit)? = null
+    private data class PendingObjectMenu(val id: String, val screen: Point)
+    private var pendingObjectMenu: PendingObjectMenu? = null
+    private val openLongPressMenu = Runnable {
+        val pending = pendingObjectMenu
+        if (pending != null && activePointer >= 0 && tool == Tool.SELECT && !navigating && !resizing &&
+            dragOriginal.any { it.id == pending.id }
+        ) {
+            openObjectMenu(dragOriginal.map { it.id }.toSet())
+        }
+    }
     var accessibilitySnapshot: ((Viewport) -> CanvasAccessibilitySnapshot?)? = null
     private var canvasAccessibility: CanvasAccessibility? = null
     private var pendingFit = false
@@ -123,7 +134,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvasAccessibility = CanvasAccessibility(this, {
             previewGeometry?.let { CanvasAccessibilitySnapshot(it.page, viewport, selectedIds) }
                 ?: accessibilitySnapshot?.invoke(viewport) ?: CanvasAccessibilitySnapshot(page, viewport, selectedIds)
-        }, ::performCanvasAccessibilityAction)
+        }, ::performCanvasAccessibilityAction, { onObjectMenu != null })
         ViewCompat.setAccessibilityDelegate(this, canvasAccessibility)
         setLayerType(LAYER_TYPE_HARDWARE, null)
     }
@@ -132,8 +143,14 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         asyncAssets?.start()
     }
     override fun onDetachedFromWindow() {
+        clearGesture()
         asyncAssets?.close()
         super.onDetachedFromWindow()
+    }
+
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        if (!hasWindowFocus) clearGesture()
     }
 
     fun update(page: Page, tool: Tool, ink: InkStyle, selectedIds: Set<String>, restoredViewport: Viewport? = null) {
@@ -141,7 +158,12 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         if (this.page.id != page.id) {
             viewport = restoredViewport ?: page.viewport
             clearGesture()
-        } else if (activePointer >= 0 && (this.page.elements !== page.elements || this.tool != tool)) {
+        } else if (activePointer >= 0 &&
+            (
+                this.page.elements !== page.elements || this.tool != tool ||
+                    pendingObjectMenu != null && selectedIds != dragOriginal.map { it.id }.toSet()
+                )
+        ) {
             clearGesture()
         }
         this.page = page
@@ -178,12 +200,41 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvasAccessibility?.dispatchHoverEvent(event) == true || super.dispatchHoverEvent(event)
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 &&
+            (event.keyCode == KeyEvent.KEYCODE_MENU || event.keyCode == KeyEvent.KEYCODE_F10 && event.isShiftPressed) &&
+            showContextMenu()
+        ) {
+            return true
+        }
         if ((tool == Tool.SELECT || event.keyCode == KeyEvent.KEYCODE_TAB) &&
             canvasAccessibility?.dispatchKeyEvent(event) == true
         ) {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun showContextMenu(): Boolean = openObjectMenu(selectedIds)
+
+    override fun showContextMenu(x: Float, y: Float): Boolean {
+        if (!x.isFinite() || !y.isFinite()) return false
+        val hit = page.geometry.topmostAt(viewport.toDocument(Point(x, y)), 12 * density / viewport.scale) ?: return false
+        return openObjectMenu(if (hit.id in selectedIds) selectedIds else setOf(hit.id))
+    }
+
+    private fun openObjectMenu(ids: Set<String>): Boolean {
+        val show = onObjectMenu ?: return false
+        val valid = page.elements.filter { it.id in ids }.map { it.id }.toSet()
+        if (valid.isEmpty()) return false
+        clearGesture()
+        onEvent(CanvasEvent.Select(valid))
+        show(valid)
+        return true
+    }
+
+    private fun cancelObjectLongPress() {
+        removeCallbacks(openLongPressMenu)
+        pendingObjectMenu = null
     }
 
     override fun onFocusChanged(gainFocus: Boolean, direction: Int, previouslyFocusedRect: Rect?) {
@@ -269,6 +320,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 onEvent(CanvasEvent.EditText(element.bounds.center, element, content is Note))
             }
             R.id.canvas_delete -> onEvent(CanvasEvent.Delete(setOf(element.id)))
+            R.id.canvas_object_actions -> return openObjectMenu(setOf(element.id))
             else -> {
                 val step = 24 * density / viewport.scale
                 val dx = when (action) {
@@ -415,6 +467,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         if (!stylus) scaleDetector.onTouchEvent(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                cancelObjectLongPress()
                 requestFocus()
                 activePointer = event.getPointerId(0)
                 stylus = event.getToolType(0) in setOf(MotionEvent.TOOL_TYPE_STYLUS, MotionEvent.TOOL_TYPE_ERASER)
@@ -452,28 +505,47 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             page.elements.filter { it.id !in ids && page.geometry.renderBounds(it).intersects(visible) }
                                 .map { page.geometry.selectionBounds(it) }
                         onEvent(CanvasEvent.Select(ids))
+                        if (!resizing && hit != null && onObjectMenu != null) {
+                            pendingObjectMenu = PendingObjectMenu(hit.id, screen)
+                            postDelayed(openLongPressMenu, ViewConfiguration.getLongPressTimeout().toLong())
+                        }
                     }
                     else -> Unit
                 }
             }
-            MotionEvent.ACTION_POINTER_DOWN -> if (!stylus) {
-                navigating = true
-                samples.clear()
-                activePath.reset()
-                preview = null
-                dragOriginal = emptyList()
-                selectionPreview = emptyList()
-                selectionArea = null
-                guideX = null
-                guideY = null
-                erased.clear()
-                clearPartialErasure()
-                previousErase = null
-                previousScreen = centroid(event)
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                cancelObjectLongPress()
+                if (!stylus) {
+                    navigating = true
+                    samples.clear()
+                    activePath.reset()
+                    preview = null
+                    dragOriginal = emptyList()
+                    selectionPreview = emptyList()
+                    selectionArea = null
+                    guideX = null
+                    guideY = null
+                    erased.clear()
+                    clearPartialErasure()
+                    previousErase = null
+                    previousScreen = centroid(event)
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 val index = event.findPointerIndex(activePointer)
                 if (index < 0) return true
+                pendingObjectMenu?.let { pending ->
+                    val moved = hypot(event.getX(index) - pending.screen.x, event.getY(index) - pending.screen.y) > touchSlop ||
+                        (0 until event.historySize).any { history ->
+                            hypot(
+                                event.getHistoricalX(index, history) - pending.screen.x,
+                                event.getHistoricalY(index, history) - pending.screen.y
+                            ) > touchSlop
+                        }
+                    if (moved) {
+                        cancelObjectLongPress()
+                    }
+                }
                 if (navigating || event.pointerCount > 1 && !stylus) {
                     val next = centroid(event)
                     previousScreen?.let { viewport = viewport.pan(next.x - it.x, next.y - it.y) }
@@ -686,6 +758,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         Point(event.x, event.y)
     }
     private fun clearGesture() {
+        cancelObjectLongPress()
         clearPartialErasure()
         guideX = null
         guideY = null

@@ -67,6 +67,10 @@ fun EditorScreen(
     var showPresets by rememberSaveable { mutableStateOf(false) }
     var properties by rememberSaveable { mutableStateOf(false) }
     var objects by rememberSaveable { mutableStateOf(false) }
+    var selectionMenu by rememberSaveable(editor.page.id) { mutableStateOf(false) }
+    LaunchedEffect(editor.selectedIds) {
+        if (editor.selectedIds.isEmpty()) selectionMenu = false
+    }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, enabled = !editor.saving) {
@@ -210,6 +214,7 @@ fun EditorScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { view ->
+                    view.onObjectMenu = { selectionMenu = true }
                     view.fingerDrawing = fingerDrawing
                     view.snapEnabled = snap
                     view.eraserMode = eraserMode
@@ -219,6 +224,7 @@ fun EditorScreen(
                 onRelease = {
                     it.onEvent = {}
                     it.onBrowseObjects = {}
+                    it.onObjectMenu = null
                     it.accessibilitySnapshot = null
                     nativeView = null
                 }
@@ -263,7 +269,13 @@ fun EditorScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        SelectionActions(editor, viewModel, onProperties = { properties = true })
+                        SelectionActions(
+                            editor,
+                            viewModel,
+                            selectionMenu,
+                            { selectionMenu = it },
+                            onProperties = { properties = true }
+                        )
                         IconButton(onClick = { viewModel.duplicateSelected() }) {
                             Icon(Icons.Outlined.ContentCopy, stringResource(R.string.duplicate))
                         }

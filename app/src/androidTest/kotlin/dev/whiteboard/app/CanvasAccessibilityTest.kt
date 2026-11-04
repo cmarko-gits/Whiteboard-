@@ -100,12 +100,14 @@ class CanvasAccessibilityTest {
         val first = Note(bounds = Bounds(100f, 100f, 300f, 260f), text = "First page object")
         val second = first.copy(text = "Second page object")
         val events = mutableListOf<dev.whiteboard.canvas.CanvasEvent>()
+        val menus = mutableListOf<Set<String>>()
         var view: WhiteboardView? = null
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 view = WhiteboardView(activity).also {
                     it.update(Page(elements = listOf(first)), Tool.SELECT, InkStyle(), emptySet())
                     it.onEvent = events::add
+                    it.onObjectMenu = menus::add
                     activity.setContentView(it)
                 }
             }
@@ -114,7 +116,11 @@ class CanvasAccessibilityTest {
             scenario.onActivity { view!!.update(Page(elements = listOf(second)), Tool.SELECT, InkStyle(), emptySet()) }
             node("Note: Second page object")
             assertFalse(stale.performAction(CanvasResources.id.canvas_delete))
-            instrument.runOnMainSync { assertTrue(events.isEmpty()) }
+            assertFalse(stale.performAction(CanvasResources.id.canvas_object_actions))
+            instrument.runOnMainSync {
+                assertTrue(events.isEmpty())
+                assertTrue(menus.isEmpty())
+            }
         }
     }
 
@@ -200,5 +206,77 @@ class CanvasAccessibilityTest {
         assertTrue(node("Drawing canvas").performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD))
         assertTrue(node("Drawing canvas").performAction(CanvasResources.id.canvas_fit))
         text("Saved on this device")
+    }
+
+    @Test fun objectMenuAccessibleActionEditsOnlyItsTargetAndUndoRestoresTheSavedNote(): Unit = runBlocking {
+        val original = Note(bounds = Bounds(100f, 100f, 350f, 300f), text = "Menu edit target")
+        val board = open(listOf(original))
+        val target = node("Note: Menu edit target")
+        assertTrue(target.actionList.any { it.id == CanvasResources.id.canvas_object_actions && it.label == "Object actions" })
+        assertTrue(target.performAction(CanvasResources.id.canvas_object_actions))
+        clickTestDialogText(device, "Edit")
+        checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000)).text = "Edited through object menu"
+        text("Apply").click()
+        control("Save").click()
+        text("Saved on this device")
+        assertEquals(listOf(original.copy(text = "Edited through object menu")), repository.load(board.id).activePage.elements)
+        control("Undo").click()
+        control("Save").click()
+        text("Saved on this device")
+        assertEquals(listOf(original), repository.load(board.id).activePage.elements)
+    }
+
+    @Test fun physicalLongPressOpensTheSharedMenuAndDuplicateUndoRedoSurviveSaveReopen(): Unit = runBlocking {
+        val original = Note(bounds = Bounds(100f, 100f, 350f, 300f), text = "Hold for menu")
+        val board = open(listOf(original))
+        assertTrue(node("Note: Hold for menu").performAction(AccessibilityNodeInfo.ACTION_CLICK))
+        text("1 selected")
+        device.waitForIdle()
+        val bounds = android.graphics.Rect().also(node("Note: Hold for menu")::getBoundsInScreen)
+        val started = android.os.SystemClock.uptimeMillis()
+        fun inject(action: Int) {
+            val event = android.view.MotionEvent.obtain(
+                started,
+                android.os.SystemClock.uptimeMillis(),
+                action,
+                bounds.exactCenterX(),
+                bounds.exactCenterY(),
+                0
+            )
+            try {
+                assertTrue(instrument.uiAutomation.injectInputEvent(event, true))
+            } finally {
+                event.recycle()
+            }
+        }
+        inject(android.view.MotionEvent.ACTION_DOWN)
+        try {
+            android.os.SystemClock.sleep(android.view.ViewConfiguration.getLongPressTimeout().toLong() + 150)
+        } finally {
+            inject(android.view.MotionEvent.ACTION_UP)
+        }
+        text("Rotate")
+        capture.snapshot("object-menu-long-press")
+        clickTestDialogText(device, "Duplicate")
+        text("Unsaved changes")
+        control("Save").click()
+        text("Saved on this device")
+        val duplicated = repository.load(board.id).activePage.elements
+        assertEquals(2, duplicated.size)
+        assertEquals(original, duplicated.first())
+        assertNotEquals(original.id, duplicated.last().id)
+        assertEquals(original.text, (duplicated.last() as Note).text)
+        control("Undo").click()
+        control("Save").click()
+        text("Saved on this device")
+        assertEquals(listOf(original), repository.load(board.id).activePage.elements)
+        control("Redo").click()
+        control("Save").click()
+        text("Saved on this device")
+        assertEquals(duplicated, repository.load(board.id).activePage.elements)
+        control("Back to boards").click()
+        openTestBoard(device, board.name)
+        node("Note: Hold for menu")
+        assertEquals(duplicated, repository.load(board.id).activePage.elements)
     }
 }

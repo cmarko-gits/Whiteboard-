@@ -335,4 +335,5 @@
     <string name="app_language_system">Follow system language</string>
     <string name="app_language_english">English</string>
     <string name="app_language_serbian">Srpski (latinica)</string>
+    <string name="edit">Edit</string>
 </resources>

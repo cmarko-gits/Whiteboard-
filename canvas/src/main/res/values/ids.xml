@@ -6,6 +6,7 @@
     <item type="id" name="canvas_grow" />
     <item type="id" name="canvas_shrink" />
     <item type="id" name="canvas_delete" />
+    <item type="id" name="canvas_object_actions" />
     <item type="id" name="canvas_browse" />
     <item type="id" name="canvas_add_text" />
     <item type="id" name="canvas_add_note" />

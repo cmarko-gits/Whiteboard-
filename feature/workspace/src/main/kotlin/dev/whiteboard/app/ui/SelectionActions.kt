@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import dev.whiteboard.app.workspace.EditorUi
 import dev.whiteboard.app.workspace.WorkspaceViewModel
+import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.core.editor.LayerOrdering
 import dev.whiteboard.core.editor.LayerStep
 import dev.whiteboard.core.model.*
@@ -24,20 +25,35 @@ import dev.whiteboard.ui.*
 import dev.whiteboard.ui.R
 
 @Composable
-internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, onProperties: () -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
+internal fun SelectionActions(
+    editor: EditorUi,
+    viewModel: WorkspaceViewModel,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onProperties: () -> Unit
+) {
     var alignment by rememberSaveable { mutableStateOf(false) }
     val workspace by viewModel.state.collectAsState()
     val transforming = workspace.rotating || workspace.aligning
     Text(pluralStringResource(R.plurals.objects_selected, editor.selectedIds.size, editor.selectedIds.size))
     Box {
-        IconButton(onClick = { expanded = true }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
-        DropdownMenu(expanded, { expanded = false }) {
+        IconButton(onClick = { onExpandedChange(true) }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
+        DropdownMenu(expanded, { onExpandedChange(false) }) {
+            val editable = editor.page.elements.singleOrNull { it.id in editor.selectedIds }
+                ?.takeIf { it.content() is Note || it.content() is TextElement }
+            if (editable != null) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.edit)) }, onClick = {
+                    onExpandedChange(false)
+                    viewModel.canvas(
+                        CanvasEvent.EditText(editor.page.geometry.selectionBounds(editable).center, editable, editable.content() is Note)
+                    )
+                })
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rotate)) },
                 enabled = !transforming,
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     viewModel.rotateSelected()
                 }
             )
@@ -45,7 +61,7 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 text = { Text(stringResource(R.string.alignment)) },
                 enabled = !transforming && editor.page.elements.count { it.id in editor.selectedIds } >= 2,
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     alignment = true
                 }
             )
@@ -53,7 +69,7 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 text = { Text(stringResource(R.string.bring_forward)) },
                 enabled = LayerOrdering.canStep(editor.page.elements, editor.selectedIds, LayerStep.FORWARD),
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     viewModel.stepSelectedLayer(LayerStep.FORWARD)
                 }
             )
@@ -61,36 +77,44 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 text = { Text(stringResource(R.string.send_backward)) },
                 enabled = LayerOrdering.canStep(editor.page.elements, editor.selectedIds, LayerStep.BACKWARD),
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     viewModel.stepSelectedLayer(LayerStep.BACKWARD)
                 }
             )
             DropdownMenuItem(text = { Text(stringResource(R.string.group)) }, enabled = editor.selectedIds.size > 1, onClick = {
-                expanded = false
+                onExpandedChange(false)
                 viewModel.groupSelected()
             })
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.ungroup)) },
                 enabled = editor.page.elements.any { it.id in editor.selectedIds && it is ElementGroup },
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     viewModel.ungroupSelected()
                 }
             )
             DropdownMenuItem(text = { Text(stringResource(R.string.copy)) }, onClick = {
-                expanded = false
+                onExpandedChange(false)
                 viewModel.copySelected()
             })
             DropdownMenuItem(text = { Text(stringResource(R.string.cut)) }, onClick = {
-                expanded = false
+                onExpandedChange(false)
                 viewModel.copySelected(cut = true)
             })
+            DropdownMenuItem(text = { Text(stringResource(R.string.duplicate)) }, onClick = {
+                onExpandedChange(false)
+                viewModel.duplicateSelected()
+            })
+            DropdownMenuItem(text = { Text(stringResource(R.string.delete)) }, onClick = {
+                onExpandedChange(false)
+                viewModel.deleteSelected()
+            })
             DropdownMenuItem(text = { Text(stringResource(R.string.bring_front)) }, onClick = {
-                expanded = false
+                onExpandedChange(false)
                 viewModel.reorderSelected(true)
             })
             DropdownMenuItem(text = { Text(stringResource(R.string.send_back)) }, onClick = {
-                expanded = false
+                onExpandedChange(false)
                 viewModel.reorderSelected(false)
             })
             DropdownMenuItem(
@@ -98,7 +122,7 @@ internal fun SelectionActions(editor: EditorUi, viewModel: WorkspaceViewModel, o
                 enabled = editor.page.elements.filter { it.id in editor.selectedIds }.flatMap { it.leaves() }
                     .map { it.content() }.any { it is Stroke || it is Shape || it is Line },
                 onClick = {
-                    expanded = false
+                    onExpandedChange(false)
                     onProperties()
                 }
             )

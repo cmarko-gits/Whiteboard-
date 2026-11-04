@@ -31,4 +31,5 @@
     <string name="canvas_image">Image</string>
     <string name="canvas_pdf">PDF page</string>
     <plurals name="canvas_group"><item quantity="one">Group of %d object</item><item quantity="other">Group of %d objects</item></plurals>
+    <string name="canvas_object_actions">Object actions</string>
 </resources>
