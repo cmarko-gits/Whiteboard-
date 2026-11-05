@@ -32,7 +32,7 @@ class WorkspaceFlowTest {
         val name = "Flow test ${System.currentTimeMillis()}"
         testLibraryCreateButton(device).click()
         testDialogField(device, "Board name").text = name
-        text("Confirm").click()
+        clickTestDialogText(device, "Confirm")
         description("Save")
         description("Pen").click()
         device.waitForIdle()
@@ -46,7 +46,7 @@ class WorkspaceFlowTest {
             20
         )
         text("Unsaved changes")
-        assertTrue(description("Undo").isEnabled)
+        assertTrue(testDialogActionEnabled("Undo", byDescription = true))
         description("Save").click()
         text("Saved on this device")
         device.waitForIdle()
@@ -63,7 +63,7 @@ class WorkspaceFlowTest {
         val name = "Pages test ${System.currentTimeMillis()}"
         testLibraryCreateButton(device).click()
         testDialogField(device, "Board name").text = name
-        text("Confirm").click()
+        clickTestDialogText(device, "Confirm")
         description("More actions").click()
         text("Pages").click()
         text("Add page").click()

@@ -12,7 +12,7 @@ private data class DialogProbe(val found: Boolean, val selected: Boolean = false
 
 /** Read a new connected hierarchy; retain values rather than UiObject2 handles across recomposition. */
 @Suppress("DEPRECATION")
-private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
+private fun inspectDialogControl(label: String, activate: Boolean, byDescription: Boolean = false): DialogProbe {
     val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return DialogProbe(false)
     val owned = Collections.newSetFromMap(IdentityHashMap<AccessibilityNodeInfo, Boolean>())
     fun own(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? = node?.also { owned.add(it) }
@@ -30,7 +30,8 @@ private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
                 val bounds = Rect().also(node::getBoundsInScreen)
                 if (!bounds.isEmpty) scroll = bounds
             }
-            if (node.text?.toString() == label && node.isVisibleToUser) {
+            val value = if (byDescription) node.contentDescription else node.text
+            if (value?.toString() == label && node.isVisibleToUser) {
                 var owner: AccessibilityNodeInfo? = node
                 // Compose can remove ACTION_CLICK from a selected radio row. Its checked state
                 // still belongs to that row; climbing only to a clickable ancestor loses it.
@@ -58,7 +59,7 @@ private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, 
     val deadline = SystemClock.uptimeMillis() + 20_000
     var swipes = 0
     while (SystemClock.uptimeMillis() < deadline) {
-        val probe = inspectDialogText(label, activate)
+        val probe = inspectDialogControl(label, activate)
         if (probe.found) return
         val bounds = probe.scroll
         if (bounds != null) {
@@ -85,8 +86,9 @@ private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, 
 internal fun clickTestDialogText(device: UiDevice, label: String) = reachDialogText(device, label, true, false)
 internal fun revealTestDialogText(device: UiDevice, label: String, towardTop: Boolean = false) =
     reachDialogText(device, label, false, towardTop)
-internal fun testDialogChoiceSelected(label: String): Boolean = inspectDialogText(label, false).selected
-internal fun testDialogActionEnabled(label: String): Boolean = inspectDialogText(label, false).let {
-    check(it.found) { "Dialog action is not visible: $label" }
-    it.enabled
-}
+internal fun testDialogChoiceSelected(label: String): Boolean = inspectDialogControl(label, false).selected
+internal fun testDialogActionEnabled(label: String, byDescription: Boolean = false): Boolean =
+    inspectDialogControl(label, false, byDescription).let {
+        check(it.found) { "Dialog action is not visible: $label" }
+        it.enabled
+    }

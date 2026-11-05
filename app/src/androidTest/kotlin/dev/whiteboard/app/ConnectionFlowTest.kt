@@ -121,7 +121,7 @@ class ConnectionFlowTest {
         clickTestDialogText(device, "Cancel")
         text("Saved on this device")
         assertEquals(board.activePage.elements, repository.load(board.id).activePage.elements)
-        assertFalse(device.hasObject(By.desc("Undo").enabled(true)))
+        assertFalse(testDialogActionEnabled("Undo", byDescription = true))
         completed = true
     }
 
