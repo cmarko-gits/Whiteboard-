@@ -4,7 +4,7 @@ Datum: 1. novembar 2026. Spisak je izveden iz LOCAL-REBUILD-PLAN.md, LOCAL-STATU
 
 Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih funkcija proizvoda. Postojeće lokalne funkcije, njihovi prolazni testovi i ograničenja ostaju opisani u LOCAL-STATUS.md. Fizički uređaji su odloženi po izboru korisnika. AI, backend, cloud, nalozi, saradnja i Play objava nisu vraćeni u aktivni obim.
 
-Presek 5. novembra 2026: **13/47 glavnih stavki završeno, 34 ostaje**. F05 je kvalifikovan u 0.7.0/source b5dfebc/CI 42075106983: 378 JVM i pet profila po 119 app + 13 data, tri puna release/jezička toka i provereni paket. LOCAL-0.7.0-CANDIDATE.md navodi hash-eve i granice. Novi konkretni JSON resource-budget nalaz prelazi u Z08; veliki graf i ostale otvorene stavke nisu zatvoreni. Podkoraci se ne broje kao dodatni glavni zadaci.
+Presek 5. novembra 2026: **13/47 glavnih stavki završeno, 34 ostaje**. Najnoviji kvalifikovani paket je 0.7.1/source d451e65/CI 42085746810: 388 JVM i pet profila po 122 app + 13 data, tri release/jezička toka i provereni paket. LOCAL-0.7.1-CANDIDATE.md navodi hash-eve i granice. Konkretni JSON resource-budget nalaz zatvoren je u tom obimu; veliki graf je tekući Z08 rad u 0.7.2. Ostale otvorene stavke nisu zatvorene. Podkoraci se ne broje kao dodatni glavni zadaci.
 
 ## Z — završetak sadašnje lokalne verzije i inženjerskog procesa
 

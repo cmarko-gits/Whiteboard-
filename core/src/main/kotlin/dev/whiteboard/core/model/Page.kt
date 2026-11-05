@@ -1,5 +1,8 @@
 package dev.whiteboard.core.model
 
+import kotlin.math.max
+import kotlin.math.min
+
 /**
  * Immutable page value. Content validation and world geometry belong to its element-list snapshot;
  * changing viewport, name or background reuses that snapshot without scanning the document again.
@@ -41,6 +44,9 @@ class Page private constructor(
         if (id == this.id && elements === this.elements) content else PageContent(id, elements)
     )
 
+    internal fun withPreview(elements: List<PageObject>, checkpoint: () -> Unit): Page =
+        Page(name, background, backgroundColor, viewport, PageContent.preview(content, elements, checkpoint))
+
     operator fun component1(): String = id
     operator fun component2(): String = name
     operator fun component3(): Background = background
@@ -70,57 +76,103 @@ class Page private constructor(
 }
 
 /** No page facade or mutable global cache is retained by this shared, content-owned snapshot. */
-internal class PageContent(val pageId: String, val elements: List<PageObject>) {
-    private val ids = HashSet<String>()
+internal class PageContent private constructor(
+    val pageId: String,
+    val elements: List<PageObject>,
+    private val previewState: PreviewState?
+) {
+    constructor(pageId: String, elements: List<PageObject>) : this(pageId, elements, null)
+    private val ids: Set<String>
     val objectCount: Int
     val connections: Map<String, Connector>
 
     init {
         require(elements.size <= Page.MAX_ELEMENTS)
-        var count = 0
-        val targets = HashSet<String>()
-        val edges = LinkedHashMap<String, Connector>()
-        fun target(element: PageObject) {
-            if (element is Element && element !is Stroke && element !is Line) targets.add(element.id)
-        }
-        elements.forEach { element ->
-            require(ids.add(element.id)) { "Duplicate page object ID" }
-            target(element)
-            if (element is Connector) edges[element.id] = element
-            if (element is ElementGroup) {
-                count += element.children.size
-                element.children.forEach {
-                    require(ids.add(it.id)) { "Duplicate page object ID" }
-                    target(it)
+        if (previewState != null) {
+            ids = previewState.source.ids
+            objectCount = previewState.source.objectCount
+            connections = previewState.source.connections
+        } else {
+            val occupied = HashSet<String>()
+            var count = 0
+            val targets = HashSet<String>()
+            val edges = LinkedHashMap<String, Connector>()
+            fun target(element: PageObject) {
+                if (element is Element && element !is Stroke && element !is Line) targets.add(element.id)
+            }
+            elements.forEach { element ->
+                require(occupied.add(element.id)) { "Duplicate page object ID" }
+                target(element)
+                if (element is Connector) edges[element.id] = element
+                if (element is ElementGroup) {
+                    count += element.children.size
+                    element.children.forEach {
+                        require(occupied.add(it.id)) { "Duplicate page object ID" }
+                        target(it)
+                    }
+                } else {
+                    count++
                 }
-            } else {
-                count++
+                require(count <= Page.MAX_ELEMENTS) { "Too many page objects" }
             }
-            require(count <= Page.MAX_ELEMENTS) { "Too many page objects" }
-        }
-        edges.values.forEach { edge ->
-            listOf(edge.start, edge.end).filterIsInstance<ConnectorEnd.Bound>().forEach {
-                require(it.targetId in targets) { "Missing or unsupported connection target" }
+            edges.values.forEach { edge ->
+                listOf(edge.start, edge.end).filterIsInstance<ConnectorEnd.Bound>().forEach {
+                    require(it.targetId in targets) { "Missing or unsupported connection target" }
+                }
             }
+            objectCount = count
+            connections = edges
+            ids = occupied
         }
-        objectCount = count
-        connections = edges
     }
 
     fun containsId(id: String): Boolean = id in ids
 
-    val bounds: Bounds? by lazy { elements.asSequence().map { resolve(it).renderBounds }.reduceOrNull(Bounds::union) }
+    private data class RenderFrame(val definition: PageObject, val bounds: Bounds)
+    private class RenderFrames(private val entries: Map<String, RenderFrame>, private val fallback: RenderFrames? = null) {
+        fun find(element: PageObject): Bounds? {
+            val frame = entries[element.id]
+            return if (frame?.definition === element) frame.bounds else fallback?.find(element)
+        }
+    }
+    private data class PreviewState(
+        val source: PageContent,
+        val ports: PagePortIndex,
+        val lines: Map<String, Line>,
+        val frames: RenderFrames,
+        val bounds: Bounds?
+    )
+
+    @Volatile private var renderFrames: RenderFrames? = previewState?.frames
+    val bounds: Bounds? by lazy {
+        if (previewState != null) return@lazy previewState.bounds
+        // Unconnected pages do not pay for a cache used only by connected previews.
+        val prepared = if (connections.isNotEmpty()) LinkedHashMap<String, RenderFrame>() else null
+        val result = frameUnion(elements) { element ->
+            val frame = renderBounds(element)
+            prepared?.put(element.id, RenderFrame(element, frame))
+            frame
+        }
+        // A failed complete validation never publishes a partially prepared cache.
+        if (prepared != null) renderFrames = RenderFrames(prepared)
+        result
+    }
     private val connectionGeometry by lazy { PageConnectionGeometry(this, connections.values.toList()) }
 
     fun resolve(element: PageObject): Element = when (element) {
         is Element -> element
         is Connector -> {
             require(connections[element.id] == element) { "Connection belongs to a different page snapshot" }
-            connectionGeometry.line(element.id)
+            previewState?.let { it.lines[element.id] ?: it.source.resolve(element) } ?: connectionGeometry.line(element.id)
         }
     }
 
-    @Volatile private var ports: PagePortIndex? = null
+    fun renderBounds(element: PageObject): Bounds {
+        if (element is Connector) require(connections[element.id] == element) { "Connection belongs to a different page snapshot" }
+        return renderFrames?.find(element) ?: resolve(element).renderBounds
+    }
+
+    @Volatile private var ports: PagePortIndex? = previewState?.ports
 
     fun connectionPorts(checkpoint: () -> Unit): PagePortIndex {
         checkpoint()
@@ -130,5 +182,90 @@ internal class PageContent(val pageId: String, val elements: List<PageObject>) {
         val prepared = PagePortIndex(pageId, elements, checkpoint)
         checkpoint()
         return synchronized(this) { ports ?: prepared.also { ports = it } }
+    }
+
+    companion object {
+        fun preview(source: PageContent, elements: List<PageObject>, checkpoint: () -> Unit): PageContent {
+            checkpoint()
+            val frames = source.renderFrames
+            // Cold/structural scenes keep the full validation path. A preview never retains
+            // another preview, and an invalid original can still be repaired by a full rebuild.
+            if (source.previewState != null || frames == null || source.connections.isEmpty() || elements.size != source.elements.size) {
+                return PageContent(source.pageId, elements)
+            }
+            val changed = ArrayList<Element>()
+            for (index in elements.indices) {
+                checkpoint()
+                val before = source.elements[index]
+                val after = elements[index]
+                if (before !== after) {
+                    if (!stableReplacement(before, after)) return PageContent(source.pageId, elements)
+                    if (after is Element) changed.add(after)
+                }
+            }
+            val ports = source.connectionPorts(checkpoint).replacing(elements, changed, checkpoint)
+            val targets = changed.allObjectIds()
+            val lines = LinkedHashMap<String, Line>()
+            val updatedFrames = LinkedHashMap<String, RenderFrame>()
+            changed.forEach {
+                checkpoint()
+                updatedFrames[it.id] = RenderFrame(it, it.renderBounds)
+            }
+            // One cheap definition scan avoids a second persistent adjacency map. Only
+            // incident connections allocate new line geometry; unchanged lines/frames share.
+            source.connections.values.forEach { edge ->
+                checkpoint()
+                if ((edge.start as? ConnectorEnd.Bound)?.targetId in targets || (edge.end as? ConnectorEnd.Bound)?.targetId in targets) {
+                    val line = PageConnectionGeometry.resolveLine(edge, ports)
+                    lines[edge.id] = line
+                    updatedFrames[edge.id] = RenderFrame(edge, line.renderBounds)
+                }
+            }
+            val preparedFrames = RenderFrames(updatedFrames, frames)
+            val bounds = frameUnion(elements) { element ->
+                checkpoint()
+                preparedFrames.find(element) ?: source.resolve(element).renderBounds
+            }
+            checkpoint()
+            return PageContent(source.pageId, elements, PreviewState(source, ports, lines, preparedFrames, bounds))
+        }
+
+        /** Each frame is already validated; materialize one exact union instead of one per object. */
+        private inline fun frameUnion(elements: List<PageObject>, frame: (PageObject) -> Bounds): Bounds? {
+            if (elements.isEmpty()) return null
+            var left = Float.POSITIVE_INFINITY
+            var top = Float.POSITIVE_INFINITY
+            var right = Float.NEGATIVE_INFINITY
+            var bottom = Float.NEGATIVE_INFINITY
+            elements.forEach {
+                val bounds = frame(it)
+                left = min(left, bounds.left)
+                top = min(top, bounds.top)
+                right = max(right, bounds.right)
+                bottom = max(bottom, bounds.bottom)
+            }
+            return Bounds(left, top, right, bottom)
+        }
+
+        private fun stableReplacement(before: PageObject, after: PageObject): Boolean {
+            if (before.id != after.id || before.javaClass != after.javaClass) return false
+            if (before is Connector) return before == after
+            if (before !is Element || after !is Element) return false
+            return when (before) {
+                is ElementGroup ->
+                    after is ElementGroup && before.children.size == after.children.size &&
+                        before.children.indices.all { index ->
+                            val first = before.children[index]
+                            val second = after.children[index]
+                            stableLeaf(first) && stableLeaf(second) && first.id == second.id && first.javaClass == second.javaClass
+                        }
+                is Stroke, is Line, is Shape, is Note, is TextElement, is MediaElement, is AffineElement -> true
+            }
+        }
+
+        private fun stableLeaf(element: Element): Boolean = when (element) {
+            is ElementGroup -> false
+            is Stroke, is Line, is Shape, is Note, is TextElement, is MediaElement, is AffineElement -> true
+        }
     }
 }

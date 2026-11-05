@@ -1,15 +1,18 @@
-# Z08 — sledeći korak: preview velikog grafa
+# Z08 — preview velikog grafa
 
-Status: projektovanje, bez tvrdnje da je optimizacija već implementirana. Prvo se kvalifikuje JSON-budget 0.7.1; sledeći izvor dobija zaseban profil i punu regresiju. Polazni rezultati i ograničenja su u CONNECTION-SCALE-BASELINE.md.
+Status: implementacija u razvoju 0.7.2/code 16, još bez Android izvršavanja i kvalifikovanog paketa. JSON-budget 0.7.1/source d451e65 je zasebno kvalifikovan. Lokalno prolazi 399 JVM slučajeva (279 core + 66 format + 5 data + 49 app), uključujući 11 novih preview regresija, pun stil/arhitektura i kompajliranje 122 Android app testa. ART allocation merenja su kompajlirana; puna CI matrica i stvarni Android podaci slede. Polazni rezultati i ograničenja su u CONNECTION-SCALE-BASELINE.md. Za sveže poređenje koristi se isti scenario iz kvalifikovanog 0.7.1 CI 42085746810.
 
-Trošak jednog pomerenog cilja sada uključuje ponovnu proveru cele liste, indeksiranje svih portova, razrešavanje svih veza i ponavljanje računanja ink/arrowhead okvira. Cilj je ograničiti novi proračun na promenjene ciljeve i incidentne veze, uz jeftin tačan union svih okvira kada je potreban.
+Prethodni preview jednog pomerenog cilja ponovo indeksira sve portove, razrešava sve veze i računa ink/arrowhead okvire. Nova implementacija ograničava te proračune na promenjene ciljeve i incidentne veze. Provera identiteta/redosleda, skeniranje definicija veza i tačan union svih okvira ostaju O(N). Ovo nije tvrdnja o O(degree) ukupnoj operaciji ili 60 Hz.
 
-Predloženi snapshot ugovor:
+Implementirani snapshot ugovor:
 
-- Kanonski content po potrebi jednom priprema validne render okvire. Cache koristi referencu definicije, ne samo ID; strani lokalni Element zadržava context-free geometriju, a zastarela Connector definicija se odbija pre cache lookup-a.
+- Kanonski content povezane stranice po potrebi jednom priprema validne render okvire tokom contentBounds. Nepovezana stranica ne alocira ovaj cache. Cache koristi referencu definicije, ne samo ID; strani lokalni Element zadržava context-free geometriju, a zastarela Connector definicija se odbija pre cache lookup-a. Neuspešna puna validacija ne objavljuje delimične okvire.
 - Stabilni preview cilja može deliti proverene ID-jeve, broj objekata, nepromenjene definicije veza i izvorne okvire. Promenjeni portovi, incidentne linije i njihovi ink okviri računaju se ponovo pre objavljivanja preview-a.
-- Indeks incidentnih veza pripada content-u, sa otkazivim kompletnim publish-om. Port lookup ima privatnu overlay strukturu; ne koristi Map implementaciju čiji entries/values daju pogrešne stare vrednosti.
+- Umesto dodatnog trajnog adjacency indeksa koristi se jedan jeftin prolaz definicija i test članstva promenjenih target ID-jeva. Samo incidentne veze alociraju novu Line geometriju. Odluka štedi dodatni indeks; menjati je tek prema profilu. Port lookup ima privatnu overlay strukturu; ne koristi Map implementaciju čiji entries/values daju pogrešne stare vrednosti.
 - Brzi put zahteva isti identitet/kind i stabilne group-child ID-jeve. Izmena reference/stila/free kraja konektora, promena strukture grupe ili nepodržana zamena koristi pun kanonski postupak. Originalni model i istorija ostaju netaknuti.
 - Preview ne sme praviti neograničen lanac prethodnih stranica. Metadata kopije mogu deliti content, a strukturni edit stvara novi snapshot. Nema globalnog mutabilnog geometrijskog indeksa ili zadržavanja stare Page fasade.
+- Tačan union koristi četiri primitive i jedan završni Bounds, umesto međukoraka po objektu. Preview priprema union sa checkpoint-om po objektu pre objavljivanja snapshot-a. Hladan/nevalidan izvor koristi pun postupak i može se popraviti zamenom; preview prethodnog preview-a takođe ide punim postupkom, pa resolver/overlay lanac ostaje ograničen.
 
 Prihvatanje zahteva cold/warm i metadata slučajeve, strani local Element, stale Connector, rotirane/group-child portove, tačne slojeve/ink/selection okvire, otkazivanje i konkurentne čitaoce, chained preview, native cancel/render/AX/export i ceo gesture/release tok. Ponoviti isti 100/1.000/10.000-node algoritamski profil i navesti sirove pre/posle podatke i dodatnu memoriju cache-a. Pozitivan debug algoritamski rezultat ne predstavlja fizičku ili 60 Hz kvalifikaciju.
+
+ConnectionScaleTest zadržava iste grafove, kratke determinističke ID-jeve, broj ponavljanja i correctness provere. Dodatna ART art.gc.bytes-allocated razlika meri ukupan proces tokom svake operacije, uključujući očitavanje brojača i konkurentan rad. Nije retained cache size, nativna memorija ili garantovan budžet. Vremenski uzorci su kao ranije sortirani, allocation uzorci čuvaju redosled izvršavanja; median/max se proveravaju zasebno. H04 ostaje otvoren za retained/process/bitmap/encoder peak i low-RAM. Izolovana merenja ne postaju uslov prolaza na proizvoljnom deljenom CI hostu; geometrija i celokupna regresija ostaju obavezni.

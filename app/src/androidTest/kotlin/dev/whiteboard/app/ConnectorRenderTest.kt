@@ -46,7 +46,9 @@ class ConnectorRenderTest {
         end = ConnectorEnd.Bound(second.id, ConnectionPort.LEFT),
         style = InkStyle(Color.RED, 4f)
     )
-    private val page = Page(background = Background.PLAIN, backgroundColor = Color.WHITE, elements = listOf(first, edge, second))
+    private val page = Page(background = Background.PLAIN, backgroundColor = Color.WHITE, elements = listOf(first, edge, second)).also {
+        it.contentBounds
+    }
     private val moved = first.copy(bounds = Bounds(40f, 160f, 140f, 260f))
     private fun red(color: Int) {
         assertTrue("Expected red ink, actual color=$color", Color.red(color) >= 200 && Color.green(color) <= 80 && Color.blue(color) <= 80)

@@ -1,6 +1,7 @@
 package dev.whiteboard.app
 
 import android.os.Build
+import android.os.Debug
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -36,12 +37,24 @@ class ConnectionScaleTest {
             val page = Page(elements = nodes + edges)
             val board = Board(name = "Connection profile $count", pages = listOf(page))
             val timings = JSONObject()
+            val allocations = JSONObject()
+            fun allocatedBytes(): Long = checkNotNull(Debug.getRuntimeStat("art.gc.bytes-allocated").toLongOrNull())
             fun measure(name: String, iterations: Int = 5, block: () -> Unit) {
+                val allocated = ArrayList<Long>(iterations)
                 val samples = List(iterations) {
+                    val before = allocatedBytes()
                     val started = SystemClock.elapsedRealtimeNanos()
                     block()
-                    (SystemClock.elapsedRealtimeNanos() - started) / 1_000_000.0
+                    val elapsed = (SystemClock.elapsedRealtimeNanos() - started) / 1_000_000.0
+                    allocated.add((allocatedBytes() - before).also { assertTrue("Monotonic ART allocation counter", it >= 0L) })
+                    elapsed
                 }.sorted()
+                val sortedAllocations = allocated.sorted()
+                allocations.put(
+                    name,
+                    JSONObject().put("samplesBytes", JSONArray(allocated))
+                        .put("medianBytes", sortedAllocations[sortedAllocations.size / 2]).put("maxBytes", sortedAllocations.last())
+                )
                 timings.put(
                     name,
                     JSONObject().put(
@@ -89,7 +102,9 @@ class ConnectionScaleTest {
                 assertEquals(page.elements, decoded.elements)
                 assertEquals(firstLine, decoded.geometry.resolve(edges.first()))
             }
-            reports.put(JSONObject().put("nodes", count).put("connections", edges.size).put("timings", timings))
+            reports.put(
+                JSONObject().put("nodes", count).put("connections", edges.size).put("timings", timings).put("allocations", allocations)
+            )
         }
         val output = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
         if (output != null) {
@@ -99,6 +114,10 @@ class ConnectionScaleTest {
                     "debug emulator algorithm measurements on instrumentation worker; not rendering, UI frame time, physical hardware or release performance"
                 )
                 .put("api", Build.VERSION.SDK_INT).put("model", Build.MODEL).put("maxHeapBytes", Runtime.getRuntime().maxMemory())
+                .put(
+                    "allocationScope",
+                    "ART process-wide cumulative bytes allocated during each operation; includes counter reads and concurrent work; not retained cache size"
+                )
                 .put("graphs", reports)
             val file = File(output, "connection-scale-profile.json")
             file.parentFile?.mkdirs()

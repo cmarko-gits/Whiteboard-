@@ -3,7 +3,7 @@ package dev.whiteboard.core.model
 /** Shared world geometry for one immutable element list; viewport and selection are not geometry. */
 class PageGeometry internal constructor(val page: Page) {
     fun resolve(element: PageObject): Element = page.content.resolve(element)
-    fun renderBounds(element: PageObject): Bounds = resolve(element).renderBounds
+    fun renderBounds(element: PageObject): Bounds = page.content.renderBounds(element)
     fun selectionBounds(element: PageObject): Bounds = resolve(element).selectionBounds
     fun hitTest(element: PageObject, point: Point, tolerance: Float): Boolean {
         require(tolerance.isFinite() && tolerance >= 0f)
@@ -84,7 +84,7 @@ class PageGeometry internal constructor(val page: Page) {
         }
         require(remaining.isEmpty()) { "Unknown preview object" }
         return if (changed) {
-            page.copy(elements = elements).geometry.also { geometry ->
+            page.withPreview(elements, checkpoint).geometry.also { geometry ->
                 replacements.forEach {
                     checkpoint()
                     geometry.renderBounds(it)

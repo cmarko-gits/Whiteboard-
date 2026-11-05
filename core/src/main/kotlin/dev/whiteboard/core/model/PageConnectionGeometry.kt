@@ -28,16 +28,10 @@ class PageConnectionGeometry internal constructor(content: PageContent, connecto
         }
         require(objectCount <= Page.MAX_ELEMENTS) { "Too many page objects" }
         val ports = content.connectionPorts(checkpoint)
-        fun point(end: ConnectorEnd): Point = when (end) {
-            is ConnectorEnd.Free -> end.point
-            is ConnectorEnd.Bound -> ports.point(end.targetId, end.port)
-        }
         lines = buildMap {
             definitions.forEach { connector ->
                 checkpoint()
-                val line = Line(connector.id, point(connector.start), point(connector.end), connector.style, connector.arrow)
-                line.renderBounds
-                put(connector.id, line)
+                put(connector.id, resolveLine(connector, ports))
             }
         }
     }
@@ -47,4 +41,16 @@ class PageConnectionGeometry internal constructor(content: PageContent, connecto
 
     /** Uses the existing line geometry for identical bounds, picking and arrowheads across consumers. */
     fun line(id: String): Line = requireNotNull(lines[id]) { "Unknown connection ID" }
+
+    internal companion object {
+        fun resolveLine(connector: Connector, ports: PagePortIndex): Line {
+            fun point(end: ConnectorEnd): Point = when (end) {
+                is ConnectorEnd.Free -> end.point
+                is ConnectorEnd.Bound -> ports.point(end.targetId, end.port)
+            }
+            return Line(connector.id, point(connector.start), point(connector.end), connector.style, connector.arrow).also {
+                it.renderBounds
+            }
+        }
+    }
 }
