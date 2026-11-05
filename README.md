@@ -1,6 +1,6 @@
-# Whiteboard za Android — lokalni kandidat 0.7.0
+# Whiteboard za Android — lokalni kandidat 0.7.1
 
-Lokalni razvojni paket dodaje pametne veze: gest i dijalog za kreiranje, portove/free krajeve, edit/detach, Undo/Redo i zajedničku geometriju čuvanja i izvoza. [LOCAL-0.7.0-CANDIDATE.md](docs/LOCAL-0.7.0-CANDIDATE.md) vezuje 510 jedinstvenih testova, pet Android profila i tri release toka za tačan izvor/paket. [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje rad. F05 je zatvoren; **13/47 završeno, 34 otvoreno**. Otvoreni [JSON resource nalaz](docs/JSON-RESOURCE-BUDGET.md) i [optimizacija velikog grafa](docs/CONNECTION-SCALE-BASELINE.md) su sledeći rad; paket nije potvrda završetka cele aplikacije. Prethodni paketi i dokazi ostaju sačuvani.
+Lokalni razvojni paket dodaje budžet strukturne cene JSON ulaza i čuva prethodnu reviziju kada dokument prekorači limit. [LOCAL-0.7.1-CANDIDATE.md](docs/LOCAL-0.7.1-CANDIDATE.md) vezuje 523 jedinstvena testa, pet Android profila i tri release toka za tačan izvor/paket. [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje rad i pametne veze. F05 je zatvoren; **13/47 završeno, 34 otvoreno**. Konkretni [JSON resource nalaz](docs/JSON-RESOURCE-BUDGET.md) zatvoren je u ovom obimu; [optimizacija velikog grafa](docs/CONNECTION-PREVIEW-OPTIMIZATION.md) je tekući Z08 rad. Paket nije potvrda završetka cele aplikacije. Prethodni paketi i dokazi ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 

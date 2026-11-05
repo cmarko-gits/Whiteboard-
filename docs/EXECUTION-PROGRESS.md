@@ -1,5 +1,13 @@
 # Izvršavanje preostalih zadataka
 
+## Z08: kvalifikovan JSON resource budžet 0.7.1
+
+Izvor d451e65a0bfaf7a857dd81a738eba12355929ef1, CI 42085746810, svih šest poslova prolazi iz prvog pokušaja. 388 JVM (268/66/5/49), pet Android profila po 122 app + 13 data i tri R8 connection/reopen/jezička toka: 523 jedinstvena slučaja. Sva tri nova Room slučaja uključuju produkcioni save/load 10.000-node/9.999-connection grafa sa punim UUID-length ID-jevima. Prvobitni 53df3e2 ostaje superseded-before-distribution; dodatni lokalni UUID neuspeh nije prikriven zelenim ranijim CI-jem.
+
+Konkretni JSON nalaz zatvoren je uz preparse strukturni budžet, writer/reader paritet, stabilan DOCUMENT_LIMIT, dirty stanje i atomarnost. Ukupni process/encoder peak nije zatvoren. OSV/notices 155, source scan 394, history 106/110, manifest/DEX/offline-font, VCS/potpis/ZIP-P16/četiri ELF64 i 381-entry poređenje prema tri CI APK-a prolaze. LOCAL-0.7.1-CANDIDATE.md i artifacts/task-08-d451e65-* vezuju paket za izvor. **13/47 završeno, 34 otvoreno**, Z08 ostaje otvoren zbog velikog grafa i narednih nalaza.
+
+Odmah nastavljen Z08 preview 0.7.2: deljeni provereni render okviri i port overlay, novi proračun samo promenjenih ciljeva/incidentnih veza uz linearnu proveru i tačan union. Deset novih core regresija i postojeći core/format prolaze lokalno; prvi pokušaj novih testova nije kompajliran zbog tri izostavljena callback argumenta (log sačuvan), drugi prolazi. Native renderer fixture sada izričito zagreva snapshot; Android izvršavanje i nova kvalifikacija još slede. Ove promene nisu u kvalifikovanom 0.7.1 APK-u.
+
 ## Nastavak 5. novembra 2026.
 
 **8/Z08 kalibracija pre distribucije 0.7.1:** dodatni 10.000-node graf sa punim 36-character ID-jevima otkriva DOCUMENT_LIMIT u prvoj 64 MiB politici source 53df3e2; sačuvan task-08-json-uuid-validation.log. Taj izvor prolazi CI 42080957585 (387 JVM, pet profila po 121 app + 13 data i tri R8/jezička toka), ali se zbog dodatnog lokalnog nalaza ne distribuira. Test ostaje pun. Nova politika ima cap 80 MiB uz polovinu maksimalnog heap-a, stabilno po Codec instanci. Lokalno prolaze 388 JVM, uključujući UUID graf, heap granice i isti million-object napad u 64 MiB procesu; treći native Room UUID save/load test je kompajliran. Nova puna matrica je obavezna; 34 glavna zadatka ostaju otvorena.

@@ -1,6 +1,6 @@
 # Whiteboard 0.4.0 — lokalni status i QA
 
-Najnoviji lokalni kandidat sa kvalifikovanim F05 emulator obimom je [0.7.0/source b5dfebc](LOCAL-0.7.0-CANDIDATE.md): 378 JVM i pet profila po 119 app + 13 data, uz tri release/jezička toka i provereni paket. **13/47 završeno, 34 otvoreno**; [JSON resource nalaz](JSON-RESOURCE-BUDGET.md) i veliki graf zahtevaju nastavak. Ostatak dokumenta je istorijska 0.4.0 kohorta. Tekući rad: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
+Najnoviji lokalni kandidat je [0.7.1/source d451e65](LOCAL-0.7.1-CANDIDATE.md): 388 JVM i pet profila po 122 app + 13 data, uz tri release/jezička toka i provereni paket. Konkretni JSON resource nalaz je zatvoren u tom obimu. **13/47 završeno, 34 otvoreno**; veliki graf i ostale Z/F/O/H/P stavke zahtevaju nastavak. Ostatak dokumenta je istorijska 0.4.0 kohorta. Tekući rad: [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md) i [LOCAL-REMAINING-TASKS.md](LOCAL-REMAINING-TASKS.md).
 
 Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.
 

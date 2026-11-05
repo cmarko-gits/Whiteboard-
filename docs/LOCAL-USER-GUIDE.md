@@ -1,6 +1,8 @@
 # Whiteboard — lokalno korišćenje
 
-Najnoviji lokalni razvojni kandidat je 0.7.0: [rezultati, otvoreni nalazi i ograničenja](LOCAL-0.7.0-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Najnoviji lokalni razvojni kandidat je 0.7.1: [rezultati, otvoreni nalazi i ograničenja](LOCAL-0.7.1-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+
+Dokument sa previše objekata ili predugim tekstom može prekoračiti bezbednosni limit obrade. Aplikacija tada traži manje objekata ili kraći tekst. Neuspešno čuvanje zadržava prethodno sačuvanu reviziju i nesnimljene izmene; smanji sadržaj i ponovi Save. Recovery nije nezavisan backup.
 
 ## Pametne veze
 

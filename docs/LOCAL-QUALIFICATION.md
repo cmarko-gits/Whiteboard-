@@ -1,6 +1,6 @@
 # Kvalifikacija lokalnog Whiteboard-a 0.4.0
 
-Ovo je istorijska kohorta 0.4.0. Aktuelni [0.7.0 kandidat](LOCAL-0.7.0-CANDIDATE.md) ima zasebnih 378 JVM i pet profila po 119 app + 13 data, tri release toka i provereni paket. Stari TalkBack, heap i frame-time nalazi ispod nisu automatski ponovljeni za njega. JSON allocation budget i veliki graf imaju otvorene nalaze; nova matrica nije završna potvrda cele aplikacije.
+Ovo je istorijska kohorta 0.4.0. Aktuelni [0.7.1 kandidat](LOCAL-0.7.1-CANDIDATE.md) ima zasebnih 388 JVM i pet profila po 122 app + 13 data, tri release toka i provereni paket. Stari TalkBack, heap i frame-time nalazi ispod nisu automatski ponovljeni za njega. Konkretni JSON allocation-budget nalaz zatvoren je u novom obimu; veliki graf i process/encoder peak ostaju otvoreni. Nova matrica nije završna potvrda cele aplikacije.
 
 Datum: 1. novembar 2026. Korisnik je izabrao nastavak bez fizičkog telefona. Ovaj pregled obuhvata dostupne emulatore i lokalne pakete; ne potvrđuje fizičku latenciju olovke, OEM ponašanje ili sve Android uređaje.
 
