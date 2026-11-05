@@ -1,29 +1,49 @@
 package dev.whiteboard.format
 
+import dev.whiteboard.core.model.DocumentError
+import dev.whiteboard.core.model.DocumentFailure
+
 /** Strict, bounded preflight before recursive platform parsing. No JSON objects or numeric big integers are allocated here. */
 object JsonSafety {
+    // Accounting policy for temporary input/tree storage, not an exact platform heap prediction.
+    const val DEFAULT_ALLOCATION_BUDGET = 64L * 1024 * 1024
+
     fun check(source: String, maximumDepth: Int = 32) {
-        require(maximumDepth in 1..64)
-        Parser(source, maximumDepth).check()
+        check(source, maximumDepth, DEFAULT_ALLOCATION_BUDGET)
     }
 
-    private class Parser(private val source: String, private val maximumDepth: Int) {
+    internal fun check(source: String, maximumDepth: Int, allocationBudget: Long) {
+        require(maximumDepth in 1..64)
+        require(allocationBudget > 0)
+        Parser(source, maximumDepth, allocationBudget).check()
+    }
+
+    private class Parser(private val source: String, private val maximumDepth: Int, private var remainingBytes: Long) {
         private var position = 0
+        private fun charge(bytes: Long) {
+            // Subtraction after the comparison avoids overflowing an accumulated estimate.
+            if (bytes > remainingBytes) throw DocumentFailure(DocumentError.DOCUMENT_LIMIT)
+            remainingBytes -= bytes
+        }
         fun check() {
+            charge(source.length.toLong() * 2)
             value(0)
             whitespace()
             require(position == source.length) { "Trailing JSON content" }
         }
         private fun value(depth: Int) {
+            charge(32)
             whitespace()
             require(position < source.length) { "Incomplete JSON" }
             when (source[position]) {
                 '{' -> {
+                    charge(96)
                     require(depth < maximumDepth) { "JSON nesting limit exceeded" }
                     position++
                     whitespace()
                     if (take('}')) return
                     while (true) {
+                        charge(64) // Object entry, excluding its separately charged key/value.
                         string()
                         whitespace()
                         require(take(':')) { "Missing JSON colon" }
@@ -35,6 +55,7 @@ object JsonSafety {
                     }
                 }
                 '[' -> {
+                    charge(64)
                     require(depth < maximumDepth) { "JSON nesting limit exceeded" }
                     position++
                     whitespace()
@@ -56,6 +77,7 @@ object JsonSafety {
         }
         private fun string() {
             require(take('"')) { "JSON strings require double quotes" }
+            charge(48)
             while (position < source.length) {
                 when (val character = source[position++]) {
                     '"' -> return
@@ -70,8 +92,12 @@ object JsonSafety {
                             }
                             else -> throw IllegalArgumentException("Invalid JSON escape")
                         }
+                        charge(2)
                     }
-                    else -> require(character.code >= 0x20) { "Unescaped JSON control character" }
+                    else -> {
+                        require(character.code >= 0x20) { "Unescaped JSON control character" }
+                        charge(2)
+                    }
                 }
             }
             throw IllegalArgumentException("Incomplete JSON string")
@@ -95,6 +121,7 @@ object JsonSafety {
                 }
             }
             require(position - start <= 128) { "JSON numeric literal is too large" }
+            charge(48L + (position - start) * 2L)
         }
         private fun digits() {
             val start = position

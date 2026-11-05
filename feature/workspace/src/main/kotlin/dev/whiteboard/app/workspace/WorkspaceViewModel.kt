@@ -793,6 +793,7 @@ class WorkspaceViewModel @Inject constructor(
                 DocumentError.PERMISSION_DENIED -> R.string.document_permission_denied
                 DocumentError.INVALID_DOCUMENT -> R.string.invalid_document
                 DocumentError.EDIT_LIMIT -> R.string.edit_limit
+                DocumentError.DOCUMENT_LIMIT -> R.string.document_limit
             }
             is IOException -> R.string.storage_unavailable
             is SecurityException -> R.string.document_permission_denied

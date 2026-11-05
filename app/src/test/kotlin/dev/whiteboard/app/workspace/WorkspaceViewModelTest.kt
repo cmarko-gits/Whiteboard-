@@ -619,6 +619,22 @@ class WorkspaceViewModelTest {
         assertEquals(model.state.value.editor!!.page, repository.load(id).activePage)
     }
 
+    @Test fun aDocumentBudgetFailurePreservesDirtyWorkAndDoesNotOfferARetryLoop() = runTest {
+        val model = model()
+        model.create("Resource limit").join()
+        val id = model.state.value.editor!!.boardId
+        val saved = repository.load(id)
+        model.canvas(CanvasEvent.Add(note("Keep the unsaved edit")))
+        repository.beforeSave = { throw DocumentFailure(DocumentError.DOCUMENT_LIMIT) }
+        model.save().join()
+        assertEquals(saved, repository.load(id))
+        assertTrue(model.state.value.editor!!.dirty)
+        assertFalse(model.state.value.editor!!.saving)
+        val notice = checkNotNull(model.state.value.message)
+        assertEquals(R.string.document_limit, notice.resource)
+        assertFalse(notice.retry)
+    }
+
     @Test fun acknowledgingAnOldMessageDoesNotDropANewerFailure() = runTest {
         val model = model()
         model.create("Notices").join()

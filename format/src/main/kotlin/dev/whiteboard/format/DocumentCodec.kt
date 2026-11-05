@@ -7,19 +7,27 @@ import org.json.JSONObject
 typealias UnsupportedDocumentVersion = dev.whiteboard.core.model.UnsupportedDocumentVersion
 
 /** Explicit, versioned format: no reflective class names or executable serialized objects. */
-class DocumentCodec {
-    fun encodePageJson(page: Page): String = encodePage(page).toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) }
+class DocumentCodec(private val allocationBudget: Long = JsonSafety.DEFAULT_ALLOCATION_BUDGET) {
+    init {
+        require(allocationBudget > 0)
+    }
+    fun encodePageJson(page: Page): String = encodePage(page).toString().also {
+        require(it.length <= MAX_DOCUMENT_CHARACTERS)
+        JsonSafety.check(it, 32, allocationBudget)
+    }
     fun decodePageJson(source: String): Page {
         require(source.length <= MAX_DOCUMENT_CHARACTERS)
-        JsonSafety.check(source)
+        JsonSafety.check(source, 32, allocationBudget)
         return decodePage(JSONObject(source))
     }
 
-    fun encodeElementJson(element: PageObject): String =
-        encodeElement(element).toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) }
+    fun encodeElementJson(element: PageObject): String = encodeElement(element).toString().also {
+        require(it.length <= MAX_DOCUMENT_CHARACTERS)
+        JsonSafety.check(it, 32, allocationBudget)
+    }
     fun decodeElementJson(source: String): PageObject {
         require(source.length <= MAX_DOCUMENT_CHARACTERS)
-        JsonSafety.check(source)
+        JsonSafety.check(source, 32, allocationBudget)
         return decodeElement(JSONObject(source))
     }
 
@@ -34,11 +42,14 @@ class DocumentCodec {
         put("folderId", board.folderId)
         put("trashedAt", board.trashedAt)
         put("pages", JSONArray().apply { board.pages.forEach { put(encodePage(it)) } })
-    }.toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large to save safely" } }
+    }.toString().also {
+        require(it.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large to save safely" }
+        JsonSafety.check(it, 32, allocationBudget)
+    }
 
     fun decode(source: String): Board {
         require(source.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large" }
-        JsonSafety.check(source)
+        JsonSafety.check(source, 32, allocationBudget)
         val root = JSONObject(source)
         val version = root.getInt("version")
         require(root.get("version") is Number && root.getDouble("version") == version.toDouble()) { "Invalid document version" }

@@ -9,7 +9,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** Strict, versioned operation transport. Unknown fields are errors rather than acknowledged, discarded edits. */
-class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec()) {
+class DocumentDeltaCodec(
+    private val documents: DocumentCodec = DocumentCodec(),
+    private val allocationBudget: Long = JsonSafety.DEFAULT_ALLOCATION_BUDGET
+) {
+    init {
+        require(allocationBudget > 0)
+    }
     fun encode(delta: DocumentDelta): String = JSONObject().apply {
         put("version", VERSION)
         put("documentVersion", DocumentCodec.VERSION)
@@ -50,11 +56,14 @@ class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec())
                 }
             }
         )
-    }.toString().also { require(it.length <= MAX_CHARACTERS) }
+    }.toString().also {
+        require(it.length <= MAX_CHARACTERS)
+        JsonSafety.check(it, 32, allocationBudget)
+    }
 
     fun decode(source: String): DocumentDelta {
         require(source.length <= MAX_CHARACTERS)
-        JsonSafety.check(source)
+        JsonSafety.check(source, 32, allocationBudget)
         val root = JSONObject(source)
         fields(root, setOf("version", "documentVersion", "fingerprintVersion", "name", "pages", "order"))
         require(root.getInt("version") == VERSION && root.getInt("fingerprintVersion") == FINGERPRINT_VERSION)
