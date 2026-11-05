@@ -1,6 +1,18 @@
 # Whiteboard — lokalno korišćenje
 
-Proveren lokalni razvojni paket je 0.6.5: [rezultati i ograničenja](LOCAL-0.6.5-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Najnoviji lokalni razvojni kandidat je 0.7.0: [rezultati, otvoreni nalazi i ograničenja](LOCAL-0.7.0-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+
+## Pametne veze
+
+Shapes → Connection bira alat za povezivanje. Povuci od jednog oblika, beleške, teksta, medija ili grupe do drugog objekta. Strelica se vezuje za njihove ivice i prati pomeranje, promenu veličine i rotaciju. Prekid dodira, drugi prst ili promena alata otkazuju nedovršen gest. Za precizan izbor koristi More actions → Connect objects.
+
+U dijalogu Start i End biraju objekte kroz pretragu. Attachment point bira levu, gornju, desnu, donju stranu ili centar u okviru objekta; port prati i rotaciju. Free end omogućava X/Y položaj, decimalnu tačku ili zarez i dugme ±. Arrow at end bira završnu strelicu. Izbor istog objekta za oba vezana kraja onemogućava Apply. Cancel zatvara dijalog bez izmene dokumenta.
+
+Izabrana veza nudi Selection actions → Edit connection i Detach connection. Detach zadržava trenutni oblik linije i pretvara vezane krajeve u slobodne; Undo vraća vezivanje. Za pomeranje vezane veze izaberi i sve njene ciljeve ili koristi Detach. Properties uređuje boju, debljinu i providnost izabrane veze. Za Group prvo izaberi samo ciljne oblike.
+
+Brisanje cilja ostavlja kraj veze na poslednjem položaju, a jedan Undo vraća i cilj i vezivanje. Copy/Paste i Duplicate prave nove identitete: kopirana veza prati kopirane ciljeve; veza ka cilju koji nije kopiran dobija slobodan kraj u kopiji. Save/reopen, recovery, editable ZIP i PNG/JPG/PDF koriste iste krajnje tačke. Dokumenti sa vezama koriste format 5 i zahtevaju verziju aplikacije koja ga podržava; postojeći dokumenti formata 1–4 ostaju čitljivi.
+
+Ostaje otvoren nalaz memorijske cene veoma složenog JSON ulaza: [Z08 pregled](JSON-RESOURCE-BUDGET.md). Kandidat ne predstavlja završetak svih bezbednosnih, hardverskih i performance provera aplikacije.
 
 ## Table i biblioteka
 

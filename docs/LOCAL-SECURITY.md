@@ -1,6 +1,6 @@
 # Lokalna bezbednosna provera — istorijska osnova i 0.5.1
 
-Najnoviji kvalifikovani izvor je [0.6.5/5129627](LOCAL-0.6.5-CANDIDATE.md), CI 41888835384: 155 runtime komponenti/licenci/notices, OSV bez prijavljenih poznatih nalaza, source scan i proširena manifest/DEX/offline-font politika prolaze. EmojiCompatInitializer nije automatski pokrenut; koriste se sistemski emoji/fontovi. Lokalni razvojni potpis, ZIP-P16, četiri ELF64 i sadržaj prema tri CI release paketa provereni su uz tačan hash. Ostatak ovog dokumenta opisuje istorijsku osnovu i trajne granice poverenja. Kandidat 0.6.5 je kvalifikovan za opisani emulator obim.
+Najnoviji F05 emulator kandidat je [0.7.0/b5dfebc](LOCAL-0.7.0-CANDIDATE.md), CI 42075106983: OSV/notices 155, source scan 388, manifest/DEX/offline-font, VCS/potpis/ZIP-P16/ELF64 i sadržaj prema tri CI APK-a prolaze. To ne zatvara sve napade: [JSON allocation-budget nalaz](JSON-RESOURCE-BUDGET.md) je reprodukovan u ograničenom JVM child procesu i odmah prelazi u Z08. Nije proglašen Android-device reprodukcijom. Veliki graf ima zasebna izmerena ograničenja. Ostatak dokumenta je istorijska osnova i granice poverenja; EmojiCompatInitializer ostaje isključen, fontovi/emoji sistemski, a fizički i nezavisni pentest obim nije završen.
 
 Datum: 1. novembar 2026. Obim je aktivna lokalna Android aplikacija i tekući izvorni fajlovi. Ovo je inženjerski pregled sa automatizovanim regresionim proverama; nije nezavisan pentest niti tvrdnja da nema svih ranjivosti. Raniji backend/cloud izveštaj nije dokaz za ovu verziju.
 

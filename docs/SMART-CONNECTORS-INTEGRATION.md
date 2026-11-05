@@ -1,5 +1,9 @@
 # F05 — integracija modela, razvoj 0.7.0 / code 14
 
+Završni presek: source b5dfebc/CI 42075106983 i paket 0.7.0 imaju potvrđen F05 emulator obim. Svih šest poslova prolazi, 378 JVM + pet profila po 119 app/13 data, tri R8 connection/reopen i jezička toka, source/VCS/potpis/ABI/16 KB i poređenje sva tri CI APK-a. LOCAL-0.7.0-CANDIDATE.md čuva hash-eve i granice. **13/47 završeno, 34 otvoreno.** Sledeći Z08 JSON resource nalaz i veliki-graph optimizacija nisu zatvoreni; to je navedeno i u package report-u.
+
+## Istorija integracije pre završnog preseka
+
 Radni nastavak 5. novembra 2026. JSON format je 5; Room ostaje 4 jer kolone/tabele nisu promenjene. Poslednji kvalifikovani distribucioni paket ostaje 0.6.5/source 5129627. Model source 88d4644 prošao je celu CI matricu, a noviji alat/dijalog zahteva sopstvenu kvalifikaciju pre zatvaranja F05.
 
 Page.elements je jedna uređena lista PageObject-a. Element ostaje lokalna geometrija sa samostalnim bounds/transform operacijama, a Connector čuva samo nameru vezivanja. Grupa/affine source i dalje primaju Element, čime konektor ne može postati njihovo dete. PageContent proverava ID-jeve, zbirni broj objekata i reference ka podržanim ciljevima iste stranice. Konektor, potez i obična linija nisu cilj vezivanja; petlje ka istom objektu nisu podržane. Ciklusi između različitih ciljnih objekata ostaju dozvoljeni.
