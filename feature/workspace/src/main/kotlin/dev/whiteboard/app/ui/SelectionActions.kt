@@ -30,7 +30,8 @@ internal fun SelectionActions(
     viewModel: WorkspaceViewModel,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    onProperties: () -> Unit
+    onProperties: () -> Unit,
+    onConnection: (String?) -> Unit
 ) {
     var alignment by rememberSaveable { mutableStateOf(false) }
     val workspace by viewModel.state.collectAsState()
@@ -40,6 +41,25 @@ internal fun SelectionActions(
     Box {
         IconButton(onClick = { onExpandedChange(true) }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
         DropdownMenu(expanded, { onExpandedChange(false) }) {
+            val connection = selected.singleOrNull() as? Connector
+            DropdownMenuItem(
+                text = { Text(stringResource(if (connection == null) R.string.add_connection else R.string.edit_connection)) },
+                enabled = !transforming && !workspace.connectionBusy,
+                onClick = {
+                    onExpandedChange(false)
+                    onConnection(connection?.id)
+                }
+            )
+            if (connection != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.detach_connection)) },
+                    enabled = !connection.canTransformIndependently,
+                    onClick = {
+                        onExpandedChange(false)
+                        viewModel.detachConnection(connection.id, editor)
+                    }
+                )
+            }
             val editable = editor.page.elements.singleOrNull { it.id in editor.selectedIds }
                 ?.let { it as? Element }
                 ?.takeIf { it.content() is Note || it.content() is TextElement }

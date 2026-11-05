@@ -15,6 +15,51 @@ class PageGeometry internal constructor(val page: Page) {
     /** Reused across metadata-only copies; content edits and page identity changes invalidate it. */
     fun connectionPorts(checkpoint: () -> Unit = {}): PagePortIndex = page.content.connectionPorts(checkpoint)
 
+    fun connectionTargetAt(point: Point, tolerance: Float): Element? {
+        require(tolerance.isFinite() && tolerance >= 0f)
+        val ports = connectionPorts()
+        for (element in page.elements.asReversed()) {
+            if (element is Element && ports.supports(element.id) && hitTest(element, point, tolerance)) return element
+        }
+        return null
+    }
+
+    /** Gesture snapping uses boundary ports. CENTER is an explicit editor choice. */
+    fun closestConnectionPort(targetId: String, toward: Point): ConnectionPort {
+        val ports = connectionPorts()
+        var best = ConnectionPort.LEFT
+        var distance = Double.POSITIVE_INFINITY
+        ConnectionPort.entries.forEach { port ->
+            if (port != ConnectionPort.CENTER) {
+                val point = ports.point(targetId, port)
+                val dx = point.x.toDouble() - toward.x
+                val dy = point.y.toDouble() - toward.y
+                val candidate = dx * dx + dy * dy
+                if (candidate < distance) {
+                    distance = candidate
+                    best = port
+                }
+            }
+        }
+        return best
+    }
+
+    fun connectionTargets(checkpoint: () -> Unit = {}): List<Element> {
+        val ports = connectionPorts(checkpoint)
+        return buildList {
+            page.elements.forEach { element ->
+                checkpoint()
+                if (element is Element && ports.supports(element.id)) add(element)
+                if (element is ElementGroup) {
+                    element.children.forEach {
+                        checkpoint()
+                        if (ports.supports(it.id)) add(it)
+                    }
+                }
+            }
+        }
+    }
+
     fun topmostAt(point: Point, tolerance: Float): PageObject? {
         require(tolerance.isFinite() && tolerance >= 0f)
         return page.elements.lastOrNull { hitTest(it, point, tolerance) }

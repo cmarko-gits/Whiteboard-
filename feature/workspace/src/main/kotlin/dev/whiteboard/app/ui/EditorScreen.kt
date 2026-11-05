@@ -56,6 +56,7 @@ fun EditorScreen(
     onPdfExport: () -> Unit,
     onSettings: () -> Unit
 ) {
+    val workspace by viewModel.state.collectAsState()
     val compact = LocalConfiguration.current.screenHeightDp < 500
     var nativeView by remember { mutableStateOf<WhiteboardView?>(null) }
     var more by remember { mutableStateOf(false) }
@@ -72,6 +73,7 @@ fun EditorScreen(
         if (editor.selectedIds.isEmpty()) selectionMenu = false
     }
     Column(Modifier.fillMaxSize()) {
+        if (workspace.connectionBusy && workspace.connectionRequest == null) LinearProgressIndicator(Modifier.fillMaxWidth())
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, enabled = !editor.saving) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.back))
@@ -104,6 +106,12 @@ fun EditorScreen(
             Box {
                 IconButton(onClick = { more = true }) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.more)) }
                 DropdownMenu(more, { more = false }) {
+                    DropdownMenuItem(text = {
+                        Text(stringResource(R.string.add_connection))
+                    }, enabled = !workspace.connectionBusy, onClick = {
+                        more = false
+                        viewModel.showConnection(position = nativeView?.documentCenter(), source = editor)
+                    })
                     DropdownMenuItem(text = { Text(stringResource(R.string.objects)) }, onClick = {
                         more = false
                         objects = true
@@ -204,7 +212,7 @@ fun EditorScreen(
                 factory = { context ->
                     WhiteboardView(context, assets).also {
                         nativeView = it
-                        it.onEvent = viewModel::canvas
+                        it.onEvent = { event -> viewModel.canvas(event, editor) }
                         it.onBrowseObjects = { objects = true }
                         it.accessibilitySnapshot = { viewport ->
                             val snapshot = viewModel.state.value.editor
@@ -214,6 +222,8 @@ fun EditorScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { view ->
+                    view.onEvent = { event -> viewModel.canvas(event, editor) }
+                    view.onCreateConnection = { viewModel.showConnection(position = view.documentCenter(), source = editor) }
                     view.onObjectMenu = { selectionMenu = true }
                     view.fingerDrawing = fingerDrawing
                     view.snapEnabled = snap
@@ -224,6 +234,7 @@ fun EditorScreen(
                 onRelease = {
                     it.onEvent = {}
                     it.onBrowseObjects = {}
+                    it.onCreateConnection = {}
                     it.onObjectMenu = null
                     it.accessibilitySnapshot = null
                     nativeView = null
@@ -274,7 +285,8 @@ fun EditorScreen(
                             viewModel,
                             selectionMenu,
                             { selectionMenu = it },
-                            onProperties = { properties = true }
+                            onProperties = { properties = true },
+                            onConnection = { viewModel.showConnection(it, nativeView?.documentCenter(), editor) }
                         )
                         IconButton(onClick = { viewModel.duplicateSelected() }) {
                             Icon(Icons.Outlined.ContentCopy, stringResource(R.string.duplicate))
@@ -282,7 +294,10 @@ fun EditorScreen(
                         IconButton(onClick = { viewModel.deleteSelected() }) {
                             Icon(Icons.Outlined.DeleteOutline, stringResource(R.string.delete))
                         }
-                        IconButton(onClick = { rotation = true }, enabled = !rotating) {
+                        IconButton(
+                            onClick = { rotation = true },
+                            enabled = !rotating && editor.page.elements.filter { it.id in editor.selectedIds }.canTransformTogether()
+                        ) {
                             Icon(Icons.AutoMirrored.Outlined.RotateRight, stringResource(R.string.rotate_selection))
                         }
                         if (editor.page.elements.firstOrNull { it.id == editor.selectedId }?.content() is MediaElement) {
@@ -409,9 +424,20 @@ fun EditorScreen(
         }
     }
     if (rotation) RotationDialog(rotating, rotationSequence, { rotation = false }) { viewModel.rotateSelected(it) }
+    val connection = workspace.connectionRequest
+    if (connection != null && connection.boardId == editor.boardId && connection.page.id == editor.page.id) {
+        ConnectionDialog(connection, workspace.connectionBusy, workspace.connectionError, viewModel::dismissConnection) {
+                start,
+                end,
+                arrow
+            ->
+            viewModel.applyConnection(start, end, arrow)
+        }
+    }
 }
 
-private val shapeTools = listOf(Tool.RECTANGLE, Tool.SQUARE, Tool.CIRCLE, Tool.ELLIPSE, Tool.TRIANGLE, Tool.DIAMOND, Tool.LINE, Tool.ARROW)
+private val shapeTools =
+    listOf(Tool.RECTANGLE, Tool.SQUARE, Tool.CIRCLE, Tool.ELLIPSE, Tool.TRIANGLE, Tool.DIAMOND, Tool.LINE, Tool.ARROW, Tool.CONNECTOR)
 private fun toolLabel(tool: Tool) = when (tool) {
     Tool.RECTANGLE -> R.string.rectangle
     Tool.SQUARE -> R.string.square
@@ -420,6 +446,7 @@ private fun toolLabel(tool: Tool) = when (tool) {
     Tool.TRIANGLE -> R.string.triangle
     Tool.DIAMOND -> R.string.diamond
     Tool.LINE -> R.string.line
+    Tool.CONNECTOR -> R.string.connection_tool
     else -> R.string.arrow
 }
 

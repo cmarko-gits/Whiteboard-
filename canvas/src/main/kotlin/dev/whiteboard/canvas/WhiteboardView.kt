@@ -29,6 +29,7 @@ sealed interface CanvasEvent {
     data class EraseStrokes(val ids: Set<String>) : CanvasEvent
     data class EraseParts(val cuts: List<StrokeCut>) : CanvasEvent
     data class Rejected(val error: DocumentError) : CanvasEvent
+    data object ConnectionTargetMissing : CanvasEvent
     data class Select(val ids: Set<String>) : CanvasEvent
     data class EditText(val position: Point, val existing: Element? = null, val note: Boolean = false) : CanvasEvent
     data class Camera(val viewport: Viewport) : CanvasEvent
@@ -63,6 +64,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var previewGeometry: PageGeometry? = null
     private var resizing = false
     private var preview: Element? = null
+    private var connectionStartId: String? = null
+    private var connectionEndPoint: Point? = null
     private val samples = mutableListOf<Point>()
     private val activePath = Path()
     private val erased = mutableSetOf<String>()
@@ -85,6 +88,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var guideY: Float? = null
     var onEvent: (CanvasEvent) -> Unit = {}
     var onBrowseObjects: () -> Unit = {}
+    var onCreateConnection: () -> Unit = {}
     var onObjectMenu: ((Set<String>) -> Unit)? = null
     private data class PendingObjectMenu(val id: String, val screen: Point)
     private var pendingObjectMenu: PendingObjectMenu? = null
@@ -111,6 +115,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvasAccessibility?.changed()
     }
     private val density = resources.displayMetrics.density
+    fun documentCenter(): Point = viewport.toDocument(Point(width / 2f, height / 2f))
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val scaleDetector = ScaleGestureDetector(
         context,
@@ -247,6 +252,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         val center = viewport.toDocument(Point(width / 2f, height / 2f))
         val extent = 64 * density / viewport.scale
         when (tool) {
+            Tool.CONNECTOR -> onCreateConnection()
             Tool.TEXT, Tool.NOTE -> onEvent(CanvasEvent.EditText(center, note = tool == Tool.NOTE))
             Tool.RECTANGLE, Tool.SQUARE, Tool.ELLIPSE, Tool.CIRCLE, Tool.TRIANGLE, Tool.DIAMOND ->
                 onEvent(
@@ -489,6 +495,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     return true
                 }
                 when (tool) {
+                    Tool.CONNECTOR -> {
+                        connectionStartId = page.geometry.connectionTargetAt(point, 12 * density / viewport.scale)?.id
+                        updateConnectionPreview(point)
+                    }
                     Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> addSample(point)
                     Tool.ERASER -> erase(point)
                     Tool.SELECT -> {
@@ -524,6 +534,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 cancelObjectLongPress()
+                if (tool == Tool.CONNECTOR) {
+                    clearGesture()
+                    return true
+                }
                 if (!stylus) {
                     navigating = true
                     samples.clear()
@@ -564,6 +578,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 }
                 val point = viewport.toDocument(Point(event.getX(index), event.getY(index)))
                 when (tool) {
+                    Tool.CONNECTOR -> updateConnectionPreview(point)
                     Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> {
                         for (h in 0 until event.historySize) {
                             addSample(
@@ -653,6 +668,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         if (navigating || activePointer < 0) return
         val point = viewport.toDocument(screen)
         when (tool) {
+            Tool.CONNECTOR -> updateConnectionPreview(point)
             Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> addSample(point, finalSample = true)
             Tool.ERASER -> erase(point)
             Tool.RECTANGLE, Tool.SQUARE, Tool.ELLIPSE, Tool.CIRCLE, Tool.TRIANGLE, Tool.DIAMOND, Tool.LINE, Tool.ARROW ->
@@ -710,6 +726,24 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     }
     private fun finishGesture() {
         when (tool) {
+            Tool.CONNECTOR -> if (down != null) {
+                val point = connectionEndPoint
+                val startId = connectionStartId
+                val end = point?.let { page.geometry.connectionTargetAt(it, 12 * density / viewport.scale) }
+                if (point != null && startId != null && end != null && startId != end.id) {
+                    val startPort = page.geometry.closestConnectionPort(startId, point)
+                    val anchor = page.geometry.connectionPorts().point(startId, startPort)
+                    commitAddition(
+                        Connector(
+                            start = ConnectorEnd.Bound(startId, startPort),
+                            end = ConnectorEnd.Bound(end.id, page.geometry.closestConnectionPort(end.id, anchor)),
+                            style = ink
+                        )
+                    )
+                } else {
+                    onEvent(CanvasEvent.ConnectionTargetMissing)
+                }
+            }
             Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> if (samples.isNotEmpty()) {
                 commitAddition(Stroke(points = samples.toList(), style = ink, tool = tool))
             }
@@ -746,9 +780,22 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             }
         }
     }
-    private fun commitAddition(element: Element) {
-        element.renderBounds
+    private fun commitAddition(element: PageObject) {
+        if (element is Element) element.renderBounds else page.copy(elements = page.elements + element).contentBounds
         onEvent(CanvasEvent.Add(element))
+    }
+    private fun updateConnectionPreview(point: Point) {
+        connectionEndPoint = point
+        val startId = connectionStartId ?: return
+        val startPort = page.geometry.closestConnectionPort(startId, point)
+        val start = page.geometry.connectionPorts().point(startId, startPort)
+        val target = page.geometry.connectionTargetAt(point, 12 * density / viewport.scale)?.takeUnless { it.id == startId }
+        val end = if (target == null) {
+            point
+        } else {
+            page.geometry.connectionPorts().point(target.id, page.geometry.closestConnectionPort(target.id, start))
+        }
+        preview = Line(start = start, end = end, style = ink, arrow = true).also { it.renderBounds }
     }
     private fun createShape(start: Point, end: Point): Element {
         if (tool == Tool.LINE || tool == Tool.ARROW) return Line(start = start, end = end, style = ink, arrow = tool == Tool.ARROW)
@@ -777,6 +824,8 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         samples.clear()
         activePath.reset()
         preview = null
+        connectionStartId = null
+        connectionEndPoint = null
         dragOriginal = emptyList()
         selectionPreview = emptyList()
         selectionArea = null

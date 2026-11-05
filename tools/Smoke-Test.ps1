@@ -7,6 +7,7 @@ param(
     [switch] $CheckLayers,
     [switch] $CheckAlignment,
     [switch] $CheckObjectMenu,
+    [switch] $CheckConnections,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -88,10 +89,47 @@ function Assert-LayerMenuState([bool] $ForwardEnabled) {
     }
 }
 
+function Get-ConnectionFrames {
+    return ((Get-Rect (Find-Ui -Description 'Ellipse')) -join ',') + ':' +
+        ((Get-Rect (Find-Ui -Description 'Connection arrow')) -join ',')
+}
+
+function Move-ConnectionTarget {
+    # Exercise the installed native touch path, using fresh bounds after every change.
+    $taskBefore = Get-ConnectionFrames
+    $taskEllipse = Get-Rect (Find-Ui -Description 'Ellipse')
+    $taskCanvas = Get-Rect (Find-Ui -Description 'Drawing canvas')
+    $taskStartX = [int](($taskEllipse[0] + $taskEllipse[2]) / 2)
+    $taskStartY = [int](($taskEllipse[1] + $taskEllipse[3]) / 2)
+    $taskDistance = [Math]::Max(32, [int](($taskCanvas[2] - $taskCanvas[0]) / 10))
+    Invoke-Adb shell input swipe $taskStartX $taskStartY ($taskStartX - $taskDistance) $taskStartY 700 | Out-Null
+    $taskUntil = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        $taskAfter = Get-ConnectionFrames
+        $taskBeforeParts = $taskBefore -split ':'
+        $taskAfterParts = $taskAfter -split ':'
+        if ($taskBeforeParts[0] -ne $taskAfterParts[0] -and $taskBeforeParts[1] -ne $taskAfterParts[1]) {
+            return @{ Before = $taskBefore; After = $taskAfter }
+        }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $taskUntil)
+    throw 'Moving the ellipse did not update both the object frame and its bound connection.'
+}
+
+function Assert-ConnectionFrames([string] $Expected) {
+    $taskUntil = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        if ((Get-ConnectionFrames) -eq $Expected) { return }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $taskUntil)
+    throw "Connection and target frames were not restored exactly: $Expected"
+}
+
 if ($LoadHelpersOnly) { return }
 if ($CheckLayers -and -not $CheckRotation) { throw 'Layer smoke requires the rotation rectangle fixture.' }
 if ($CheckAlignment -and -not $CheckRotation) { throw 'Alignment smoke requires two rotated objects.' }
 if ($CheckObjectMenu -and -not $CheckRotation) { throw 'Object menu smoke requires the selected-object fixture.' }
+if ($CheckConnections -and -not $CheckRotation) { throw 'Connection smoke requires the rotation rectangle fixture.' }
 if ($ApkPath) { Invoke-Adb install -r $ApkPath | Out-Null }
 $taskSize = (Invoke-Adb shell wm size) -join "`n"
 $taskDensity = (Invoke-Adb shell wm density) -join "`n"
@@ -251,6 +289,28 @@ try {
         }
         Write-Output 'PASS: optimized keyboard object menu and private Copy without geometry changes.'
     }
+    if ($CheckConnections) {
+        Write-Output 'Checking smart connections and exact Undo/Redo in the optimized package.'
+        $taskCanvas = Get-Rect (Find-Ui -Description 'Drawing canvas')
+        $taskWidth = $taskCanvas[2] - $taskCanvas[0]
+        $taskHeight = $taskCanvas[3] - $taskCanvas[1]
+        # The existing stroke cannot be a connection target. Add a distinct second shape.
+        Tap-Ui (Find-Ui -Description 'Shapes')
+        Tap-Ui (Find-Ui -Text 'Ellipse')
+        Invoke-Adb shell input swipe ([int]($taskCanvas[0] + $taskWidth * 0.76)) ([int]($taskCanvas[1] + $taskHeight * 0.12)) ([int]($taskCanvas[0] + $taskWidth * 0.94)) ([int]($taskCanvas[1] + $taskHeight * 0.28)) 500 | Out-Null
+        Find-Ui -Description 'Ellipse' | Out-Null
+        Tap-Ui (Find-Ui -Description 'More actions')
+        Tap-Ui (Find-Ui -Text 'Connect objects')
+        Tap-Ui (Find-Ui -Text 'Apply')
+        Find-Ui -Description 'Connection arrow' | Out-Null
+        # Dialog creation returns to Select; the first drag selects and moves the ellipse.
+        $taskMovement = Move-ConnectionTarget
+        Tap-Ui (Find-Ui -Description 'Undo')
+        Assert-ConnectionFrames $taskMovement.Before
+        Tap-Ui (Find-Ui -Description 'Redo')
+        Assert-ConnectionFrames $taskMovement.After
+        Capture 'release-connected-objects'
+    }
     Start-Sleep -Milliseconds 1500
     Invoke-Adb shell am force-stop $Package | Out-Null
     Invoke-Adb shell am start -f 0x10008000 -n "$Package/dev.whiteboard.app.MainActivity" | Out-Null
@@ -270,6 +330,15 @@ try {
     if ($CheckRotation) {
         Find-Ui -Description 'Rectangle' | Out-Null
         Write-Output 'PASS: optimized rotation, Undo/Redo, recovery and saved reopen.'
+    }
+    if ($CheckConnections) {
+        # A fresh move after reopening proves that bindings survived persistence, rather
+        # than accepting a visually identical, detached line. Viewport may be refitted.
+        $taskReopenedMovement = Move-ConnectionTarget
+        Tap-Ui (Find-Ui -Description 'Undo')
+        Assert-ConnectionFrames $taskReopenedMovement.Before
+        Capture 'release-reopened-connections'
+        Write-Output 'PASS: optimized connections follow moved targets with exact Undo/Redo and saved reopen.'
     }
     Tap-Ui (Find-Ui -Description 'Back to boards')
     Capture 'phone-library'

@@ -92,4 +92,48 @@ class PageGeometryTest {
             assertThrows(IllegalArgumentException::class.java) { page.geometry.hitTest(upper, Point(70f, 70f), tolerance) }
         }
     }
+
+    @Test fun connectionPickingUsesTheTopmostSupportedObjectInsteadOfAnOverlayStrokeOrLine() {
+        val stroke = Stroke(id = "stroke", points = listOf(Point(60f, 60f), Point(100f, 100f)), style = InkStyle(width = 5f))
+        val line = Line(id = "line", start = Point(60f, 60f), end = Point(100f, 100f), style = InkStyle())
+        val connection = Connector(
+            start = ConnectorEnd.Bound(lower.id, ConnectionPort.RIGHT),
+            end = ConnectorEnd.Bound(upper.id, ConnectionPort.LEFT)
+        )
+        val overlaid = page.copy(elements = page.elements + listOf(stroke, line, connection))
+        assertSame(upper, overlaid.geometry.connectionTargetAt(Point(80f, 80f), 0f))
+        assertSame(lower, overlaid.geometry.connectionTargetAt(Point(20f, 20f), 0f))
+        assertNull(overlaid.geometry.connectionTargetAt(Point(500f, 500f), 0f))
+    }
+
+    @Test fun gesturePortsAreTheNearestBoundaryPortsWhileCenterRemainsAnExplicitChoice() {
+        assertEquals(ConnectionPort.RIGHT, page.geometry.closestConnectionPort(lower.id, Point(500f, 60f)))
+        assertEquals(ConnectionPort.LEFT, page.geometry.closestConnectionPort(lower.id, Point(-500f, 60f)))
+        assertEquals(ConnectionPort.TOP, page.geometry.closestConnectionPort(lower.id, Point(60f, -500f)))
+        assertEquals(ConnectionPort.BOTTOM, page.geometry.closestConnectionPort(lower.id, Point(60f, 500f)))
+        assertNotEquals(ConnectionPort.CENTER, page.geometry.closestConnectionPort(lower.id, lower.bounds.center))
+        assertEquals(lower.bounds.center, page.geometry.connectionPorts().point(lower.id, ConnectionPort.CENTER))
+    }
+
+    @Test fun targetChoicesIncludeGroupChildrenButExcludeUnbindableLegacyIds() {
+        val stroke = Stroke(id = "stroke", points = listOf(Point(1000f, 1000f)), style = InkStyle())
+        val group = ElementGroup(id = "group", children = listOf(lower, stroke))
+        val legacy = upper.copy(id = "x".repeat(129), bounds = Bounds(300f, 300f, 400f, 400f))
+        val source = page.copy(elements = listOf(group, upper, legacy))
+        assertEquals(listOf(group.id, lower.id, upper.id), source.geometry.connectionTargets().map { it.id })
+        assertFalse(source.geometry.connectionPorts().supports(legacy.id))
+        assertNull(source.geometry.connectionTargetAt(legacy.bounds.center, 0f))
+        assertThrows(IllegalArgumentException::class.java) { source.geometry.closestConnectionPort(legacy.id, legacy.bounds.center) }
+    }
+
+    @Test fun cancelledTargetPreparationDoesNotPublishAPartialTargetList() {
+        val source = Page(elements = List(100) { lower.copy(id = "object-$it") })
+        var visits = 0
+        assertThrows(CancellationException::class.java) {
+            source.geometry.connectionTargets { if (++visits == 17) throw CancellationException() }
+        }
+        assertEquals(17, visits)
+        assertEquals(100, source.geometry.connectionTargets().size)
+        assertEquals(100, source.elements.size)
+    }
 }

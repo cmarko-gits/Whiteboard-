@@ -22,6 +22,7 @@ enum class Tool {
     DIAMOND,
     LINE,
     ARROW,
+    CONNECTOR,
     TEXT,
     NOTE,
     FILL

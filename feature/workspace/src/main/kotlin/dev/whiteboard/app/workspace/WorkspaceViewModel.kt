@@ -59,7 +59,10 @@ data class WorkspaceUi(
     val rotating: Boolean = false,
     val rotationSequence: Long = 0,
     val aligning: Boolean = false,
-    val alignmentSequence: Long = 0
+    val alignmentSequence: Long = 0,
+    val connectionRequest: ConnectionRequest? = null,
+    val connectionBusy: Boolean = false,
+    val connectionError: Int? = null
 )
 
 @HiltViewModel
@@ -75,6 +78,7 @@ class WorkspaceViewModel @Inject constructor(
     private val clipboard = ObjectClipboard()
     private val clipboardRetentionId = newId()
     private val retentionId = newId()
+    private var connectionGeneration = 0L
     private var recoveryJob: Job? = null
     private var brushJob: Job? = null
     private data class FailedOperation(val boardId: String?, val action: suspend () -> Unit)
@@ -122,6 +126,7 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(recovery = null) }
     }
     private suspend fun activate(board: Board, recovered: Boolean = false, query: String? = null) {
+        connectionGeneration++
         val match = board.firstTextMatch(query)
         var opened = if (match == null) board else board.copy(activePageId = match.pageId)
         match?.element?.let { target ->
@@ -135,6 +140,8 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update {
             it.copy(
                 loading = false,
+                connectionRequest = null,
+                connectionError = null,
                 editor = EditorUi(
                     board.id,
                     board.name,
@@ -150,13 +157,19 @@ class WorkspaceViewModel @Inject constructor(
         publish()
     }
 
-    fun canvas(event: CanvasEvent) {
+    fun canvas(event: CanvasEvent, source: EditorUi? = null) {
         val current = session ?: return
+        if (source != null && !sourceMatches(current, source)) return
         try {
             when (event) {
                 is CanvasEvent.Add -> {
                     val element = event.element
                     current.add(element)
+                    if (element is Connector) {
+                        mutable.update {
+                            it.copy(editor = it.editor?.copy(selectedIds = setOf(element.id)))
+                        }
+                    }
                     if (mutable.value.settings.smartShapes && element is Stroke) {
                         SmartShapeRecognizer.recognize(element)?.let { current.replace(it) }
                     }
@@ -191,6 +204,7 @@ class WorkspaceViewModel @Inject constructor(
                     }
                 }
                 is CanvasEvent.Rejected -> report(DocumentFailure(event.error))
+                CanvasEvent.ConnectionTargetMissing -> mutable.update { it.copy(message = UiNotice(R.string.connection_target_hint)) }
                 is CanvasEvent.Select -> {
                     val ids = event.ids.intersect(current.page.elements.map { it.id }.toSet())
                     mutable.update {
@@ -268,6 +282,7 @@ class WorkspaceViewModel @Inject constructor(
     }
     fun selectPage(id: String) {
         session?.selectPage(id)
+        dismissConnection()
         clearSelection()
         publish()
     }
@@ -472,6 +487,123 @@ class WorkspaceViewModel @Inject constructor(
         )
         changed()
     }
+
+    fun showConnection(id: String? = null, position: Point? = null, source: EditorUi? = null) = work {
+        if (mutable.value.connectionBusy || mutable.value.connectionRequest != null) return@work
+        val current = session ?: return@work
+        val original = current.page
+        if (source != null && !sourceMatches(current, source)) {
+            mutable.update { it.copy(message = UiNotice(R.string.connection_changed)) }
+            return@work
+        }
+        val existing = id?.let { value -> original.elements.firstOrNull { it.id == value } as? Connector }
+        if (id != null && existing == null) return@work
+        val selected = mutable.value.editor?.selectedIds.orEmpty()
+        val boardId = current.board.id
+        val generation = ++connectionGeneration
+        val ink = existing?.style ?: mutable.value.editor?.ink ?: InkStyle()
+        mutable.update { it.copy(connectionBusy = true, connectionError = null) }
+        try {
+            val request = withContext(dispatchers.computation) {
+                val calculation = currentCoroutineContext()
+                val targets = original.geometry.connectionTargets { calculation.ensureActive() }
+                val candidates = (targets.filter { it.id in selected } + targets).distinctBy { it.id }
+                val center = position ?: original.viewport.toDocument(Point(240f, 240f))
+                val startTarget = candidates.firstOrNull()
+                val endTarget = candidates.firstOrNull { it.id != startTarget?.id }
+                val start = existing?.start ?: startTarget?.let {
+                    ConnectorEnd.Bound(it.id, original.geometry.closestConnectionPort(it.id, endTarget?.bounds?.center ?: center))
+                } ?: ConnectorEnd.Free(center)
+                fun point(end: ConnectorEnd): Point = when (end) {
+                    is ConnectorEnd.Free -> end.point
+                    is ConnectorEnd.Bound -> original.geometry.connectionPorts().point(end.targetId, end.port)
+                }
+                val startPoint = point(start)
+                val end = existing?.end ?: endTarget?.let {
+                    ConnectorEnd.Bound(it.id, original.geometry.closestConnectionPort(it.id, startPoint))
+                } ?: ConnectorEnd.Free(Point(startPoint.x + 160f, startPoint.y))
+                calculation.ensureActive()
+                ConnectionRequest(boardId, original, existing, targets, start, end, startPoint, point(end), ink, existing?.arrow ?: true)
+            }
+            if (generation != connectionGeneration) return@work
+            if (session === current && current.page.id == original.id && current.page.elements === original.elements) {
+                mutable.update { it.copy(connectionRequest = request) }
+            } else {
+                mutable.update { it.copy(message = UiNotice(R.string.connection_changed)) }
+            }
+        } finally {
+            mutable.update { it.copy(connectionBusy = false) }
+        }
+    }
+
+    fun dismissConnection() {
+        connectionGeneration++
+        mutable.update { it.copy(connectionRequest = null, connectionError = null) }
+    }
+
+    fun applyConnection(start: ConnectorEnd, end: ConnectorEnd, arrow: Boolean) = work {
+        if (mutable.value.connectionBusy) return@work
+        val request = mutable.value.connectionRequest ?: return@work
+        val current = session ?: return@work
+        mutable.update { it.copy(connectionBusy = true, connectionError = null) }
+        try {
+            val definition = withContext(dispatchers.computation) {
+                val calculation = currentCoroutineContext()
+                calculation.ensureActive()
+                val result = Connector(request.existing?.id ?: request.id, start, end, request.style, arrow)
+                val objects = if (request.existing == null) {
+                    request.page.elements + result
+                } else {
+                    request.page.elements.map {
+                        if (it.id == result.id) result else it
+                    }
+                }
+                request.page.copy(elements = objects).contentBounds
+                calculation.ensureActive()
+                result
+            }
+            if (mutable.value.connectionRequest?.id != request.id) return@work
+            if (session !== current || current.board.id != request.boardId || current.page.id != request.page.id ||
+                current.page.elements !== request.page.elements
+            ) {
+                dismissConnection()
+                mutable.update { it.copy(message = UiNotice(R.string.connection_changed)) }
+                return@work
+            }
+            if (request.existing == null) current.add(definition) else current.replace(definition)
+            mutable.update { it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = setOf(definition.id))) }
+            dismissConnection()
+            changed()
+        } catch (error: DocumentFailure) {
+            mutable.update {
+                it.copy(
+                    connectionError = if (error.error ==
+                        DocumentError.EDIT_LIMIT
+                    ) {
+                        R.string.edit_limit
+                    } else {
+                        R.string.operation_failed
+                    }
+                )
+            }
+        } catch (_: IllegalArgumentException) {
+            mutable.update { it.copy(connectionError = R.string.connection_invalid) }
+        } finally {
+            mutable.update { it.copy(connectionBusy = false) }
+        }
+    }
+
+    fun detachConnection(id: String, source: EditorUi? = null) = work {
+        val current = session ?: return@work
+        if (source != null && !sourceMatches(current, source)) return@work
+        val definition = current.page.elements.firstOrNull { it.id == id } as? Connector ?: return@work
+        val resolved = current.page.geometry.resolve(definition) as Line
+        current.replace(definition.copy(start = ConnectorEnd.Free(resolved.start), end = ConnectorEnd.Free(resolved.end)))
+        changed()
+    }
+
+    private fun sourceMatches(current: DocumentSession, source: EditorUi): Boolean =
+        current.board.id == source.boardId && current.page.id == source.page.id && current.page.elements === source.page.elements
     fun applyText(text: String, size: Float, bold: Boolean, italic: Boolean, alignment: TextAlignment, color: Int) {
         val request = mutable.value.textRequest ?: return
         if (text.isNotBlank()) {
@@ -569,6 +701,7 @@ class WorkspaceViewModel @Inject constructor(
         persistence.discardDraft(current.board.id)
         if (session !== current) return@work
         session = null
+        dismissConnection()
         files.releaseSession(retentionId)
         mutable.update { it.copy(editor = null, textRequest = null) }
     }

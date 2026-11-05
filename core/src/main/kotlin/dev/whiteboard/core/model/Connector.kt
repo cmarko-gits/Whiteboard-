@@ -37,5 +37,7 @@ data class Connector(
 }
 
 private fun requireConnectionId(id: String) {
-    require(id.length in 1..128 && id.isNotBlank()) { "Invalid connection object ID" }
+    require(isValidConnectionId(id)) { "Invalid connection object ID" }
 }
+
+internal fun isValidConnectionId(id: String): Boolean = id.length in 1..128 && id.isNotBlank()

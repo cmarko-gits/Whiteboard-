@@ -388,6 +388,23 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         if (command !is EditCommand) return command
         val before = board.pages.first { it.id == command.pageId }
         if (before.content.connections.isEmpty()) return command
+        val removedTargets = mutableSetOf<String>()
+        val retainedTargets = mutableSetOf<String>()
+        fun collect(element: PageObject?, destination: MutableSet<String>) {
+            if (element is Element && element !is Stroke && element !is Line && isValidConnectionId(element.id)) destination.add(element.id)
+            if (element is ElementGroup) element.children.forEach { collect(it, destination) }
+        }
+        command.deltas.forEach {
+            collect(it.before?.element, removedTargets)
+            collect(it.after?.element, retainedTargets)
+        }
+        removedTargets.removeAll(retainedTargets)
+        if (removedTargets.isEmpty() || before.content.connections.values.none { edge ->
+                listOf(edge.start, edge.end).any { it is ConnectorEnd.Bound && it.targetId in removedTargets }
+            }
+        ) {
+            return command
+        }
         val result = command.objects(before, true)
         val surviving = result.filterIsInstance<Connector>().filter { before.content.connections[it.id] == it }
         if (surviving.isEmpty()) return command

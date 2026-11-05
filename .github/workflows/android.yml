@@ -20,6 +20,9 @@ jobs:
       - name: Check adb argument binding without a device
         shell: pwsh
         run: ./tools/Test-AdbArgumentBinding.ps1
+      - name: Check connection smoke synchronization without a device
+        shell: pwsh
+        run: ./tools/Test-ConnectionSmoke.ps1
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin

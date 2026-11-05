@@ -41,7 +41,7 @@ class PagePortIndex internal constructor(private val pageId: String, private val
     )
 
     private fun target(element: PageObject): Target? {
-        if (element !is Element || element is Stroke || element is Line) return null
+        if (element !is Element || element is Stroke || element is Line || !isValidConnectionId(element.id)) return null
         // Validate each supported frame once, rather than rescanning a large group for every edge.
         element.renderBounds
         return when (element) {
