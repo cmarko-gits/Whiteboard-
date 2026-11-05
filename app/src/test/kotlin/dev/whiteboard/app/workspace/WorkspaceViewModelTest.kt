@@ -39,6 +39,68 @@ class WorkspaceViewModelTest {
     private val settings = InMemorySettingsRepository(UserSettings(onboarded = true))
     private val files = FakeDocumentStorage()
     private val models = mutableListOf<WorkspaceViewModel>()
+
+    @Test fun aRejectedPasteReportsAnErrorWithoutChangingTheSavedBoardOrItsHistory() = runTest {
+        val model = model()
+        model.create("Coordinate limit").join()
+        val original = Note(bounds = Bounds(999_999_936f, 0f, 1_000_000_000f, 100f), text = "Boundary")
+        model.canvas(CanvasEvent.Add(original))
+        model.selectAll()
+        model.copySelected()
+        model.paste().join()
+        assertEquals(2, model.state.value.editor!!.page.elements.size)
+        model.save().join()
+        val before = model.state.value.editor!!.page
+        model.paste().join()
+        assertEquals(before, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.dirty)
+        assertEquals(R.string.operation_failed, model.state.value.message?.resource)
+        model.undo()
+        assertEquals(listOf(original), model.state.value.editor!!.page.elements)
+    }
+
+    @Test fun duplicatingAGroupKeepsItsChildrenEditableAndRestoresOneExactUndoEntry() = runTest {
+        val model = model()
+        model.create("Copy group").join()
+        val first = note("First")
+        val second = note("Second").copy(bounds = Bounds(300f, 300f, 500f, 500f))
+        val original = ElementGroup(children = listOf(first, second))
+        model.canvas(CanvasEvent.Add(original))
+        model.selectAll()
+        model.duplicateSelected().join()
+        val copied = model.state.value.editor!!.page.elements.last() as ElementGroup
+        assertEquals(setOf(copied.id), model.state.value.editor!!.selectedIds)
+        assertTrue(copied.children.none { it.id in setOf(first.id, second.id) })
+        assertEquals(first.bounds.left + 24f, copied.children.first().bounds.left, 0f)
+        model.save().join()
+        val editor = model.state.value.editor!!
+        assertEquals(listOf(original, copied), repository.load(editor.boardId).activePage.elements)
+        model.undo()
+        assertEquals(listOf(original), model.state.value.editor!!.page.elements)
+        model.redo()
+        assertEquals(listOf(original, copied), model.state.value.editor!!.page.elements)
+    }
+
+    @Test fun duplicatingAPageRemapsGroupChildrenAndSavesTheIndependentPage() = runTest {
+        val model = model()
+        model.create("Copy page").join()
+        val group = ElementGroup(children = listOf(note("A"), note("B")))
+        model.canvas(CanvasEvent.Add(group))
+        val before = model.state.value.editor!!.page
+        model.duplicatePage(before.id).join()
+        val copiedPage = model.state.value.editor!!.page
+        val copied = copiedPage.elements.single() as ElementGroup
+        assertNotEquals(before.id, copiedPage.id)
+        assertNotEquals(group.id, copied.id)
+        assertTrue(copied.children.map { it.id }.toSet().intersect(group.children.map { it.id }.toSet()).isEmpty())
+        assertEquals(group.bounds, copied.bounds)
+        model.save().join()
+        assertEquals(copiedPage, repository.load(model.state.value.editor!!.boardId).activePage)
+        model.undo()
+        assertEquals(listOf(before), model.state.value.editor!!.pages)
+        model.redo()
+        assertEquals(copiedPage, model.state.value.editor!!.page)
+    }
     private fun model(cpu: CoroutineDispatcher = main.dispatcher): WorkspaceViewModel {
         val dispatchers = object : AppDispatchers {
             override val io = main.dispatcher

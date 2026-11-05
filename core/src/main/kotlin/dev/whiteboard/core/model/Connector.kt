@@ -17,15 +17,16 @@ sealed interface ConnectorEnd {
 
 /**
  * Page-independent connection intent. Resolve both ends against one page snapshot before use.
- * Kept outside Element until all document, history and rendering consumers support page geometry.
+ * A PageObject without standalone bounds. Kept outside Element so a group or affine source cannot
+ * acquire a connection that needs an owning page to resolve its geometry.
  */
 data class Connector(
-    val id: String = newId(),
+    override val id: String = newId(),
     val start: ConnectorEnd,
     val end: ConnectorEnd,
     val style: InkStyle = InkStyle(),
     val arrow: Boolean = true
-) {
+) : PageObject {
     init {
         requireConnectionId(id)
         require((start as? ConnectorEnd.Bound)?.targetId != id && (end as? ConnectorEnd.Bound)?.targetId != id)

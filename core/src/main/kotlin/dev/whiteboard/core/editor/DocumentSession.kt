@@ -315,9 +315,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         val added = original.copy(
             id = newId(),
             name = "${original.name.take(115)} copy",
-            elements = original.elements.map {
-                it.duplicate()
-            }
+            elements = ObjectCopies.duplicate(original.elements).elements
         )
         val pages = board.pages.toMutableList().apply { add(indexOfFirst { it.id == id } + 1, added) }
         changePages(pages, added.id)

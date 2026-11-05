@@ -36,8 +36,7 @@ data class InkStyle(val color: Int = 0xFF202621.toInt(), val width: Float = 3f, 
     }
 }
 
-sealed interface Element {
-    val id: String
+sealed interface Element : PageObject {
     val bounds: Bounds
     fun transform(target: Bounds): Element
     fun duplicate(): Element

@@ -14,11 +14,10 @@ class ObjectClipboard {
     }
     fun paste(): List<Element> {
         if (!available) return emptyList()
-        pasteCount = pasteCount % 20 + 1
-        val offset = 24f * pasteCount
-        return elements.map { element ->
-            val bounds = element.selectionBounds
-            element.duplicate().transform(Bounds(bounds.left + offset, bounds.top + offset, bounds.right + offset, bounds.bottom + offset))
-        }
+        val nextCount = pasteCount % 20 + 1
+        val offset = 24f * nextCount
+        val copied = ObjectCopies.duplicate(elements, Point(offset, offset)).elements
+        pasteCount = nextCount
+        return copied
     }
 }

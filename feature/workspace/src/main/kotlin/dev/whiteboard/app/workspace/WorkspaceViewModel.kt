@@ -266,8 +266,8 @@ class WorkspaceViewModel @Inject constructor(
         clearSelection()
         changed()
     }
-    fun duplicatePage(id: String) {
-        if ((session?.board?.pages?.size ?: 0) >= 1000) return
+    fun duplicatePage(id: String) = work {
+        if ((session?.board?.pages?.size ?: 0) >= 1000) return@work
         session?.duplicatePage(id)
         clearSelection()
         changed()
@@ -388,8 +388,8 @@ class WorkspaceViewModel @Inject constructor(
         clearSelection()
         changed()
     }
-    fun duplicateSelected() {
-        val current = session ?: return
+    fun duplicateSelected() = work {
+        val current = session ?: return@work
         val temporary = ObjectClipboard()
         temporary.copy(selectedElements())
         val copies = temporary.paste()
@@ -421,8 +421,8 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(editor = it.editor?.copy(canPaste = true)) }
         if (cut) deleteSelected()
     }
-    fun paste() {
-        val current = session ?: return
+    fun paste() = work {
+        val current = session ?: return@work
         val copies = clipboard.paste()
         current.addAll(copies)
         mutable.update { it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = copies.map { copy -> copy.id }.toSet())) }
