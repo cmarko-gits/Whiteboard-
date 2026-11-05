@@ -2,8 +2,11 @@ package dev.whiteboard.core.editor
 
 import dev.whiteboard.core.model.*
 
-/** Copy plan; connections remain separate until the document's Element/format integration. */
-data class ConnectionCopy(val elements: List<Element>, val connections: List<Connector>, val identities: Map<String, String>)
+/** One layer-preserving object list and the complete identity map used to construct it. */
+data class ConnectionCopy(val objects: List<PageObject>, val identities: Map<String, String>) {
+    val elements: List<Element> get() = objects.filterIsInstance<Element>()
+    val connections: List<Connector> get() = objects.filterIsInstance<Connector>()
+}
 
 object ConnectionCopies {
     fun duplicate(
@@ -17,7 +20,7 @@ object ConnectionCopies {
         require(connectors.size <= Page.MAX_ELEMENTS)
         val definitions = connectors.toList()
         val geometry = PageConnectionGeometry(page, definitions, checkpoint)
-        val selected = page.elements.filter {
+        val selected = page.elements.filterIsInstance<Element>().filter {
             checkpoint()
             it.id in selectedIds
         }
@@ -57,8 +60,13 @@ object ConnectionCopies {
         }
         // Validate the complete result before returning anything; no old target can be picked up
         // accidentally by a destination page or a later paste into another document.
-        PageConnectionGeometry(Page(id = page.id, elements = objects.elements), copied, checkpoint)
+        val copiesById = (objects.elements + copied).associateBy { it.id }
+        val sourceIds = page.elements.map { it.id }.toHashSet()
+        val sourceOrder = page.elements + definitions.filter { it.id !in sourceIds }
+        val ordered = sourceOrder.filter { it.id in selectedIds }.map { copiesById.getValue(identities.getValue(it.id)) }
+        val result = Page(id = page.id, elements = ordered)
+        result.contentBounds
         checkpoint()
-        return ConnectionCopy(objects.elements, copied, identities)
+        return ConnectionCopy(ordered, identities)
     }
 }

@@ -94,7 +94,7 @@ class ObjectCopiesTest {
         val session = DocumentSession(Board(name = "Original", pages = listOf(Page(elements = listOf(group)))))
         var allocated = 0
         assertThrows(CancellationException::class.java) {
-            ObjectCopies.duplicate(session.page.elements, identity = {
+            ObjectCopies.duplicate(session.page.elements.map { it as Element }, identity = {
                 if (++allocated == 2) throw CancellationException()
                 "new-$allocated"
             })

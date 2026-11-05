@@ -42,7 +42,7 @@ class AlignmentFlowTest {
         database.close()
     }
 
-    private suspend fun saveAndRead(board: Board, expected: List<Element>): Page {
+    private suspend fun saveAndRead(board: Board, expected: List<PageObject>): Page {
         text("Unsaved changes")
         control("Save").click()
         text("Saved on this device")

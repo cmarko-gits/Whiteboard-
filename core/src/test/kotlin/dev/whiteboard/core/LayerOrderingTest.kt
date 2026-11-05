@@ -62,8 +62,8 @@ class LayerOrderingTest {
         assertFalse(session.stepLayer(setOf(objects.first().id), LayerStep.BACKWARD))
         assertFalse(session.stepLayer(emptySet(), LayerStep.FORWARD))
         assertFalse(session.stepLayer(setOf(newId()), LayerStep.BACKWARD))
-        assertFalse(session.stepLayer(objects.map(Element::id).toSet(), LayerStep.FORWARD))
-        assertFalse(session.reorder(objects.map(Element::id).toSet(), true))
+        assertFalse(session.stepLayer(objects.map(PageObject::id).toSet(), LayerStep.FORWARD))
+        assertFalse(session.reorder(objects.map(PageObject::id).toSet(), true))
         assertSame(before, session.board)
         assertTrue(session.canRedo)
         assertFalse(session.canUndo)
@@ -75,7 +75,7 @@ class LayerOrderingTest {
     @Test fun theAvailabilityQueryMatchesTheSelectionBoundary() {
         assertFalse(LayerOrdering.canStep(objects, setOf(objects.last().id), LayerStep.FORWARD))
         assertFalse(LayerOrdering.canStep(objects, setOf(objects.first().id), LayerStep.BACKWARD))
-        assertFalse(LayerOrdering.canStep(objects, objects.map(Element::id).toSet(), LayerStep.BACKWARD))
+        assertFalse(LayerOrdering.canStep(objects, objects.map(PageObject::id).toSet(), LayerStep.BACKWARD))
         assertTrue(LayerOrdering.canStep(objects, setOf(objects[1].id), LayerStep.FORWARD))
         assertTrue(LayerOrdering.canStep(objects, setOf(objects[1].id), LayerStep.BACKWARD))
     }
@@ -131,7 +131,7 @@ class LayerOrderingTest {
     }
 
     @Test fun malformedAndStaleOrderCommandsCannotDiscardObjects() {
-        val before = objects.take(2).map(Element::id)
+        val before = objects.take(2).map(PageObject::id)
         assertThrows(IllegalArgumentException::class.java) { LayerOrderChange(newId(), before, listOf(before[0], before[0])) }
         assertThrows(IllegalArgumentException::class.java) { LayerOrderChange(newId(), before, listOf(before[1], newId())) }
         val session = session(objects.take(2))
@@ -148,7 +148,7 @@ class LayerOrderingTest {
     @Test fun aLargeSparseSelectionMovesLinearlyWithoutChangingAnyContent() {
         val original = List(10_000) { shape(it * 20f) }
         val session = session(original)
-        val selected = original.filterIndexed { index, _ -> index % 2 == 0 }.map(Element::id).toSet()
+        val selected = original.filterIndexed { index, _ -> index % 2 == 0 }.map(PageObject::id).toSet()
         session.stepLayer(selected, LayerStep.FORWARD)
         val expected = original.chunked(2).flatMap { it.reversed() }
         assertEquals(expected, session.page.elements)

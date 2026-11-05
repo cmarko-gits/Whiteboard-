@@ -18,7 +18,7 @@ class SelectionAlignmentTest {
         val session = session(original)
         assertTrue(session.align(setOf(first.id, second.id), alignment))
         val result = session.page.elements
-        assertEquals(listOf(first.id, outside.id, second.id), result.map(Element::id))
+        assertEquals(listOf(first.id, outside.id, second.id), result.map(PageObject::id))
         assertEquals(first.copy(bounds = a), result[0])
         assertSame(outside, result[1])
         assertEquals(second.copy(bounds = b), result[2])
@@ -75,7 +75,7 @@ class SelectionAlignmentTest {
         session.align(setOf(first.id, group.id), ObjectAlignment.LEFT)
         val result = session.page.elements[1] as ElementGroup
         assertEquals(group.id, result.id)
-        assertEquals(group.children.map(Element::id), result.children.map(Element::id))
+        assertEquals(group.children.map(PageObject::id), result.children.map(PageObject::id))
         val moved = result.children[0] as AffineElement
         assertSame(posed.source, moved.source)
         assertEquals(posed.placement.then(AffineTransform2D.translation(dx.toDouble(), 0.0)), moved.placement)
@@ -172,10 +172,10 @@ class SelectionAlignmentTest {
     @Test fun aLargeSelectionKeepsEveryLayerAndAlignsInOneUndoCommand() {
         val objects = List(10_000) { first.copy(id = newId(), bounds = Bounds(it * 10f, it * 20f, it * 10f + 5f, it * 20f + 5f)) }
         val session = session(objects)
-        session.align(objects.map(Element::id).toSet(), ObjectAlignment.LEFT)
-        assertEquals(objects.map(Element::id), session.page.elements.map(Element::id))
+        session.align(objects.map(PageObject::id).toSet(), ObjectAlignment.LEFT)
+        assertEquals(objects.map(PageObject::id), session.page.elements.map(PageObject::id))
         session.page.elements.forEachIndexed { index, element ->
-            assertEquals(Bounds(0f, index * 20f, 5f, index * 20f + 5f), element.bounds)
+            assertEquals(Bounds(0f, index * 20f, 5f, index * 20f + 5f), session.page.geometry.resolve(element).bounds)
         }
         session.undo()
         assertEquals(objects, session.page.elements)

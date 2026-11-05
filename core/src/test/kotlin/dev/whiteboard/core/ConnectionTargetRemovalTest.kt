@@ -46,7 +46,7 @@ class ConnectionTargetRemovalTest {
     }
 
     @Test fun ungroupingDetachesTheRemovedGroupFrameButKeepsStableChildPorts() {
-        val group = ElementGroup(id = "group", children = page.elements)
+        val group = ElementGroup(id = "group", children = page.elements.map { it as Element })
         val grouped = page.copy(elements = listOf(group))
         val toGroup = edge.copy(id = "group-edge", start = ConnectorEnd.Bound(group.id, ConnectionPort.BOTTOM))
         val changes = ConnectionTargetRemoval.plan(grouped, page, listOf(edge, toGroup))

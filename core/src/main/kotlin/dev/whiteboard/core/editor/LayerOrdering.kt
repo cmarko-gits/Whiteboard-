@@ -6,13 +6,13 @@ enum class LayerStep(val offset: Int) { FORWARD(1), BACKWARD(-1) }
 
 /** Move each selected block across one adjacent unselected object, preserving both relative orders. */
 object LayerOrdering {
-    fun canStep(elements: List<Element>, ids: Set<String>, step: LayerStep): Boolean = positions(elements, step).any { index ->
+    fun canStep(elements: List<PageObject>, ids: Set<String>, step: LayerStep): Boolean = positions(elements, step).any { index ->
         elements[index].id in ids && elements[index + step.offset].id !in ids
     }
 
-    fun step(elements: List<Element>, ids: Set<String>, step: LayerStep): List<Element> {
+    fun step(elements: List<PageObject>, ids: Set<String>, step: LayerStep): List<PageObject> {
         if (ids.isEmpty()) return elements
-        var result: MutableList<Element>? = null
+        var result: MutableList<PageObject>? = null
         for (index in positions(elements, step)) {
             val current = result ?: elements
             val adjacent = index + step.offset
@@ -26,7 +26,7 @@ object LayerOrdering {
         return result?.toList() ?: elements
     }
 
-    private fun positions(elements: List<Element>, step: LayerStep): IntProgression =
+    private fun positions(elements: List<PageObject>, step: LayerStep): IntProgression =
         if (step == LayerStep.FORWARD) elements.lastIndex - 1 downTo 0 else 1..elements.lastIndex
 }
 
@@ -44,8 +44,8 @@ data class LayerOrderChange(val pageId: String, val before: List<String>, val af
         val page = requireNotNull(board.pages.firstOrNull { it.id == pageId })
         val expected = if (forward) before else after
         val target = if (forward) after else before
-        require(page.elements.map(Element::id) == expected) { "Layer order changed before applying command" }
-        val current = page.elements.associateBy(Element::id)
+        require(page.elements.map(PageObject::id) == expected) { "Layer order changed before applying command" }
+        val current = page.elements.associateBy(PageObject::id)
         return board.withPage(page.copy(elements = target.map(current::getValue))).copy(activePageId = pageId)
     }
 }

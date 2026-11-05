@@ -22,8 +22,8 @@ import dev.whiteboard.core.model.*
 import kotlin.math.*
 
 sealed interface CanvasEvent {
-    data class Add(val element: Element) : CanvasEvent
-    data class Replace(val elements: List<Element>) : CanvasEvent
+    data class Add(val element: PageObject) : CanvasEvent
+    data class Replace(val elements: List<PageObject>) : CanvasEvent
     data class TransformBy(val id: String, val translation: Point, val factor: Float) : CanvasEvent
     data class Delete(val ids: Set<String>) : CanvasEvent
     data class EraseStrokes(val ids: Set<String>) : CanvasEvent
@@ -51,9 +51,9 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private var activePointer = -1
     private var stylus = false
     private var navigating = false
-    private var dragOriginal = emptyList<Element>()
+    private var dragOriginal = emptyList<PageObject>()
     private var selectionArea: Bounds? = null
-    private var selectionPreview = emptyList<Element>()
+    private var selectionPreview = emptyList<PageObject>()
         set(value) {
             val next = if (value.isEmpty()) null else page.geometry.preview(value)
             field = value
@@ -274,7 +274,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         return true
     }
 
-    private fun performCanvasAccessibilityAction(action: Int, element: Element?): Boolean {
+    private fun performCanvasAccessibilityAction(action: Int, element: PageObject?): Boolean {
         if (element == null) {
             val step = 96 * density
             when (action) {
@@ -315,9 +315,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         when (action) {
             AccessibilityNodeInfoCompat.ACTION_CLICK -> onEvent(CanvasEvent.Select(setOf(element.id)))
             AccessibilityNodeInfoCompat.ACTION_LONG_CLICK -> {
+                if (element !is Element) return false
                 val content = element.content()
                 if (content !is Note && content !is TextElement) return false
-                onEvent(CanvasEvent.EditText(element.bounds.center, element, content is Note))
+                onEvent(CanvasEvent.EditText(page.geometry.selectionBounds(element).center, element, content is Note))
             }
             R.id.canvas_delete -> onEvent(CanvasEvent.Delete(setOf(element.id)))
             R.id.canvas_object_actions -> return openObjectMenu(setOf(element.id))
@@ -338,7 +339,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     R.id.canvas_shrink -> 1 / 1.1f
                     else -> 1f
                 }
-                if (dx == 0f && dy == 0f && factor == 1f) return false
+                if (!element.canTransformIndependently || (dx == 0f && dy == 0f && factor == 1f)) return false
                 onEvent(CanvasEvent.TransformBy(element.id, Point(dx, dy), factor))
             }
         }
@@ -419,9 +420,11 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             ) {
                 it.withoutStrokes(erased)?.let { visibleElement ->
                     if (partialFragments.isEmpty()) {
-                        renderer.drawElement(canvas, visibleElement)
+                        renderer.drawElement(canvas, geometry.resolve(visibleElement))
                     } else {
-                        visibleElement.withStrokeFragments(partialFragments).forEach { fragment -> renderer.drawElement(canvas, fragment) }
+                        visibleElement.withStrokeFragments(partialFragments).forEach { fragment ->
+                            renderer.drawElement(canvas, geometry.resolve(fragment))
+                        }
                     }
                 }
             }
@@ -438,7 +441,11 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 1.5f * density / viewport.scale
             canvas.drawRect(b.left, b.top, b.right, b.bottom, selectionPaint)
             selectionPaint.style = Paint.Style.FILL
-            if (selectionArea == null) canvas.drawCircle(b.right, b.bottom, 7 * density / viewport.scale, selectionPaint)
+            if (selectionArea == null &&
+                selected.canTransformTogether()
+            ) {
+                canvas.drawCircle(b.right, b.bottom, 7 * density / viewport.scale, selectionPaint)
+            }
         }
         selectionPaint.color = 0x9983A391.toInt()
         selectionPaint.strokeWidth = 1f / viewport.scale
@@ -488,7 +495,9 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                         val current = page.elements.filter { it.id in selectedIds }
                         val handle = current.map { page.geometry.selectionBounds(it) }
                             .reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
-                        resizing = handle != null && hypot(point.x - handle.right, point.y - handle.bottom) < 22 * density / viewport.scale
+                        resizing =
+                            current.canTransformTogether() && handle != null &&
+                            hypot(point.x - handle.right, point.y - handle.bottom) < 22 * density / viewport.scale
                         val hit = page.geometry.topmostAt(point, 12 * density / viewport.scale)
                         dragOriginal = when {
                             resizing -> current
@@ -570,6 +579,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                         if (original.isEmpty()) {
                             selectionArea = Bounds.between(origin, point)
                         } else {
+                            if (!original.canTransformTogether()) return true
                             val b = original.map { page.geometry.selectionBounds(it) }.reduce(Bounds::union)
                             val target = if (resizing) {
                                 Bounds(b.left, b.top, max(b.left + 24f, point.x), max(b.top + 24f, point.y))
@@ -591,11 +601,12 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             guideX = snapped?.guideX
                             guideY = snapped?.guideY
                             val final = snapped?.bounds ?: target
+                            val movableTargets = if (original.any { it is Connector }) original.allObjectIds() else emptySet()
                             selectionPreview = original.map { element ->
                                 val bounds = page.geometry.selectionBounds(element)
                                 val topLeft = Point(bounds.left, bounds.top).remap(b, final)
                                 val bottomRight = Point(bounds.right, bounds.bottom).remap(b, final)
-                                element.transform(Bounds.between(topLeft, bottomRight))
+                                page.geometry.transform(element, Bounds.between(topLeft, bottomRight), movableTargets)
                             }
                         }
                     }
@@ -718,7 +729,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     val ids = page.elements.filter { page.geometry.renderBounds(it).intersects(area) }.map { it.id }.toSet()
                     onEvent(CanvasEvent.Select(ids))
                 }
-                val single = dragOriginal.singleOrNull()
+                val single = dragOriginal.singleOrNull() as? Element
                 if (selectionPreview.isEmpty() && (single?.content() is TextElement || single?.content() is Note)) {
                     down?.let { onEvent(CanvasEvent.EditText(it, single, single?.content() is Note)) }
                 }

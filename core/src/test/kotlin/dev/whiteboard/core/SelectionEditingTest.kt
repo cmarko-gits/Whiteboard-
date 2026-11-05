@@ -47,12 +47,12 @@ class SelectionEditingTest {
         session.addAll(pasted)
         assertEquals(2, session.page.elements.size)
         assertTrue(pasted.none { copy -> first.elements.any { it.id == copy.id } })
-        assertEquals(24f, pasted.first().bounds.left)
+        assertEquals(24f, (pasted.first() as Shape).bounds.left)
         session.undo()
         assertTrue(session.page.elements.isEmpty())
         session.redo()
         assertEquals(pasted, session.page.elements)
-        assertEquals(48f, clipboard.paste().first().bounds.left)
+        assertEquals(48f, (clipboard.paste().first() as Shape).bounds.left)
     }
 
     @Test fun clipboardRetainsMediaAssetWithoutDuplicatingBinaryFile() {

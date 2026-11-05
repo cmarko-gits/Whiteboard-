@@ -125,7 +125,8 @@ class WorkspaceViewModel @Inject constructor(
         val match = board.firstTextMatch(query)
         var opened = if (match == null) board else board.copy(activePageId = match.pageId)
         match?.element?.let { target ->
-            val view = Viewport().pan(120f - target.bounds.left, 160f - target.bounds.top)
+            val bounds = opened.activePage.geometry.selectionBounds(target)
+            val view = Viewport().pan(120f - bounds.left, 160f - bounds.top)
             opened = opened.withPage(opened.activePage.copy(viewport = view))
         }
         session = DocumentSession(opened).also { if (recovered) it.markRecovered() }
@@ -151,63 +152,73 @@ class WorkspaceViewModel @Inject constructor(
 
     fun canvas(event: CanvasEvent) {
         val current = session ?: return
-        when (event) {
-            is CanvasEvent.Add -> {
-                val element = event.element
-                current.add(element)
-                if (mutable.value.settings.smartShapes && element is Stroke) {
-                    SmartShapeRecognizer.recognize(element)?.let { current.replace(it) }
+        try {
+            when (event) {
+                is CanvasEvent.Add -> {
+                    val element = event.element
+                    current.add(element)
+                    if (mutable.value.settings.smartShapes && element is Stroke) {
+                        SmartShapeRecognizer.recognize(element)?.let { current.replace(it) }
+                    }
+                    changed()
                 }
-                changed()
-            }
-            is CanvasEvent.Replace -> {
-                current.replaceAll(event.elements)
-                changed()
-            }
-            is CanvasEvent.TransformBy -> {
-                try {
-                    if (current.transformBy(event.id, event.translation, event.factor)) changed()
-                } catch (error: IllegalArgumentException) {
-                    report(error)
+                is CanvasEvent.Replace -> {
+                    current.replaceAll(event.elements)
+                    changed()
+                }
+                is CanvasEvent.TransformBy -> {
+                    try {
+                        if (current.transformBy(event.id, event.translation, event.factor)) changed()
+                    } catch (error: IllegalArgumentException) {
+                        report(error)
+                    }
+                }
+                is CanvasEvent.Delete -> {
+                    current.delete(event.ids)
+                    changed()
+                }
+                is CanvasEvent.EraseStrokes -> {
+                    current.eraseStrokes(event.ids)
+                    changed()
+                }
+                is CanvasEvent.EraseParts -> {
+                    try {
+                        if (current.eraseParts(event.cuts)) changed()
+                    } catch (error: DocumentFailure) {
+                        report(error)
+                    } catch (error: IllegalArgumentException) {
+                        report(error)
+                    }
+                }
+                is CanvasEvent.Rejected -> report(DocumentFailure(event.error))
+                is CanvasEvent.Select -> {
+                    val ids = event.ids.intersect(current.page.elements.map { it.id }.toSet())
+                    mutable.update {
+                        it.copy(editor = it.editor?.copy(selectedIds = ids, tool = if (ids.isNotEmpty()) Tool.SELECT else it.editor.tool))
+                    }
+                }
+                is CanvasEvent.Fill -> {
+                    current.fill(event.position, event.color)
+                    changed()
+                }
+                is CanvasEvent.EditText -> {
+                    val existing = event.existing?.let { previous ->
+                        current.page.elements.firstOrNull { it.id == previous.id } as? Element
+                    }
+                    if (event.existing != null && existing == null) return
+                    val content = existing?.content()
+                    if (existing != null && (if (event.note) content !is Note else content !is TextElement)) return
+                    mutable.update { it.copy(textRequest = event.copy(existing = existing)) }
+                }
+                is CanvasEvent.Camera -> {
+                    current.updateViewport(event.viewport)
+                    if (mutable.value.editor?.initialFit == true) mutable.update { it.copy(editor = it.editor?.copy(initialFit = false)) }
                 }
             }
-            is CanvasEvent.Delete -> {
-                current.delete(event.ids)
-                changed()
-            }
-            is CanvasEvent.EraseStrokes -> {
-                current.eraseStrokes(event.ids)
-                changed()
-            }
-            is CanvasEvent.EraseParts -> {
-                try {
-                    if (current.eraseParts(event.cuts)) changed()
-                } catch (error: DocumentFailure) {
-                    report(error)
-                } catch (error: IllegalArgumentException) {
-                    report(error)
-                }
-            }
-            is CanvasEvent.Rejected -> report(DocumentFailure(event.error))
-            is CanvasEvent.Select -> {
-                val ids = event.ids.intersect(current.page.elements.map { it.id }.toSet())
-                mutable.update {
-                    it.copy(editor = it.editor?.copy(selectedIds = ids, tool = if (ids.isNotEmpty()) Tool.SELECT else it.editor.tool))
-                }
-            }
-            is CanvasEvent.Fill -> {
-                current.fill(event.position, event.color)
-                changed()
-            }
-            is CanvasEvent.EditText -> {
-                val existing = event.existing?.let { previous -> current.page.elements.firstOrNull { it.id == previous.id } }
-                if (event.existing != null && existing == null) return
-                mutable.update { it.copy(textRequest = event.copy(existing = existing)) }
-            }
-            is CanvasEvent.Camera -> {
-                current.updateViewport(event.viewport)
-                if (mutable.value.editor?.initialFit == true) mutable.update { it.copy(editor = it.editor?.copy(initialFit = false)) }
-            }
+        } catch (error: DocumentFailure) {
+            report(error)
+        } catch (error: IllegalArgumentException) {
+            report(error)
         }
     }
     fun tool(tool: Tool) {
@@ -391,13 +402,13 @@ class WorkspaceViewModel @Inject constructor(
     fun duplicateSelected() = work {
         val current = session ?: return@work
         val temporary = ObjectClipboard()
-        temporary.copy(selectedElements())
+        temporary.copy(current.page, mutable.value.editor?.selectedIds.orEmpty())
         val copies = temporary.paste()
         current.addAll(copies)
         mutable.update { it.copy(editor = it.editor?.copy(selectedIds = copies.map { copy -> copy.id }.toSet())) }
         changed()
     }
-    fun selectedElements(): List<Element> {
+    fun selectedElements(): List<PageObject> {
         val ids = mutable.value.editor?.selectedIds.orEmpty()
         return session?.page?.elements?.filter { it.id in ids }.orEmpty()
     }
@@ -413,10 +424,11 @@ class WorkspaceViewModel @Inject constructor(
             )
         }
     }
-    fun copySelected(cut: Boolean = false) {
+    fun copySelected(cut: Boolean = false) = work {
+        val current = session ?: return@work
         val elements = selectedElements()
-        if (elements.isEmpty()) return
-        clipboard.copy(elements)
+        if (elements.isEmpty()) return@work
+        clipboard.copy(current.page, elements.map { it.id }.toSet())
         files.protectSession(clipboardRetentionId, clipboard.assetIds)
         mutable.update { it.copy(editor = it.editor?.copy(canPaste = true)) }
         if (cut) deleteSelected()
@@ -451,6 +463,7 @@ class WorkspaceViewModel @Inject constructor(
                     when (child) {
                         is Stroke -> child.copy(style = ink)
                         is Line -> child.copy(style = ink)
+                        is Connector -> child.copy(style = ink)
                         is Shape -> child.copy(style = ink, fill = fill)
                         else -> child
                     }
@@ -467,8 +480,13 @@ class WorkspaceViewModel @Inject constructor(
                 dismissText()
                 return
             }
+            val content = (existing as? Element)?.content()
+            if (existing != null && (if (request.note) content !is Note else content !is TextElement)) {
+                dismissText()
+                return
+            }
             val b =
-                existing?.content()?.bounds
+                content?.bounds
                     ?: Bounds(
                         request.position.x,
                         request.position.y,

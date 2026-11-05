@@ -107,9 +107,9 @@ class FinalGestureInputTest {
                         } else {
                             Bounds(10f, 20f, 80f, 120f)
                         },
-                        result.bounds
+                        (result as Shape).bounds
                     )
-                    assertEquals(tool, (result as Shape).kind)
+                    assertEquals(tool, result.kind)
                 }
             }
         }

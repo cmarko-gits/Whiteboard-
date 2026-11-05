@@ -37,7 +37,13 @@ class BoardRenderer(private val assets: AssetProvider? = null, private val stric
     fun drawPage(canvas: Canvas, page: Page, visible: Bounds, scale: Float, omitId: String? = null) {
         drawBackground(canvas, page, visible, scale)
         val geometry = page.geometry
-        page.elements.forEach { if (it.id != omitId && geometry.renderBounds(it).expand(4f).intersects(visible)) drawElement(canvas, it) }
+        page.elements.forEach {
+            if (it.id != omitId &&
+                geometry.renderBounds(it).expand(4f).intersects(visible)
+            ) {
+                drawElement(canvas, geometry.resolve(it))
+            }
+        }
     }
 
     fun drawBackground(canvas: Canvas, page: Page, visible: Bounds, scale: Float) {

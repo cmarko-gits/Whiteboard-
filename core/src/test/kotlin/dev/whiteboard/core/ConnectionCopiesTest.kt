@@ -62,7 +62,7 @@ class ConnectionCopiesTest {
     }
 
     @Test fun groupAndChildPortsBothUseTheFullChildIdentityMap() {
-        val group = ElementGroup(id = "group", children = page.elements)
+        val group = ElementGroup(id = "group", children = page.elements.map { it as Element })
         val grouped = page.copy(elements = listOf(group))
         val toGroup = edge.copy(id = "group-edge", start = ConnectorEnd.Bound(group.id, ConnectionPort.BOTTOM))
         val copy = ConnectionCopies.duplicate(grouped, listOf(edge, toGroup), setOf("group", "edge", "group-edge"))
@@ -100,7 +100,7 @@ class ConnectionCopiesTest {
 
     @Test fun unknownSelectionAndMalformedGraphReferencesAreRejectedBeforeReturningACopy() {
         assertThrows(IllegalArgumentException::class.java) { ConnectionCopies.duplicate(page, listOf(edge), setOf("missing")) }
-        val grouped = page.copy(elements = listOf(ElementGroup(children = page.elements)))
+        val grouped = page.copy(elements = listOf(ElementGroup(children = page.elements.map { it as Element })))
         assertThrows(IllegalArgumentException::class.java) { ConnectionCopies.duplicate(grouped, listOf(edge), setOf("first")) }
         val dangling = edge.copy(end = ConnectorEnd.Bound("other-page-object", ConnectionPort.LEFT))
         assertThrows(IllegalArgumentException::class.java) { ConnectionCopies.duplicate(page, listOf(dangling), setOf("edge")) }

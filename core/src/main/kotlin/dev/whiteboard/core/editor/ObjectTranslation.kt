@@ -4,6 +4,18 @@ import dev.whiteboard.core.model.*
 
 /** Translation preserves each object's local pose; it does not resize through an enclosing frame. */
 internal object ObjectTranslation {
+    fun translate(element: PageObject, delta: Point, checkpoint: () -> Unit): PageObject = when (element) {
+        is Element -> translate(element, delta, checkpoint)
+        is Connector -> {
+            checkpoint()
+            fun shift(end: ConnectorEnd): ConnectorEnd = when (end) {
+                is ConnectorEnd.Free -> ConnectorEnd.Free(end.point + delta)
+                is ConnectorEnd.Bound -> end
+            }
+            element.copy(start = shift(element.start), end = shift(element.end))
+        }
+    }
+
     fun translate(element: Element, delta: Point, checkpoint: () -> Unit): Element {
         checkpoint()
         fun Point.shift() = this + delta

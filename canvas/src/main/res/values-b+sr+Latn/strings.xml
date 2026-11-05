@@ -22,6 +22,8 @@
     <string name="canvas_stroke">Potez crteža</string>
     <string name="canvas_line">Linija</string>
     <string name="canvas_arrow">Strelica</string>
+    <string name="canvas_connection_arrow">Povezana strelica</string>
+    <string name="canvas_connection_line">Linija veze</string>
     <string name="canvas_rectangle">Pravougaonik</string>
     <string name="canvas_square">Kvadrat</string>
     <string name="canvas_ellipse">Elipsa</string>

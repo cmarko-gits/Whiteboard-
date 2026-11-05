@@ -52,7 +52,7 @@ class LayerOrderingFlowTest {
         text("Saved on this device")
         return withTimeout(10_000) {
             var page = repository.load(board.id).activePage
-            while (page.elements.map(Element::id) != expected) {
+            while (page.elements.map(PageObject::id) != expected) {
                 delay(50)
                 page = repository.load(board.id).activePage
             }

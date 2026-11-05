@@ -23,15 +23,15 @@ data class CanvasAccessibilitySnapshot(val page: Page, val viewport: Viewport, v
 internal class CanvasAccessibility(
     private val host: View,
     private val state: () -> CanvasAccessibilitySnapshot,
-    private val action: (Int, Element?) -> Boolean,
+    private val action: (Int, PageObject?) -> Boolean,
     private val objectMenuAvailable: () -> Boolean = { false }
 ) : ExploreByTouchHelper(host) {
     private var dirty = true
     private var sequence = 0
-    private var nodes = linkedMapOf<Int, Element>()
+    private var nodes = linkedMapOf<Int, PageObject>()
     private val ids = mutableMapOf<String, Int>()
     private var lastPageId: String? = null
-    private var lastElements: List<Element>? = null
+    private var lastElements: List<PageObject>? = null
     private val focusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
     }
@@ -65,7 +65,7 @@ internal class CanvasAccessibility(
         if (keyboard != INVALID_ID && keyboard !in nodes) clearKeyboardFocusForVirtualView(keyboard)
     }
 
-    private fun rectangle(element: Element): Rect {
+    private fun rectangle(element: PageObject): Rect {
         val snapshot = state()
         val viewport = snapshot.viewport
         val bounds = snapshot.page.geometry.renderBounds(element)
@@ -139,7 +139,7 @@ internal class CanvasAccessibility(
             R.id.canvas_grow to R.string.canvas_grow,
             R.id.canvas_shrink to R.string.canvas_shrink,
             R.id.canvas_delete to R.string.canvas_delete
-        ).forEach { (id, label) ->
+        ).filter { it.first == R.id.canvas_delete || element.canTransformIndependently }.forEach { (id, label) ->
             node.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat(id, host.context.getString(label)))
         }
     }
@@ -209,12 +209,13 @@ internal class CanvasAccessibility(
 }
 
 /** Shared spoken labels for native virtual nodes and the complete Compose object navigator. */
-fun describeCanvasElement(context: Context, element: Element): String = when (element) {
+fun describeCanvasElement(context: Context, element: PageObject): String = when (element) {
     is AffineElement -> describeCanvasElement(context, element.source)
     is Note -> context.getString(R.string.canvas_note, element.text.take(160))
     is TextElement -> context.getString(R.string.canvas_text, element.text.take(160))
     is Stroke -> context.getString(R.string.canvas_stroke)
     is Line -> context.getString(if (element.arrow) R.string.canvas_arrow else R.string.canvas_line)
+    is Connector -> context.getString(if (element.arrow) R.string.canvas_connection_arrow else R.string.canvas_connection_line)
     is Shape -> context.getString(
         when (element.kind) {
             Tool.RECTANGLE -> R.string.canvas_rectangle

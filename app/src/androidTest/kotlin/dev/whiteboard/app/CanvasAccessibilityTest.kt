@@ -131,7 +131,7 @@ class CanvasAccessibilityTest {
 
     private fun control(label: String) = checkNotNull(device.wait(Until.findObject(By.desc(label)), 10_000)) { label }
     private fun text(label: String) = checkNotNull(device.wait(Until.findObject(By.text(label)), 10_000)) { label }
-    private suspend fun open(elements: List<Element>): Board {
+    private suspend fun open(elements: List<PageObject>): Board {
         val board = Board(name = "Accessibility ${newId()}", pages = listOf(Page(elements = elements)))
         owned.add(board.id)
         repository.save(board)

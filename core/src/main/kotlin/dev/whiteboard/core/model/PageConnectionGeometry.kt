@@ -5,22 +5,29 @@ package dev.whiteboard.core.model
  * and connector targets rather than silently detaching them. Editing commands must handle detachment.
  * This is the connector portion of the future shared page geometry, not a document format change.
  */
-class PageConnectionGeometry(page: Page, connectors: List<Connector>, checkpoint: () -> Unit = {}) {
-    private val pageId = page.id
-    private val elements = page.elements
+class PageConnectionGeometry internal constructor(content: PageContent, connectors: List<Connector>, checkpoint: () -> Unit = {}) {
+    constructor(page: Page, connectors: List<Connector>, checkpoint: () -> Unit = {}) : this(page.content, connectors, checkpoint)
+
+    private val pageId = content.pageId
+    private val elements = content.elements
     private val definitions = connectors.also { require(it.size <= Page.MAX_ELEMENTS) { "Too many connections" } }.toList()
     private val lines: Map<String, Line>
 
     init {
         checkpoint()
-        val objectCount = page.content.objectCount.toLong() + definitions.size
+        var objectCount = content.objectCount.toLong()
         val ids = HashSet<String>()
-        require(objectCount <= Page.MAX_ELEMENTS) { "Too many page objects" }
         definitions.forEach { connector ->
             checkpoint()
-            require(!page.content.containsId(connector.id) && ids.add(connector.id)) { "Duplicate connection object ID" }
+            require(ids.add(connector.id)) { "Duplicate connection object ID" }
+            if (content.containsId(connector.id)) {
+                require(content.connections[connector.id] == connector) { "Connection object ID collides with page content" }
+            } else {
+                objectCount++
+            }
         }
-        val ports = page.geometry.connectionPorts(checkpoint)
+        require(objectCount <= Page.MAX_ELEMENTS) { "Too many page objects" }
+        val ports = content.connectionPorts(checkpoint)
         fun point(end: ConnectorEnd): Point = when (end) {
             is ConnectorEnd.Free -> end.point
             is ConnectorEnd.Bound -> ports.point(end.targetId, end.port)

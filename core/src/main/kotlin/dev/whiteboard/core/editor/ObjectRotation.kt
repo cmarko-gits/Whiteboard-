@@ -14,17 +14,31 @@ object ObjectRotation {
         require(degrees.isFinite())
         require(byteBudget > 0)
         val selected = page.elements.filter { it.id in ids }
-        if (selected.isEmpty() || AffineTransform2D.rotation(degrees) == AffineTransform2D.IDENTITY) {
+        if (selected.isEmpty() || !selected.canTransformTogether() || AffineTransform2D.rotation(degrees) == AffineTransform2D.IDENTITY) {
             return SelectionEditPlan(page, emptyList())
         }
         val retained = selected.sumOf { element ->
-            2 * element.estimatedBytes() + 64L + 128L * element.leaves().count { it !is Stroke && it !is Line && it !is AffineElement }
+            2 * element.estimatedBytes() + 64L + 128L * element.leaves().count {
+                it is Element && it !is Stroke && it !is Line && it !is AffineElement
+            }
         }
         if (retained > byteBudget) throw DocumentFailure(DocumentError.EDIT_LIMIT)
         val bounds = selected.map { page.geometry.selectionBounds(it) }.reduce(Bounds::union)
         val turn = AffineTransform2D.rotation(degrees, bounds.center)
-        val rotated = selected.map { rotate(it, turn, checkpoint) }
-        rotated.forEach { it.renderBounds }
+        val rotated = selected.map { element ->
+            checkpoint()
+            when (element) {
+                is Element -> rotate(element, turn, checkpoint)
+                is Connector -> {
+                    fun rotateEnd(end: ConnectorEnd): ConnectorEnd = when (end) {
+                        is ConnectorEnd.Free -> ConnectorEnd.Free(turn.map(end.point))
+                        is ConnectorEnd.Bound -> end
+                    }
+                    element.copy(start = rotateEnd(element.start), end = rotateEnd(element.end))
+                }
+            }
+        }
+        page.geometry.preview(rotated, checkpoint)
         return SelectionEditPlan(page, rotated)
     }
 

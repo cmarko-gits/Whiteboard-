@@ -15,9 +15,9 @@ class DocumentCodec {
         return decodePage(JSONObject(source))
     }
 
-    fun encodeElementJson(element: Element): String =
+    fun encodeElementJson(element: PageObject): String =
         encodeElement(element).toString().also { require(it.length <= MAX_DOCUMENT_CHARACTERS) }
-    fun decodeElementJson(source: String): Element {
+    fun decodeElementJson(source: String): PageObject {
         require(source.length <= MAX_DOCUMENT_CHARACTERS)
         JsonSafety.check(source)
         return decodeElement(JSONObject(source))
@@ -41,6 +41,7 @@ class DocumentCodec {
         JsonSafety.check(source)
         val root = JSONObject(source)
         val version = root.getInt("version")
+        require(root.get("version") is Number && root.getDouble("version") == version.toDouble()) { "Invalid document version" }
         if (version !in 1..VERSION) throw UnsupportedDocumentVersion(version)
         val pages = root.getJSONArray("pages")
         require(pages.length() in 1..1000)
@@ -49,13 +50,14 @@ class DocumentCodec {
                 "id"
             ),
             name = root.getString("name"), createdAt = root.getLong("createdAt"), updatedAt = root.getLong("updatedAt"),
-            pages = List(pages.length()) { decodePage(pages.getJSONObject(it)) }, activePageId = root.getString("activePageId"),
+            pages = List(pages.length()) { decodePage(pages.getJSONObject(it), version) }, activePageId = root.getString("activePageId"),
             favorite = root.optBoolean("favorite"), folderId = root.optionalString("folderId"),
             trashedAt = if (root.has("trashedAt") && !root.isNull("trashedAt")) root.getLong("trashedAt") else null
         )
     }
 
     private fun encodePage(page: Page) = JSONObject().apply {
+        page.contentBounds
         put("id", page.id)
         put("name", page.name)
         put("background", page.background.name)
@@ -70,7 +72,7 @@ class DocumentCodec {
         )
         put("objects", JSONArray().apply { page.elements.forEach { put(encodeElement(it)) } })
     }
-    private fun decodePage(root: JSONObject): Page {
+    private fun decodePage(root: JSONObject, version: Int = VERSION): Page {
         val objects = root.getJSONArray("objects")
         require(objects.length() <= 100_000)
         val view = root.getJSONObject("viewport")
@@ -80,14 +82,16 @@ class DocumentCodec {
             Background.valueOf(root.getString("background")),
             root.getInt("backgroundColor"),
             List(objects.length()) {
-                decodeElement(objects.getJSONObject(it))
+                decodeElement(objects.getJSONObject(it), version = version)
             },
             Viewport(Point(view.float("x"), view.float("y")), view.float("scale"))
-        )
+        ).also { it.contentBounds }
     }
-    private fun encodeElement(element: Element): JSONObject = JSONObject().apply {
+    private fun encodeElement(element: PageObject): JSONObject = JSONObject().apply {
         put("id", element.id)
-        put("bounds", JSONArray(listOf(element.bounds.left, element.bounds.top, element.bounds.right, element.bounds.bottom)))
+        if (element is Element) {
+            put("bounds", JSONArray(listOf(element.bounds.left, element.bounds.top, element.bounds.right, element.bounds.bottom)))
+        }
         when (element) {
             is AffineElement -> {
                 put("type", "affine")
@@ -125,6 +129,13 @@ class DocumentCodec {
                 put("style", encodeStyle(element.style))
                 put("arrow", element.arrow)
             }
+            is Connector -> {
+                put("type", "connector")
+                put("start", encodeEnd(element.start))
+                put("end", encodeEnd(element.end))
+                put("style", encodeStyle(element.style))
+                put("arrow", element.arrow)
+            }
             is TextElement -> {
                 put("type", "text")
                 put("text", element.text)
@@ -142,26 +153,52 @@ class DocumentCodec {
             }
         }
     }
-    private fun decodeElement(root: JSONObject, validateRenderBounds: Boolean = true): Element {
+    private fun decodeElement(root: JSONObject, validateRenderBounds: Boolean = true, version: Int = VERSION): PageObject {
         val id = root.getString("id")
+        val type = root.getString("type")
+        if (type == "connector") {
+            require(version >= 5) { "Connections require document version 5" }
+            fields(root, setOf("id", "type", "start", "end", "style", "arrow"))
+            require(root.get("id") is String && root.get("arrow") is Boolean)
+            val style = root.getJSONObject("style")
+            fields(style, setOf("color", "width", "opacity"))
+            require(style.get("color") is Number && style.getDouble("color") == style.getInt("color").toDouble())
+            require(style.get("width") is Number && style.get("opacity") is Number)
+            return Connector(
+                id,
+                decodeEnd(root.getJSONObject("start")),
+                decodeEnd(root.getJSONObject("end")),
+                decodeStyle(style),
+                root.getBoolean("arrow")
+            )
+        }
         val b = root.getJSONArray("bounds")
         val bounds = Bounds(b.getDouble(0).toFloat(), b.getDouble(1).toFloat(), b.getDouble(2).toFloat(), b.getDouble(3).toFloat())
-        return when (val type = root.getString("type")) {
+        return when (type) {
             "affine" -> {
                 val source = root.getJSONObject("source")
                 require(source.getString("type") in setOf("shape", "text", "note", "media"))
                 val p = root.getJSONArray("placement")
                 require(p.length() == 6 && source.getString("id") == id)
+                val decoded = decodeElement(source, validateRenderBounds = false, version = version)
+                require(decoded is Element)
                 AffineElement(
-                    decodeElement(source, validateRenderBounds = false),
+                    decoded,
                     AffineTransform2D(p.getDouble(0), p.getDouble(1), p.getDouble(2), p.getDouble(3), p.getDouble(4), p.getDouble(5))
                 )
             }
             "group" -> {
                 val children = root.getJSONArray("children")
                 require(children.length() in 2..100_000)
-                require((0 until children.length()).none { children.getJSONObject(it).getString("type") == "group" })
-                ElementGroup(id, List(children.length()) { decodeElement(children.getJSONObject(it)) })
+                require((0 until children.length()).none { children.getJSONObject(it).getString("type") in setOf("group", "connector") })
+                ElementGroup(
+                    id,
+                    List(children.length()) {
+                        val child = decodeElement(children.getJSONObject(it), version = version)
+                        require(child is Element)
+                        child
+                    }
+                )
             }
             "media" -> {
                 val c = root.getJSONArray("crop")
@@ -227,13 +264,46 @@ class DocumentCodec {
     }
     private fun decodeStyle(root: JSONObject) = InkStyle(root.getInt("color"), root.float("width"), root.float("opacity"))
 
+    private fun encodeEnd(end: ConnectorEnd): JSONObject = JSONObject().apply {
+        when (end) {
+            is ConnectorEnd.Free -> {
+                put("type", "free")
+                put("point", JSONArray(listOf(end.point.x, end.point.y)))
+            }
+            is ConnectorEnd.Bound -> {
+                put("type", "bound")
+                put("targetId", end.targetId)
+                put("port", end.port.name)
+            }
+        }
+    }
+
+    private fun decodeEnd(root: JSONObject): ConnectorEnd = when (root.getString("type")) {
+        "free" -> {
+            fields(root, setOf("type", "point"))
+            val point = root.getJSONArray("point")
+            require(point.length() == 2 && point.get(0) is Number && point.get(1) is Number)
+            ConnectorEnd.Free(point.point())
+        }
+        "bound" -> {
+            fields(root, setOf("type", "targetId", "port"))
+            require(root.get("targetId") is String && root.get("port") is String)
+            ConnectorEnd.Bound(root.getString("targetId"), ConnectionPort.valueOf(root.getString("port")))
+        }
+        else -> throw IllegalArgumentException("Unknown connection end")
+    }
+
+    private fun fields(root: JSONObject, allowed: Set<String>) {
+        require(root.keys().asSequence().all { it in allowed }) { "Unknown connection field" }
+    }
+
     // The JVM JSON library also has put(String, Float); Android's platform class only supports Double.
     private fun JSONObject.putFloat(name: String, value: Float) = put(name, value.toDouble())
     private fun JSONObject.float(name: String) = getDouble(name).toFloat()
     private fun JSONArray.point() = Point(getDouble(0).toFloat(), getDouble(1).toFloat())
     private fun JSONObject.optionalString(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
     companion object {
-        const val VERSION = 4
+        const val VERSION = 5
         const val MAX_DOCUMENT_CHARACTERS = 64 * 1024 * 1024
     }
 }

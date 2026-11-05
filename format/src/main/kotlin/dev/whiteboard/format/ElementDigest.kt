@@ -1,7 +1,7 @@
 package dev.whiteboard.format
 
 import dev.whiteboard.core.cloud.ElementFingerprint
-import dev.whiteboard.core.model.Element
+import dev.whiteboard.core.model.PageObject
 import java.io.DataOutputStream
 import java.security.DigestOutputStream
 import java.security.MessageDigest
@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 /** Version 1: sorted JSON keys, typed length-prefixed values and normalized decimal numbers, independent of map order. */
 class ElementDigest(private val codec: DocumentCodec = DocumentCodec()) : ElementFingerprint {
-    override fun of(element: Element): String {
+    override fun of(element: PageObject): String {
         val digest = MessageDigest.getInstance("SHA-256")
         DataOutputStream(DigestOutputStream(Sink, digest)).use {
             it.writeInt(1)

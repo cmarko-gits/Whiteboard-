@@ -3,7 +3,7 @@ package dev.whiteboard.core.cloud
 import dev.whiteboard.core.model.*
 
 data class ValueChange<T>(val expected: T, val value: T)
-data class ObjectMutation(val id: String, val expectedFingerprint: String?, val value: Element?) {
+data class ObjectMutation(val id: String, val expectedFingerprint: String?, val value: PageObject?) {
     init {
         require(id.length in 1..128 && (value != null || expectedFingerprint != null))
         require(value == null || value.id == id)
@@ -46,7 +46,7 @@ data class DeltaResult(val board: Board, val tombstones: DocumentTombstones)
 enum class DeltaConflictReason { OBJECT_MODIFIED, OBJECT_DELETED, PAGE_DELETED, ID_REUSED, METADATA_MODIFIED, LAST_PAGE }
 class DeltaConflict(val reason: DeltaConflictReason, val targetId: String) : Exception(reason.name)
 fun interface ElementFingerprint {
-    fun of(element: Element): String
+    fun of(element: PageObject): String
 }
 
 /** Atomic object operations: independent edits merge; conflicting edits require review rather than data replacement. */
@@ -166,7 +166,7 @@ class DeltaEngine(private val fingerprints: ElementFingerprint) {
         val requested = order.toSet()
         return order.mapNotNull(values::get) + values.filterKeys { it !in requested }.values
     }
-    private fun Iterable<Element>.allIds(): Set<String> = flatMap {
+    private fun Iterable<PageObject>.allIds(): Set<String> = flatMap {
         if (it is ElementGroup) listOf(it.id) + it.children.map { child -> child.id } else listOf(it.id)
     }.toSet()
     private fun conflict(reason: DeltaConflictReason, id: String): Nothing = throw DeltaConflict(reason, id)

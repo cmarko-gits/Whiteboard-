@@ -58,24 +58,26 @@ class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec())
         val root = JSONObject(source)
         fields(root, setOf("version", "documentVersion", "fingerprintVersion", "name", "pages", "order"))
         require(root.getInt("version") == VERSION && root.getInt("fingerprintVersion") == FINGERPRINT_VERSION)
-        require(root.getInt("documentVersion") == DocumentCodec.VERSION)
+        val documentVersion = root.getInt("documentVersion")
+        require(root.get("documentVersion") is Number && root.getDouble("documentVersion") == documentVersion.toDouble())
+        require(documentVersion in 1..DocumentCodec.VERSION)
         val pages = root.getJSONArray("pages")
         require(pages.length() <= 1000)
         return DocumentDelta(
             root.objectOrNull("name")?.let { stringChange(it) },
-            List(pages.length()) { decodePage(pages.getJSONObject(it)) },
+            List(pages.length()) { decodePage(pages.getJSONObject(it), documentVersion) },
             root.arrayOrNull("order")?.let { order(it, 1000) }
         )
     }
 
-    private fun decodePage(root: JSONObject): PageMutation {
+    private fun decodePage(root: JSONObject, documentVersion: Int): PageMutation {
         fields(root, setOf("id", "created", "deleted", "name", "background", "color", "objects", "order"))
         val objects = root.arrayOrNull("objects")
         require(objects == null || objects.length() <= 100_000)
         val result = PageMutation(
             id = root.getString("id"),
             created = root.objectOrNull("created")?.let {
-                validatePage(it)
+                validatePage(it, documentVersion)
                 documents.decodePageJson(it.toString())
             },
             deleted = root.optBoolean("deleted", false),
@@ -102,7 +104,7 @@ class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec())
                             null
                         },
                         value.objectOrNull("value")?.let {
-                            validateElement(it)
+                            validateElement(it, documentVersion)
                             documents.decodeElementJson(it.toString())
                         }
                     )
@@ -121,26 +123,32 @@ class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec())
         fields(root, setOf("expected", "value"))
         return ValueChange(root.getString("expected"), root.getString("value"))
     }
-    private fun validatePage(root: JSONObject) {
+    private fun validatePage(root: JSONObject, documentVersion: Int) {
         fields(root, setOf("id", "name", "background", "backgroundColor", "viewport", "objects"))
         fields(root.getJSONObject("viewport"), setOf("x", "y", "scale"))
         val objects = root.getJSONArray("objects")
         require(objects.length() <= 100_000)
-        for (index in 0 until objects.length()) validateElement(objects.getJSONObject(index))
+        for (index in 0 until objects.length()) validateElement(objects.getJSONObject(index), documentVersion)
     }
-    private fun validateElement(root: JSONObject) {
+    private fun validateElement(root: JSONObject, documentVersion: Int) {
         val type = root.getString("type")
         fields(root, requireNotNull(ELEMENT_FIELDS[type]) { "Unsupported operation object" })
-        require(root.getJSONArray("bounds").length() == 4)
+        if (type == "connector") require(documentVersion >= 5) else require(root.getJSONArray("bounds").length() == 4)
         root.objectOrNull("style")?.let { fields(it, setOf("color", "width", "opacity")) }
         when (type) {
+            "affine" -> {
+                require(root.getJSONArray("placement").length() == 6)
+                val source = root.getJSONObject("source")
+                require(source.getString("type") in setOf("shape", "text", "note", "media"))
+                validateElement(source, documentVersion)
+            }
             "group" -> {
                 val children = root.getJSONArray("children")
                 require(children.length() in 2..100_000)
                 for (index in 0 until children.length()) {
                     val child = children.getJSONObject(index)
-                    require(child.getString("type") != "group")
-                    validateElement(child)
+                    require(child.getString("type") !in setOf("group", "connector"))
+                    validateElement(child, documentVersion)
                 }
             }
             "stroke" -> {
@@ -171,7 +179,9 @@ class DocumentDeltaCodec(private val documents: DocumentCodec = DocumentCodec())
             "text" to COMMON + setOf("text", "color", "fontSize", "bold", "italic", "alignment"),
             "note" to COMMON + setOf("text", "color", "fontSize"),
             "media" to COMMON + setOf("assetId", "pdfPage", "rotation", "crop"),
-            "group" to COMMON + "children"
+            "group" to COMMON + "children",
+            "affine" to COMMON + setOf("source", "placement"),
+            "connector" to setOf("id", "type", "start", "end", "style", "arrow")
         )
         const val VERSION = 1
         const val FINGERPRINT_VERSION = 1

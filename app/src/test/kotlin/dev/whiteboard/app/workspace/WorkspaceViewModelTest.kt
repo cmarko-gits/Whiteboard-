@@ -40,6 +40,139 @@ class WorkspaceViewModelTest {
     private val files = FakeDocumentStorage()
     private val models = mutableListOf<WorkspaceViewModel>()
 
+    @Test fun nativeConnectionAddMoveSaveAndUndoUseTheSamePageGeometry() = runTest {
+        val model = model()
+        model.create("Native graph").join()
+        val first = note("A")
+        val second = note("B").copy(bounds = Bounds(300f, 100f, 500f, 300f))
+        val connection =
+            Connector(start = ConnectorEnd.Bound(first.id, ConnectionPort.RIGHT), end = ConnectorEnd.Bound(second.id, ConnectionPort.LEFT))
+        model.canvas(CanvasEvent.Add(first))
+        model.canvas(CanvasEvent.Add(second))
+        model.canvas(CanvasEvent.Add(connection))
+        val moved = first.copy(bounds = Bounds(500f, 600f, 700f, 800f))
+        model.canvas(CanvasEvent.Replace(listOf(moved)))
+        val page = model.state.value.editor!!.page
+        assertEquals(Point(700f, 700f), (page.geometry.resolve(connection) as Line).start)
+        assertEquals(connection, page.elements.last())
+        model.save().join()
+        assertEquals(page, repository.load(model.state.value.editor!!.boardId).activePage)
+        model.undo()
+        val original = model.state.value.editor!!.page
+        assertEquals(first, original.elements.first())
+        assertEquals(Point(first.bounds.right, first.bounds.center.y), (original.geometry.resolve(connection) as Line).start)
+        model.redo()
+        assertEquals(page, model.state.value.editor!!.page)
+    }
+
+    @Test fun partialGraphCutAndPasteRestoreInTwoIndependentUndoSteps() = runTest {
+        val model = model()
+        model.create("Cut graph").join()
+        val first = note("A")
+        val second = note("B").copy(bounds = Bounds(300f, 100f, 500f, 300f))
+        val connection =
+            Connector(start = ConnectorEnd.Bound(first.id, ConnectionPort.RIGHT), end = ConnectorEnd.Bound(second.id, ConnectionPort.LEFT))
+        listOf(first, second, connection).forEach { model.canvas(CanvasEvent.Add(it)) }
+        model.save().join()
+        val original = model.state.value.editor!!.page
+        model.canvas(CanvasEvent.Select(setOf(first.id, connection.id)))
+        model.copySelected(cut = true).join()
+        assertEquals(listOf(second), model.state.value.editor!!.page.elements)
+        assertTrue(model.state.value.editor!!.canPaste)
+        model.paste().join()
+        val pastedPage = model.state.value.editor!!.page
+        val copied = pastedPage.elements.last() as Connector
+        val copiedFirst = pastedPage.elements[1]
+        assertEquals(ConnectorEnd.Bound(copiedFirst.id, ConnectionPort.RIGHT), copied.start)
+        assertEquals(ConnectorEnd.Free(Point(324f, 224f)), copied.end)
+        assertEquals(setOf(copiedFirst.id, copied.id), model.state.value.editor!!.selectedIds)
+        model.undo()
+        assertEquals(listOf(second), model.state.value.editor!!.page.elements)
+        model.undo()
+        assertEquals(original, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.dirty)
+    }
+
+    @Test fun removingAConnectedTargetAndItsDetachedEndUndoTogetherInTheWorkspace() = runTest {
+        val model = model()
+        model.create("Delete graph").join()
+        val first = note("A")
+        val second = note("B").copy(bounds = Bounds(300f, 100f, 500f, 300f))
+        val connection =
+            Connector(start = ConnectorEnd.Bound(first.id, ConnectionPort.RIGHT), end = ConnectorEnd.Bound(second.id, ConnectionPort.LEFT))
+        listOf(first, second, connection).forEach { model.canvas(CanvasEvent.Add(it)) }
+        model.save().join()
+        val original = model.state.value.editor!!.page
+        model.canvas(CanvasEvent.Select(setOf(first.id)))
+        model.deleteSelected()
+        val detached = model.state.value.editor!!.page.elements.filterIsInstance<Connector>().single()
+        assertEquals(ConnectorEnd.Free(Point(first.bounds.right, first.bounds.center.y)), detached.start)
+        assertEquals(connection.end, detached.end)
+        model.undo()
+        assertEquals(original, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.dirty)
+    }
+
+    @Test fun connectionStyleChangesPreserveBindingsAndHaveAnExactUndo() = runTest {
+        val model = model()
+        model.create("Style graph").join()
+        val first = note("A")
+        val second = note("B").copy(bounds = Bounds(300f, 100f, 500f, 300f))
+        val connection =
+            Connector(start = ConnectorEnd.Bound(first.id, ConnectionPort.RIGHT), end = ConnectorEnd.Bound(second.id, ConnectionPort.LEFT))
+        listOf(first, second, connection).forEach { model.canvas(CanvasEvent.Add(it)) }
+        model.canvas(CanvasEvent.Select(setOf(connection.id)))
+        val style = InkStyle(0xFFFF0000.toInt(), 8f, 0.5f)
+        model.applySelectedStyle(style, 0xFF123456.toInt()).join()
+        val changed = model.state.value.editor!!.page.elements.last() as Connector
+        assertEquals(connection.copy(style = style), changed)
+        model.undo()
+        assertEquals(connection, model.state.value.editor!!.page.elements.last())
+        model.redo()
+        model.save().join()
+        assertEquals(changed, repository.load(model.state.value.editor!!.boardId).activePage.elements.last())
+    }
+
+    @Test fun staleTextEditorCannotReplaceANewConnectionThatReusesItsOldNoteId() = runTest {
+        val model = model()
+        model.create("Stale text").join()
+        val first = note("A")
+        val second = note("B").copy(bounds = Bounds(300f, 100f, 500f, 300f))
+        val third = note("C").copy(bounds = Bounds(600f, 100f, 800f, 300f))
+        listOf(first, second, third).forEach { model.canvas(CanvasEvent.Add(it)) }
+        model.canvas(CanvasEvent.EditText(first.bounds.center, first, true))
+        val replacement =
+            Connector(
+                id = first.id,
+                start = ConnectorEnd.Bound(second.id, ConnectionPort.RIGHT),
+                end = ConnectorEnd.Bound(third.id, ConnectionPort.LEFT)
+            )
+        model.canvas(CanvasEvent.Replace(listOf(replacement)))
+        val before = model.state.value.editor!!.page
+        model.applyText("Must not overwrite a connection", 22f, false, false, TextAlignment.LEFT, first.color)
+        assertEquals(before, model.state.value.editor!!.page)
+        assertEquals(replacement, model.state.value.editor!!.page.elements.first())
+        assertNull(model.state.value.textRequest)
+    }
+
+    @Test fun anInvalidCanvasConnectionReportsAnErrorWithoutMutatingTheSavedDocument() = runTest {
+        val model = model()
+        model.create("Invalid graph").join()
+        val first = note("A")
+        model.canvas(CanvasEvent.Add(first))
+        model.save().join()
+        val before = model.state.value.editor!!.page
+        val invalid =
+            Connector(start = ConnectorEnd.Bound(first.id, ConnectionPort.RIGHT), end = ConnectorEnd.Bound("missing", ConnectionPort.LEFT))
+        model.canvas(CanvasEvent.Add(invalid))
+        assertEquals(before, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.dirty)
+        assertEquals(R.string.operation_failed, model.state.value.message?.resource)
+        assertEquals(before, repository.load(model.state.value.editor!!.boardId).activePage)
+        model.undo()
+        assertTrue(model.state.value.editor!!.page.elements.isEmpty())
+    }
+
     @Test fun aRejectedPasteReportsAnErrorWithoutChangingTheSavedBoardOrItsHistory() = runTest {
         val model = model()
         model.create("Coordinate limit").join()
@@ -143,7 +276,7 @@ class WorkspaceViewModelTest {
         assertEquals("After", result.text)
         model.undo()
         assertEquals("Before", (model.state.value.editor!!.page.elements.single() as Note).text)
-        assertEquals(60f, model.state.value.editor!!.page.elements.single().bounds.left)
+        assertEquals(60f, model.state.value.editor!!.page.geometry.resolve(model.state.value.editor!!.page.elements.single()).bounds.left)
     }
 
     @After fun clearModels() {
@@ -235,7 +368,7 @@ class WorkspaceViewModelTest {
         runCurrent()
         assertTrue(operation.isCompleted)
         assertEquals(1L, model.state.value.alignmentSequence)
-        assertEquals(10f, model.state.value.editor!!.page.elements[1].bounds.left, 0f)
+        assertEquals(10f, model.state.value.editor!!.page.geometry.resolve(model.state.value.editor!!.page.elements[1]).bounds.left, 0f)
     }
 
     @Test fun aLayerStepSavesTheNewOrderAndANoopDoesNotDirtyTheSavedBoard() = runTest {

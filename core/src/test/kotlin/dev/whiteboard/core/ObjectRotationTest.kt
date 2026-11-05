@@ -39,7 +39,7 @@ class ObjectRotationTest {
         session.rotate(setOf(group.id), 90.0)
         val rotated = session.page.elements.single() as ElementGroup
         assertEquals(group.id, rotated.id)
-        assertEquals(group.children.map(Element::id), rotated.children.map(Element::id))
+        assertEquals(group.children.map(PageObject::id), rotated.children.map(PageObject::id))
         point(Point(149f, -49f), (rotated.children.first() as Stroke).points.first())
         point(Point(100f, 100f), rotated.children.last().bounds.center)
         session.undo()
@@ -51,9 +51,9 @@ class ObjectRotationTest {
         val second = shape.copy(id = newId(), bounds = Bounds(200f, 0f, 400f, 100f))
         val session = documentSession(shape, second)
         session.rotate(setOf(shape.id, second.id), 180.0)
-        assertEquals(listOf(shape.id, second.id), session.page.elements.map(Element::id))
-        point(Point(300f, 50f), session.page.elements.first().bounds.center)
-        point(Point(100f, 50f), session.page.elements.last().bounds.center)
+        assertEquals(listOf(shape.id, second.id), session.page.elements.map(PageObject::id))
+        point(Point(300f, 50f), session.page.geometry.resolve(session.page.elements.first()).bounds.center)
+        point(Point(100f, 50f), session.page.geometry.resolve(session.page.elements.last()).bounds.center)
     }
 
     @Test fun trianglesUseTheirPaintedInteriorForPickingAndFill() {
@@ -122,10 +122,10 @@ class ObjectRotationTest {
         val copy = clipboard.paste().single() as ElementGroup
         assertNotEquals(group.id, copy.id)
         assertTrue(copy.children.none { child -> group.children.any { it.id == child.id } })
-        point(rotated.bounds.center + Point(24f, 24f), copy.bounds.center)
+        point(session.page.geometry.resolve(rotated).bounds.center + Point(24f, 24f), copy.bounds.center)
         assertEquals(setOf(media.assetId), clipboard.assetIds)
         session.ungroup(setOf(group.id))
-        assertEquals(group.children.map(Element::id), session.page.elements.map(Element::id))
+        assertEquals(group.children.map(PageObject::id), session.page.elements.map(PageObject::id))
         assertEquals(setOf(media.assetId), session.board.referencedAssets())
     }
 

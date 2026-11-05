@@ -23,7 +23,7 @@ class RotationCodecTest {
 
     @Test fun allPlacedContentAndGroupIdsRoundTripThroughDocumentPageAndElementStorage() {
         val original = rotated()
-        assertEquals(4, JSONObject(codec.encode(original)).getInt("version"))
+        assertEquals(DocumentCodec.VERSION, JSONObject(codec.encode(original)).getInt("version"))
         assertEquals(original, codec.decode(codec.encode(original)))
         assertEquals(original.activePage, codec.decodePageJson(codec.encodePageJson(original.activePage)))
         val element = original.activePage.elements.single()

@@ -10,7 +10,7 @@ class EditCommandOrderingTest {
     private val a = shape(0f)
     private val b = shape(10f)
     private val board = Board(name = "Ordering", pages = listOf(Page(elements = listOf(a, b))))
-    private fun insertion(first: Int, second: Int): List<Element> {
+    private fun insertion(first: Int, second: Int): List<PageObject> {
         val c = shape(20f)
         val d = shape(30f)
         val command = EditCommand(
@@ -60,10 +60,10 @@ class EditCommandOrderingTest {
     @Test fun rotatingAlternatingObjectsOnALargePageKeepsEveryLayerAndUndoRedoIdentity() {
         val objects = List(10_000) { shape(it * 4f) }
         val session = DocumentSession(Board(name = "Large selection", pages = listOf(Page(elements = objects))))
-        val ids = objects.filterIndexed { index, _ -> index % 2 == 0 }.map(Element::id).toSet()
+        val ids = objects.filterIndexed { index, _ -> index % 2 == 0 }.map(PageObject::id).toSet()
         assertTrue(session.rotate(ids, 45.0))
         val rotated = session.page.elements
-        assertEquals(objects.map(Element::id), rotated.map(Element::id))
+        assertEquals(objects.map(PageObject::id), rotated.map(PageObject::id))
         objects.indices.forEach { index ->
             if (index % 2 == 0) assertTrue(rotated[index] is AffineElement) else assertSame(objects[index], rotated[index])
         }

@@ -6,7 +6,7 @@ import java.util.Locale
 fun normalizeForSearch(text: String): String = Normalizer.normalize(text.lowercase(Locale.ROOT), Normalizer.Form.NFD)
     .replace(Regex("\\p{M}+"), "").replace("đ", "dj")
 
-data class BoardMatch(val pageId: String, val element: Element? = null)
+data class BoardMatch(val pageId: String, val element: PageObject? = null)
 
 fun Board.firstTextMatch(query: String?): BoardMatch? {
     val key = query?.let(::normalizeForSearch)?.takeIf { it.isNotBlank() } ?: return null

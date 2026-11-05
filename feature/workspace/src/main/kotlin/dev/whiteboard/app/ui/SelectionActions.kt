@@ -35,11 +35,13 @@ internal fun SelectionActions(
     var alignment by rememberSaveable { mutableStateOf(false) }
     val workspace by viewModel.state.collectAsState()
     val transforming = workspace.rotating || workspace.aligning
+    val selected = editor.page.elements.filter { it.id in editor.selectedIds }
     Text(pluralStringResource(R.plurals.objects_selected, editor.selectedIds.size, editor.selectedIds.size))
     Box {
         IconButton(onClick = { onExpandedChange(true) }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
         DropdownMenu(expanded, { onExpandedChange(false) }) {
             val editable = editor.page.elements.singleOrNull { it.id in editor.selectedIds }
+                ?.let { it as? Element }
                 ?.takeIf { it.content() is Note || it.content() is TextElement }
             if (editable != null) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.edit)) }, onClick = {
@@ -51,7 +53,7 @@ internal fun SelectionActions(
             }
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rotate)) },
-                enabled = !transforming,
+                enabled = !transforming && selected.canTransformTogether(),
                 onClick = {
                     onExpandedChange(false)
                     viewModel.rotateSelected()
@@ -59,7 +61,7 @@ internal fun SelectionActions(
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.alignment)) },
-                enabled = !transforming && editor.page.elements.count { it.id in editor.selectedIds } >= 2,
+                enabled = !transforming && selected.size >= 2 && selected.all { it.canTransformIndependently },
                 onClick = {
                     onExpandedChange(false)
                     alignment = true
@@ -81,7 +83,9 @@ internal fun SelectionActions(
                     viewModel.stepSelectedLayer(LayerStep.BACKWARD)
                 }
             )
-            DropdownMenuItem(text = { Text(stringResource(R.string.group)) }, enabled = editor.selectedIds.size > 1, onClick = {
+            DropdownMenuItem(text = {
+                Text(stringResource(R.string.group))
+            }, enabled = selected.size > 1 && selected.all { it is Element }, onClick = {
                 onExpandedChange(false)
                 viewModel.groupSelected()
             })
@@ -120,7 +124,7 @@ internal fun SelectionActions(
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.properties)) },
                 enabled = editor.page.elements.filter { it.id in editor.selectedIds }.flatMap { it.leaves() }
-                    .map { it.content() }.any { it is Stroke || it is Shape || it is Line },
+                    .map { it.content() }.any { it is Stroke || it is Shape || it is Line || it is Connector },
                 onClick = {
                     onExpandedChange(false)
                     onProperties()
@@ -135,7 +139,7 @@ internal fun SelectionActions(
 
 @Composable
 internal fun ObjectStyleDialog(
-    elements: List<Element>,
+    elements: List<PageObject>,
     dismiss: () -> Unit,
     favoriteColors: List<Int>,
     saveFavorites: (List<Int>) -> Unit,
@@ -146,6 +150,7 @@ internal fun ObjectStyleDialog(
             is Stroke -> it.style
             is Shape -> it.style
             is Line -> it.style
+            is Connector -> it.style
             else -> null
         }
     } ?: InkStyle()

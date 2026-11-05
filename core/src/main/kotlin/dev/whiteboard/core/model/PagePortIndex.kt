@@ -1,7 +1,7 @@
 package dev.whiteboard.core.model
 
 /** Immutable world port geometry for one element-list snapshot, independent of viewport or Android. */
-class PagePortIndex internal constructor(private val pageId: String, private val elements: List<Element>, checkpoint: () -> Unit) {
+class PagePortIndex internal constructor(private val pageId: String, private val elements: List<PageObject>, checkpoint: () -> Unit) {
     constructor(page: Page, checkpoint: () -> Unit = {}) : this(page.id, page.elements, checkpoint)
 
     private val targets: Map<String, Target> = buildMap {
@@ -40,8 +40,8 @@ class PagePortIndex internal constructor(private val pageId: String, private val
         val placement: AffineTransform2D = AffineTransform2D.IDENTITY
     )
 
-    private fun target(element: Element): Target? {
-        if (element is Stroke || element is Line) return null
+    private fun target(element: PageObject): Target? {
+        if (element !is Element || element is Stroke || element is Line) return null
         // Validate each supported frame once, rather than rescanning a large group for every edge.
         element.renderBounds
         return when (element) {

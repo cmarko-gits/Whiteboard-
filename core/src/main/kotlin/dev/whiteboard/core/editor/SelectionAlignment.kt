@@ -18,7 +18,7 @@ object SelectionAlignment {
             checkpoint()
             it.id in ids
         }
-        if (selected.size < 2) return SelectionEditPlan(page, emptyList())
+        if (selected.size < 2 || selected.any { !it.canTransformIndependently }) return SelectionEditPlan(page, emptyList())
         val frames = selected.map { page.geometry.selectionBounds(it) }
         val reference = frames.reduce(Bounds::union)
         val deltas = frames.map { frame ->
@@ -35,7 +35,7 @@ object SelectionAlignment {
         val cost = moved.sumOf { 2 * selected[it].estimatedBytes() + 64L }
         if (cost > byteBudget) throw DocumentFailure(DocumentError.EDIT_LIMIT)
         val replacements = moved.map { index -> ObjectTranslation.translate(selected[index], deltas[index], checkpoint) }
-        replacements.forEach { it.renderBounds }
+        page.geometry.preview(replacements, checkpoint)
         return SelectionEditPlan(page, replacements)
     }
 }

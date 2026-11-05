@@ -3,7 +3,7 @@ package dev.whiteboard.core.editor
 import dev.whiteboard.core.model.*
 import java.util.ArrayDeque
 
-data class LocatedElement(val index: Int, val element: Element)
+data class LocatedElement(val index: Int, val element: PageObject)
 data class ElementDelta(val before: LocatedElement?, val after: LocatedElement?) {
     init {
         require(before != null || after != null)
@@ -36,6 +36,12 @@ data class EditCommand(val pageId: String, val deltas: List<ElementDelta>) : Doc
     }
     override fun apply(board: Board, forward: Boolean): Board {
         val page = board.pages.first { it.id == pageId }
+        val updated = page.copy(elements = objects(page, forward))
+        if (updated.content.connections.isNotEmpty()) updated.contentBounds
+        return board.withPage(updated).copy(activePageId = pageId)
+    }
+
+    internal fun objects(page: Page, forward: Boolean): List<PageObject> {
         val ids = deltas.flatMap { listOfNotNull(it.before?.element?.id, it.after?.element?.id) }.toSet()
         val retained = page.elements.filterNot { it.id in ids }
         val additions = deltas.mapNotNull { if (forward) it.after else it.before }.sortedBy { it.index }
@@ -59,7 +65,7 @@ data class EditCommand(val pageId: String, val deltas: List<ElementDelta>) : Doc
                 additions.forEach { add(it.index.coerceIn(0, size), it.element) }
             }.toList()
         }
-        return board.withPage(page.copy(elements = result)).copy(activePageId = pageId)
+        return result
     }
 }
 
@@ -67,6 +73,7 @@ data class EditCommand(val pageId: String, val deltas: List<ElementDelta>) : Doc
 class DocumentSession(initial: Board, private val historyLimit: Int = 150, private val historyByteLimit: Long = 32L * 1024 * 1024) {
     init {
         require(historyLimit > 0 && historyByteLimit > 0)
+        initial.pages.forEach { if (it.content.connections.isNotEmpty()) it.contentBounds }
     }
     private data class Entry(val command: DocumentChange, val before: Long, val after: Long)
     private val undoStack = ArrayDeque<Entry>()
@@ -87,10 +94,20 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     val retainedAssetIds get() = board.referencedAssets() + (undoStack.toList() + redoStack.toList()).flatMap { it.command.assetIds }
 
     fun execute(command: DocumentChange) {
-        val updated = command.apply(board, true)
+        val prepared = prepareTargetRemoval(command)
+        if (prepared is EditCommand &&
+            (
+                board.pages.first { it.id == prepared.pageId }.content.connections.isNotEmpty() ||
+                    prepared.deltas.any { it.before?.element is Connector || it.after?.element is Connector }
+                ) &&
+            prepared.estimatedBytes > historyByteLimit
+        ) {
+            throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        }
+        val updated = prepared.apply(board, true)
         val next = ++sequence
-        undoStack.addLast(Entry(command, revision, next))
-        undoBytes += command.estimatedBytes
+        undoStack.addLast(Entry(prepared, revision, next))
+        undoBytes += prepared.estimatedBytes
         while ((undoStack.size > historyLimit || undoBytes > historyByteLimit) &&
             undoStack.isNotEmpty()
         ) {
@@ -100,8 +117,8 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         board = updated.copy(updatedAt = System.currentTimeMillis())
         revision = next
     }
-    fun add(element: Element) = execute(EditCommand(page.id, listOf(ElementDelta(null, LocatedElement(page.elements.size, element)))))
-    fun replace(element: Element) {
+    fun add(element: PageObject) = execute(EditCommand(page.id, listOf(ElementDelta(null, LocatedElement(page.elements.size, element)))))
+    fun replace(element: PageObject) {
         val index = page.elements.indexOfFirst { it.id == element.id }
         require(index >= 0)
         if (page.elements[index] == element) return
@@ -110,15 +127,16 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     fun transformBy(id: String, translation: Point, factor: Float): Boolean {
         require(factor.isFinite() && factor in 0.1f..10f)
         val element = page.elements.firstOrNull { it.id == id } ?: return false
+        if (!element.canTransformIndependently) return false
         val bounds = page.geometry.selectionBounds(element)
         val halfWidth = (bounds.width * factor / 2).coerceAtLeast(0.05f)
         val halfHeight = (bounds.height * factor / 2).coerceAtLeast(0.05f)
         val x = bounds.center.x + translation.x
         val y = bounds.center.y + translation.y
-        replace(element.transform(Bounds(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight)))
+        replace(page.geometry.transform(element, Bounds(x - halfWidth, y - halfHeight, x + halfWidth, y + halfHeight)))
         return true
     }
-    fun addAll(elements: List<Element>) {
+    fun addAll(elements: List<PageObject>) {
         if (elements.isEmpty()) return
         require(elements.map { it.id }.toSet().size == elements.size)
         val existingIds = page.elements.map { it.id }.toSet()
@@ -132,7 +150,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
             )
         )
     }
-    fun replaceAll(elements: List<Element>) {
+    fun replaceAll(elements: List<PageObject>) {
         val replacements = elements.associateBy { it.id }
         val existingIds = page.elements.map { it.id }.toSet()
         require(replacements.size == elements.size && existingIds.containsAll(replacements.keys))
@@ -151,10 +169,10 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     }
     fun stepLayer(ids: Set<String>, step: LayerStep): Boolean = applyLayerOrder(LayerOrdering.step(page.elements, ids, step))
 
-    private fun applyLayerOrder(reordered: List<Element>): Boolean {
+    private fun applyLayerOrder(reordered: List<PageObject>): Boolean {
         if (reordered === page.elements) return false
-        val before = page.elements.map(Element::id)
-        val after = reordered.map(Element::id)
+        val before = page.elements.map(PageObject::id)
+        val after = reordered.map(PageObject::id)
         if (before == after) return false
         val command = LayerOrderChange(page.id, before, after)
         if (command.estimatedBytes > historyByteLimit) throw DocumentFailure(DocumentError.EDIT_LIMIT)
@@ -168,7 +186,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
 
     fun applySelectionEdit(plan: SelectionEditPlan): Boolean {
         if (page.id != plan.original.id || page.elements !== plan.original.elements || plan.replacements.isEmpty()) return false
-        val replacements = plan.replacements.associateBy(Element::id)
+        val replacements = plan.replacements.associateBy(PageObject::id)
         val deltas = page.elements.mapIndexedNotNull { index, before ->
             replacements[before.id]?.takeIf { it != before }?.let { after ->
                 ElementDelta(LocatedElement(index, before), LocatedElement(index, after))
@@ -185,7 +203,8 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
             if (element.id in ids) LocatedElement(index, element) else null
         }
         if (selected.size < 2) return null
-        val group = ElementGroup(children = selected.flatMap { it.element.leaves() })
+        if (selected.any { it.element !is Element }) return null
+        val group = ElementGroup(children = selected.flatMap { (it.element as Element).leaves() })
         val location = selected.last().index - selected.size + 1
         execute(EditCommand(page.id, selected.map { ElementDelta(it, null) } + ElementDelta(null, LocatedElement(location, group))))
         return group
@@ -238,7 +257,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         require(cuts.map { it.original.id }.distinct().size == cuts.size)
         val originals = page.elements.flatMap { it.leaves() }.filterIsInstance<Stroke>().associateBy { it.id }
         if (cuts.any { originals[it.original.id] != it.original }) return false
-        val occupied = page.elements.flatMap { listOf(it.id) + it.leaves().map(Element::id) }.toSet()
+        val occupied = page.elements.flatMap { listOf(it.id) + it.leaves().map(PageObject::id) }.toSet()
         val fragmentIds = mutableSetOf<String>()
         cuts.forEach { cut ->
             if (cut.fragments.size > PartialStrokeEraser.MAX_FRAGMENTS) throw DocumentFailure(DocumentError.EDIT_LIMIT)
@@ -315,7 +334,11 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         val added = original.copy(
             id = newId(),
             name = "${original.name.take(115)} copy",
-            elements = ObjectCopies.duplicate(original.elements).elements
+            elements = ConnectionCopies.duplicate(
+                original,
+                original.elements.filterIsInstance<Connector>(),
+                original.elements.map { it.id }.toSet()
+            ).objects
         )
         val pages = board.pages.toMutableList().apply { add(indexOfFirst { it.id == id } + 1, added) }
         changePages(pages, added.id)
@@ -360,4 +383,35 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         }
     }
     private fun changePages(pages: List<Page>, active: String) = execute(PageListChange(board.pages, pages, board.activePageId, active))
+
+    private fun prepareTargetRemoval(command: DocumentChange): DocumentChange {
+        if (command !is EditCommand) return command
+        val before = board.pages.first { it.id == command.pageId }
+        if (before.content.connections.isEmpty()) return command
+        val result = command.objects(before, true)
+        val surviving = result.filterIsInstance<Connector>().filter { before.content.connections[it.id] == it }
+        if (surviving.isEmpty()) return command
+        val changes = ConnectionTargetRemoval.plan(
+            before.copy(elements = before.elements.filterIsInstance<Element>()),
+            before.copy(elements = result.filterIsInstance<Element>()),
+            surviving
+        )
+        if (changes.isEmpty()) return command
+        val replacements = changes.associateBy { it.before.id }
+        val existing = command.deltas.flatMap { listOfNotNull(it.before?.element?.id, it.after?.element?.id) }.toSet()
+        val rewritten = command.deltas.map { delta ->
+            val after = delta.after
+            val replacement = after?.element?.id?.let(replacements::get)
+            if (replacement != null) delta.copy(after = LocatedElement(after.index, replacement.after)) else delta
+        }
+        val oldIndices = before.elements.withIndex().associate { it.value.id to it.index }
+        val newIndices = result.withIndex().associate { it.value.id to it.index }
+        val additional = changes.filter { it.before.id !in existing }.map {
+            ElementDelta(
+                LocatedElement(oldIndices.getValue(it.before.id), it.before),
+                LocatedElement(newIndices.getValue(it.after.id), it.after)
+            )
+        }
+        return command.copy(deltas = rewritten + additional)
+    }
 }

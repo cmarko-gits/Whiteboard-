@@ -97,7 +97,7 @@ class PageConnectionGeometryTest {
     }
 
     @Test fun connectionIdsCannotCollideWithObjectsChildrenOrEachOther() {
-        val grouped = page.copy(elements = listOf(ElementGroup(id = "group", children = page.elements)))
+        val grouped = page.copy(elements = listOf(ElementGroup(id = "group", children = page.elements.map { it as Element })))
         listOf(first.id, second.id, "group").forEach { id ->
             val free = Connector(id, ConnectorEnd.Free(Point(0f, 0f)), ConnectorEnd.Free(Point(30f, 40f)))
             assertThrows(IllegalArgumentException::class.java) { PageConnectionGeometry(grouped, listOf(free)) }
@@ -136,7 +136,7 @@ class PageConnectionGeometryTest {
     }
 
     @Test fun combinedObjectLimitIncludesConnectionsAndGroupChildren() {
-        val grouped = page.copy(elements = listOf(ElementGroup(children = page.elements)))
+        val grouped = page.copy(elements = listOf(ElementGroup(children = page.elements.map { it as Element })))
         assertThrows(IllegalArgumentException::class.java) {
             PageConnectionGeometry(grouped, List(Page.MAX_ELEMENTS - 1) { connector })
         }
