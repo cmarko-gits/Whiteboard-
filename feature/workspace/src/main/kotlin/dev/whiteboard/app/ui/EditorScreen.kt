@@ -214,17 +214,32 @@ fun EditorScreen(
                         nativeView = it
                         it.onEvent = { event -> viewModel.canvas(event, editor) }
                         it.onBrowseObjects = { objects = true }
-                        it.accessibilitySnapshot = { viewport ->
-                            val snapshot = viewModel.state.value.editor
-                            snapshot?.let { CanvasAccessibilitySnapshot(it.page, viewport, it.selectedIds) }
-                        }
                     }
                 },
                 modifier = Modifier.fillMaxSize(),
                 update = { view ->
                     view.onEvent = { event -> viewModel.canvas(event, editor) }
-                    view.onCreateConnection = { viewModel.showConnection(position = view.documentCenter(), source = editor) }
-                    view.onObjectMenu = { selectionMenu = true }
+                    view.accessibilitySnapshot = { viewport ->
+                        viewModel.state.value.editor?.takeIf {
+                            it.boardId == editor.boardId && it.page.id == editor.page.id
+                        }?.let { CanvasAccessibilitySnapshot(it.page, viewport, it.selectedIds) }
+                    }
+                    // Framework virtual actions read the latest scoped model even before the next
+                    // Compose frame. Touch previews retain their stricter rendered-scene guard.
+                    view.onAccessibilityEvent = { event ->
+                        viewModel.state.value.editor?.takeIf {
+                            it.boardId == editor.boardId && it.page.id == editor.page.id
+                        }?.let { viewModel.canvas(event, it) }
+                    }
+                    view.onCreateConnection = {
+                        viewModel.state.value.editor?.takeIf {
+                            it.boardId == editor.boardId && it.page.id == editor.page.id
+                        }?.let { viewModel.showConnection(position = view.documentCenter(), source = it) }
+                    }
+                    view.onObjectMenu = {
+                        val latest = viewModel.state.value.editor
+                        if (latest?.boardId == editor.boardId && latest.page.id == editor.page.id) selectionMenu = true
+                    }
                     view.fingerDrawing = fingerDrawing
                     view.snapEnabled = snap
                     view.eraserMode = eraserMode
@@ -237,6 +252,7 @@ fun EditorScreen(
                     it.onCreateConnection = {}
                     it.onObjectMenu = null
                     it.accessibilitySnapshot = null
+                    it.onAccessibilityEvent = null
                     nativeView = null
                 }
             )

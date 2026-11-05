@@ -1,6 +1,6 @@
 # F05 — pametni konektori: ugovor i zavisnosti
 
-Aktuelni radni 0.7.0/code 14 prelazi na PageObject kolekciju, zajedničku geometriju, atomsko odvezivanje, integrisani clipboard i format 5, uz 361 lokalni JVM prolaz i kompajlirane Android testove. SMART-CONNECTORS-INTEGRATION.md navodi implementaciju, ograničenja i preostali UI/gesture/qualification rad. Preseci 0.6.x ispod su istorijski; njihove matrice ne pripisuju se automatski 0.7 kodu.
+Aktuelni radni 0.7.0/code 14 ima integrisan PageObject/format 5 model u source 88d4644/CI 41987730437: 361 JVM i pet profila po 108 app + 13 data, svih šest poslova prolazi. Source 5e0c5ba dodaje alat/dijalog/lifecycle/scale provere, uz prolazan verify sa 378 JVM; puna nova matrica i paket ostaju obavezni. SMART-CONNECTORS-INTEGRATION.md navodi granice i dokaze. Preseci 0.6.x i buduće formulacije originalnog ugovora ispod su istorijski; njihove matrice ne pripisuju se automatski novijem kodu.
 
 Nastavak 5. novembra: 94f090b/CI 41898654475 prolazi svih šest poslova, 291 JVM i pet profila po 104 app + 13 data, uz tri R8/jezička toka i security gates. Zasebno su pripremljeni zajednički ObjectCopies za postojeći clipboard/duplicate-page, ConnectionCopies politika dvoprolaznog remap-a i ConnectionTargetRemoval planer. Trideset novih core i tri nova ViewModel testa lokalno prolaze; ukupno 247 core + 43 format + 29 app JVM i architecture. Zajednički PageObject uvodi samo identitet, dok Element ostaje lokalna geometrija sa bounds-om, a Connector zahteva stranicu. CONNECTION-COPY-REMOVAL.md navodi tačno šta je povezano, a šta još zahteva PageObject/session/format/UI integraciju. F05.3/.4/.5 nisu zatvoreni tim izolovanim politikama.
 
@@ -68,11 +68,11 @@ F06 mind-map roditelj/deca i F07 flowchart koriste ovaj lokalni model tek kada j
 
 - [x] F05.1 Izolovano jezgro portova i 14 JVM testova, source 49a5de9. Ovo nije aktivan Connector alat.
 - [x] F05.2 Tipovi Connector/ConnectorEnd i invarianti, source 0b3f169; sedam model testova i provera nepodržanih referenci u resolver testovima prolaze u CI 41703271737/verify. Nema Element/format integracije.
-- [ ] F05.3 Početni PageConnectionGeometry batch resolver i 16 testova prolaze, source 0b3f169/CI 41703271737/verify. Ostaje puna PageGeometry integracija sa svim potrošačima i transient preview tokovima.
-- [ ] F05.4 Atomske session komande: dodavanje/rebinding/odvezivanje, delete/cut/group/ungroup, budžet i tačan Undo/Redo.
-- [ ] F05.5 Dvoprolazni remap ID-jeva u ObjectClipboard i duplicate-page, uz pravilno odvezivanje nekopiranog cilja i očuvanje priloga.
-- [ ] F05.6 Format 5: DocumentCodec, DocumentDeltaCodec, ElementDigest, stari 1–4 dokumenti, recovery i ZIP backup/restore; Room menjati samo ako šema to zahteva.
-- [ ] F05.7 BoardRenderer, PageExporter i platform DocumentFiles (PNG/JPG/PDF, thumbnail/share) koriste isti resolved snapshot.
+- [x] F05.3 Zajednički PageGeometry/PageContent resolver i svi bounds/picking/render/preview/AX potrošači; source 88d4644/CI 41987730437 prolazi celu matricu, uključujući renderer i native preview/cancel.
+- [x] F05.4 Atomske session komande i domenske reference/budžet/Undo provere u 88d4644: dodavanje, zamena/rebinding, odvezivanje, delete/cut/group/ungroup i eraser tokovi. Korisnički dijalog ima zasebnu F05.9 kvalifikaciju.
+- [x] F05.5 Dvoprolazni remap ID-jeva u ObjectClipboard i duplicate-page, nekopirani cilj postaje slobodan, prilozi i slojevi ostaju očuvani; core/ViewModel regresija prolazi u 88d4644.
+- [x] F05.6 Format 5: codec/delta/digest, stari 1–4 dokumenti, recovery i ZIP backup/restore; 57 format i native Room/draft provere prolaze u 88d4644. Room ostaje 4 jer šema nije promenjena.
+- [x] F05.7 BoardRenderer/PageExporter/DocumentFiles koriste isti resolved snapshot; PNG/JPG/PDF/thumbnail native tok prolazi na pet profila u 88d4644.
 - [ ] F05.8 WhiteboardView picking/snap/preview i konektorski gest, bez delimičnog upisa pri cancel-u ili odbijenom kraju.
 - [ ] F05.9 Editor, izbor portova/stila, Objects, keyboard/TalkBack alternativa i CanvasAccessibility granice/opisi koriste istu geometriju.
 - [ ] F05.10 Adversarial reference/koordinate/veličine i lifecycle/concurrency testovi; geometrijski i vizuelni testovi stvarnog praćenja cilja.

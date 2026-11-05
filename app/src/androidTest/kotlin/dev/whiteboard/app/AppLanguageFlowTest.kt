@@ -116,7 +116,7 @@ class AppLanguageFlowTest {
             boardId = editor.boardId
         }
         description("Dodatne radnje").click()
-        text("Podešavanja").click()
+        clickTestDialogText(device, "Podešavanja")
         text("English").click()
         text("Language")
         scenario.onActivity {

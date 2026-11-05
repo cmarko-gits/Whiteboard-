@@ -101,6 +101,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         }
     }
     var accessibilitySnapshot: ((Viewport) -> CanvasAccessibilitySnapshot?)? = null
+    var onAccessibilityEvent: ((CanvasEvent) -> Unit)? = null
     private var canvasAccessibility: CanvasAccessibility? = null
     private var pendingFit = false
     fun requestInitialFit() {
@@ -195,8 +196,9 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         viewport = viewport.zoom(factor, Point(width / 2f, height / 2f))
         cameraChanged()
     }
-    private fun cameraChanged() {
-        onEvent(CanvasEvent.Camera(viewport))
+    private fun cameraChanged(accessibility: Boolean = false) {
+        val event = CanvasEvent.Camera(viewport)
+        if (accessibility) emitAccessibilityEvent(event) else onEvent(event)
         canvasAccessibility?.changed()
         invalidate()
     }
@@ -227,12 +229,13 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         return openObjectMenu(if (hit.id in selectedIds) selectedIds else setOf(hit.id))
     }
 
-    private fun openObjectMenu(ids: Set<String>): Boolean {
+    private fun openObjectMenu(ids: Set<String>, accessibility: Boolean = false): Boolean {
         val show = onObjectMenu ?: return false
-        val valid = page.elements.filter { it.id in ids }.map { it.id }.toSet()
+        val scene = if (accessibility) accessibilitySnapshot?.invoke(viewport)?.page ?: page else page
+        val valid = scene.elements.filter { it.id in ids }.map { it.id }.toSet()
         if (valid.isEmpty()) return false
         clearGesture()
-        onEvent(CanvasEvent.Select(valid))
+        if (accessibility) emitAccessibilityEvent(CanvasEvent.Select(valid)) else onEvent(CanvasEvent.Select(valid))
         show(valid)
         return true
     }
@@ -247,15 +250,19 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         if (!gainFocus || !isInTouchMode) canvasAccessibility?.onFocusChanged(gainFocus, direction, previouslyFocusedRect)
     }
 
+    private fun emitAccessibilityEvent(event: CanvasEvent) {
+        (onAccessibilityEvent ?: onEvent)(event)
+    }
+
     private fun activateAccessibilityTool(): Boolean {
         performClick()
         val center = viewport.toDocument(Point(width / 2f, height / 2f))
         val extent = 64 * density / viewport.scale
         when (tool) {
             Tool.CONNECTOR -> onCreateConnection()
-            Tool.TEXT, Tool.NOTE -> onEvent(CanvasEvent.EditText(center, note = tool == Tool.NOTE))
+            Tool.TEXT, Tool.NOTE -> emitAccessibilityEvent(CanvasEvent.EditText(center, note = tool == Tool.NOTE))
             Tool.RECTANGLE, Tool.SQUARE, Tool.ELLIPSE, Tool.CIRCLE, Tool.TRIANGLE, Tool.DIAMOND ->
-                onEvent(
+                emitAccessibilityEvent(
                     CanvasEvent.Add(
                         Shape(
                             bounds = Bounds(center.x - extent, center.y - extent, center.x + extent, center.y + extent),
@@ -264,7 +271,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                         )
                     )
                 )
-            Tool.LINE, Tool.ARROW -> onEvent(
+            Tool.LINE, Tool.ARROW -> emitAccessibilityEvent(
                 CanvasEvent.Add(
                     Line(
                         start = Point(center.x - extent, center.y),
@@ -286,48 +293,54 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             when (action) {
                 AccessibilityNodeInfoCompat.ACTION_CLICK -> return activateAccessibilityTool()
                 R.id.canvas_browse -> onBrowseObjects()
-                R.id.canvas_add_text, R.id.canvas_add_note -> onEvent(
+                R.id.canvas_add_text, R.id.canvas_add_note -> emitAccessibilityEvent(
                     CanvasEvent.EditText(
                         viewport.toDocument(Point(width / 2f, height / 2f)),
                         note =
                         action == R.id.canvas_add_note
                     )
                 )
-                R.id.canvas_zoom_in -> zoomBy(1.25f)
-                R.id.canvas_zoom_out -> zoomBy(0.8f)
-                R.id.canvas_fit -> fitContent()
+                R.id.canvas_zoom_in, R.id.canvas_zoom_out -> {
+                    viewport = viewport.zoom(if (action == R.id.canvas_zoom_in) 1.25f else 0.8f, Point(width / 2f, height / 2f))
+                    cameraChanged(accessibility = true)
+                }
+                R.id.canvas_fit -> {
+                    val scene = accessibilitySnapshot?.invoke(viewport)?.page ?: page
+                    viewport = Viewport.fit(scene.contentBounds, width.toFloat(), height.toFloat(), 36 * density)
+                    cameraChanged(accessibility = true)
+                }
                 AccessibilityActionCompat.ACTION_SCROLL_LEFT.id -> {
                     viewport = viewport.pan(step, 0f)
-                    cameraChanged()
+                    cameraChanged(accessibility = true)
                 }
                 AccessibilityActionCompat.ACTION_SCROLL_RIGHT.id -> {
                     viewport = viewport.pan(-step, 0f)
-                    cameraChanged()
+                    cameraChanged(accessibility = true)
                 }
                 AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD, AccessibilityActionCompat.ACTION_SCROLL_UP.id -> {
                     viewport =
                         viewport.pan(0f, step)
-                    cameraChanged()
+                    cameraChanged(accessibility = true)
                 }
                 AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD, AccessibilityActionCompat.ACTION_SCROLL_DOWN.id -> {
                     viewport =
                         viewport.pan(0f, -step)
-                    cameraChanged()
+                    cameraChanged(accessibility = true)
                 }
                 else -> return false
             }
             return true
         }
         when (action) {
-            AccessibilityNodeInfoCompat.ACTION_CLICK -> onEvent(CanvasEvent.Select(setOf(element.id)))
+            AccessibilityNodeInfoCompat.ACTION_CLICK -> emitAccessibilityEvent(CanvasEvent.Select(setOf(element.id)))
             AccessibilityNodeInfoCompat.ACTION_LONG_CLICK -> {
                 if (element !is Element) return false
                 val content = element.content()
                 if (content !is Note && content !is TextElement) return false
-                onEvent(CanvasEvent.EditText(page.geometry.selectionBounds(element).center, element, content is Note))
+                emitAccessibilityEvent(CanvasEvent.EditText(page.geometry.selectionBounds(element).center, element, content is Note))
             }
-            R.id.canvas_delete -> onEvent(CanvasEvent.Delete(setOf(element.id)))
-            R.id.canvas_object_actions -> return openObjectMenu(setOf(element.id))
+            R.id.canvas_delete -> emitAccessibilityEvent(CanvasEvent.Delete(setOf(element.id)))
+            R.id.canvas_object_actions -> return openObjectMenu(setOf(element.id), accessibility = true)
             else -> {
                 val step = 24 * density / viewport.scale
                 val dx = when (action) {
@@ -346,7 +359,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     else -> 1f
                 }
                 if (!element.canTransformIndependently || (dx == 0f && dy == 0f && factor == 1f)) return false
-                onEvent(CanvasEvent.TransformBy(element.id, Point(dx, dy), factor))
+                emitAccessibilityEvent(CanvasEvent.TransformBy(element.id, Point(dx, dy), factor))
             }
         }
         return true

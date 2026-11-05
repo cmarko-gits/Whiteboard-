@@ -69,6 +69,7 @@ class ConnectionFlowTest {
 
     @Test fun createEditDetachUndoRedoAndReopenPreserveConnectionIdentity(): Unit = runBlocking {
         val board = open()
+        capture.snapshot("connection-editor")
         clickTestDialogText(device, "Apply")
         val created = save(board) { it.elements.size == 3 }
         val edge = created.elements.filterIsInstance<Connector>().single()
@@ -116,8 +117,7 @@ class ConnectionFlowTest {
         assertTrue(device.wait(Until.gone(By.text("2. Ellipse")), 10_000))
         clickTestDialogText(device, "1. Rectangle")
         revealTestDialogText(device, "Choose valid, different objects or free positions for the two ends.")
-        val apply = text("Apply")
-        assertFalse("Self connections must not be confirmed", apply.isEnabled)
+        assertFalse("Self connections must not be confirmed", testDialogActionEnabled("Apply"))
         clickTestDialogText(device, "Cancel")
         text("Saved on this device")
         assertEquals(board.activePage.elements, repository.load(board.id).activePage.elements)
@@ -152,6 +152,7 @@ class ConnectionFlowTest {
             text("Attachment points follow the object when it moves or rotates.")
             revealTestDialogText(device, "Attachment point: Top side")
             description("End: Attachment point: Top side")
+            capture.snapshot("connection-editor-landscape")
             clickTestDialogText(device, "Apply")
             val saved = save(board) { it.elements.size == 3 }
             val edge = saved.elements.last() as Connector

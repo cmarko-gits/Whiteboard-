@@ -8,7 +8,7 @@ import androidx.test.uiautomator.UiDevice
 import java.util.Collections
 import java.util.IdentityHashMap
 
-private data class DialogProbe(val found: Boolean, val selected: Boolean = false, val scroll: Rect? = null)
+private data class DialogProbe(val found: Boolean, val selected: Boolean = false, val scroll: Rect? = null, val enabled: Boolean = false)
 
 /** Read a new connected hierarchy; retain values rather than UiObject2 handles across recomposition. */
 @Suppress("DEPRECATION")
@@ -43,7 +43,7 @@ private fun inspectDialogText(label: String, activate: Boolean): DialogProbe {
                         return DialogProbe(false)
                     }
                 }
-                return DialogProbe(true, owner?.isChecked == true || owner?.isSelected == true, scroll)
+                return DialogProbe(true, owner?.isChecked == true || owner?.isSelected == true, scroll, owner?.isEnabled == true)
             }
             repeat(node.childCount) { own(node.getChild(it))?.let(queue::add) }
         }
@@ -86,3 +86,7 @@ internal fun clickTestDialogText(device: UiDevice, label: String) = reachDialogT
 internal fun revealTestDialogText(device: UiDevice, label: String, towardTop: Boolean = false) =
     reachDialogText(device, label, false, towardTop)
 internal fun testDialogChoiceSelected(label: String): Boolean = inspectDialogText(label, false).selected
+internal fun testDialogActionEnabled(label: String): Boolean = inspectDialogText(label, false).let {
+    check(it.found) { "Dialog action is not visible: $label" }
+    it.enabled
+}

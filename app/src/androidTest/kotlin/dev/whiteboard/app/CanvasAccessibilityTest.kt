@@ -10,6 +10,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import dev.whiteboard.canvas.CanvasAccessibilitySnapshot
+import dev.whiteboard.canvas.CanvasEvent
 import dev.whiteboard.canvas.R as CanvasResources
 import dev.whiteboard.canvas.WhiteboardView
 import dev.whiteboard.core.model.*
@@ -155,6 +157,40 @@ class CanvasAccessibilityTest {
             android.os.SystemClock.sleep(50)
         } while (android.os.SystemClock.uptimeMillis() < until)
         error("Missing accessibility node: $description")
+    }
+
+    @Test fun consecutiveVirtualActionsUseTheCurrentSnapshotBeforeTheNextRenderedFrame() {
+        val note = Note(bounds = Bounds(100f, 100f, 300f, 260f), text = "Before next frame")
+        val moved = note.copy(bounds = Bounds(200f, 100f, 400f, 260f))
+        var snapshot = Page(elements = listOf(note))
+        val events = mutableListOf<CanvasEvent>()
+        lateinit var view: WhiteboardView
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                view = WhiteboardView(activity).apply {
+                    update(snapshot, Tool.SELECT, InkStyle(), emptySet())
+                    accessibilitySnapshot = { viewport -> CanvasAccessibilitySnapshot(snapshot, viewport, emptySet()) }
+                    onEvent = { error("Virtual actions must not use the previous rendered callback") }
+                    onAccessibilityEvent = { event ->
+                        events.add(event)
+                        if (event is CanvasEvent.TransformBy) snapshot = snapshot.copy(elements = listOf(moved))
+                    }
+                }
+                activity.setContentView(view)
+            }
+            instrument.waitForIdleSync()
+            assertTrue(node("Note: Before next frame").performAction(CanvasResources.id.canvas_move_right))
+            // Deliberately do not update WhiteboardView: the next framework action already
+            // observes the new model and must use its separate, scoped dispatch path.
+            assertTrue(node("Note: Before next frame").performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK))
+            scenario.onActivity {
+                assertEquals(2, events.size)
+                assertEquals(moved, (events.last() as CanvasEvent.EditText).existing)
+                assertTrue(view.performAccessibilityAction(CanvasResources.id.canvas_zoom_in, null))
+                assertEquals(3, events.size)
+                assertTrue((events.last() as CanvasEvent.Camera).viewport.scale > 1f)
+            }
+        }
     }
 
     @Test fun spokenObjectActionsSelectMoveEditDeleteUndoAndPersist(): Unit = runBlocking {

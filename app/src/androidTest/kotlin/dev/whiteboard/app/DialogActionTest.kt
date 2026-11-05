@@ -9,6 +9,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,6 +37,7 @@ class DialogActionTest {
             instrument.waitForIdleSync()
             try {
                 assertFalse(checkNotNull(device.wait(Until.findObject(By.text("Apply")), 5_000)).isEnabled)
+                assertFalse(testDialogActionEnabled("Apply"))
                 scenario.onActivity {
                     button.postDelayed({
                         confirmationsBeforeEnabled = confirmations
@@ -43,6 +45,7 @@ class DialogActionTest {
                     }, 350)
                 }
                 clickTestDialogText(device, "Apply")
+                assertTrue(testDialogActionEnabled("Apply"))
                 scenario.onActivity {
                     assertEquals(0, confirmationsBeforeEnabled)
                     assertEquals(1, confirmations)
