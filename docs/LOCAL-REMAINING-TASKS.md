@@ -4,7 +4,7 @@ Datum: 1. novembar 2026. Spisak je izveden iz LOCAL-REBUILD-PLAN.md, LOCAL-STATU
 
 Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih funkcija proizvoda. Postojeće lokalne funkcije, njihovi prolazni testovi i ograničenja ostaju opisani u LOCAL-STATUS.md. Fizički uređaji su odloženi po izboru korisnika. AI, backend, cloud, nalozi, saradnja i Play objava nisu vraćeni u aktivni obim.
 
-Presek 5. novembra 2026: **12/47 glavnih stavki završeno, 35 ostaje**. Podkorake prikazivati zasebno; završetak dela F05 ne znači završetak cele stavke. Najnoviji distribucioni kandidat ostaje 0.6.5/source 5129627. Infrastrukturni 94f090b ima zaseban pun CI prolaz, a novije copy/removal promene još čekaju sopstvenu matricu.
+Presek 5. novembra 2026: **12/47 glavnih stavki završeno, 35 ostaje**. Podkorake prikazivati zasebno; završetak dela F05 ne znači završetak cele stavke. Najnoviji distribucioni kandidat ostaje 0.6.5/source 5129627. PageObject/format 5 model 88d4644 ima pun CI prolaz; noviji alat/dijalog u c177b71 ima prolaznih 378 JVM i pet profila po 119 app + 13 data. Završni release connection tok i distribucioni 0.7 paket još čekaju kvalifikaciju.
 
 ## Z — završetak sadašnje lokalne verzije i inženjerskog procesa
 

@@ -73,8 +73,8 @@ F06 mind-map roditelj/deca i F07 flowchart koriste ovaj lokalni model tek kada j
 - [x] F05.5 Dvoprolazni remap ID-jeva u ObjectClipboard i duplicate-page, nekopirani cilj postaje slobodan, prilozi i slojevi ostaju očuvani; core/ViewModel regresija prolazi u 88d4644.
 - [x] F05.6 Format 5: codec/delta/digest, stari 1–4 dokumenti, recovery i ZIP backup/restore; 57 format i native Room/draft provere prolaze u 88d4644. Room ostaje 4 jer šema nije promenjena.
 - [x] F05.7 BoardRenderer/PageExporter/DocumentFiles koriste isti resolved snapshot; PNG/JPG/PDF/thumbnail native tok prolazi na pet profila u 88d4644.
-- [ ] F05.8 WhiteboardView picking/snap/preview i konektorski gest, bez delimičnog upisa pri cancel-u ili odbijenom kraju.
-- [ ] F05.9 Editor, izbor portova/stila, Objects, keyboard/TalkBack alternativa i CanvasAccessibility granice/opisi koriste istu geometriju.
-- [ ] F05.10 Adversarial reference/koordinate/veličine i lifecycle/concurrency testovi; geometrijski i vizuelni testovi stvarnog praćenja cilja.
+- [x] F05.8 Native gest i pet novih slučajeva, kao i postojeći preview/cancel/picking/snap, prolaze na pet profila u c177b71/CI 42071775448. Cancel/odbijanje nema delimičan upis.
+- [x] F05.9 Editor/portovi/free koordinate/stil/Objects/AX granice i standardne keyboard/accessibility alternative prolaze u c177b71: četiri UI toka, uključujući configuration change, i novi pre-render virtual action test. Slušni TalkBack je zaseban Z05/H obim; minified release tok ostaje F05.11.
+- [x] F05.10 Core/format/ViewModel adversarial, lifecycle/concurrency i native geometrija/render provere prolaze u c177b71: 378 JVM i pet profila po 119 app + 13 data. Vizuelni renderer i portrait/landscape dialog snimci su pregledani uz digest; ovo nije qualification celog release paketa.
 - [ ] F05.11 Cela aktivna CI matrica i minified release smoke kompletne funkcije, uz proveru velikog grafa i očuvanje ranijih tokova.
 - [ ] F05.12 Verzija, paket, security/ABI/16 KB/signature provere, korisničko uputstvo i source/hash mapa kompletnog kandidata.

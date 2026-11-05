@@ -36,12 +36,12 @@ function Get-Ui {
     return $taskXml.SelectNodes('//node')
 }
 function Find-Ui {
-    param([string] $Text, [string] $Description, [string] $Class, [int] $TimeoutSeconds = 15)
+    param([string] $Text, [string] $Description, [string] $Class, [int] $TimeoutSeconds = 15, [switch] $ExactDescription)
     $taskUntil = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
         $taskNodes = @(Get-Ui | Where-Object {
             (-not $Text -or $_.text -eq $Text) -and
-            (-not $Description -or $_.'content-desc' -like "$Description*") -and
+            (-not $Description -or $(if ($ExactDescription) { $_.'content-desc' -ceq $Description } else { $_.'content-desc' -like "$Description*" })) -and
             (-not $Class -or $_.class -eq $Class) -and
             $_.SelectNodes('ancestor-or-self::node[@enabled="false"]').Count -eq 0
         })
@@ -297,6 +297,9 @@ try {
         # The existing stroke cannot be a connection target. Add a distinct second shape.
         Tap-Ui (Find-Ui -Description 'Shapes')
         Tap-Ui (Find-Ui -Text 'Ellipse')
+        $taskCanvas = Get-Rect (Find-Ui -Description 'Drawing canvas')
+        $taskWidth = $taskCanvas[2] - $taskCanvas[0]
+        $taskHeight = $taskCanvas[3] - $taskCanvas[1]
         Invoke-Adb shell input swipe ([int]($taskCanvas[0] + $taskWidth * 0.76)) ([int]($taskCanvas[1] + $taskHeight * 0.12)) ([int]($taskCanvas[0] + $taskWidth * 0.94)) ([int]($taskCanvas[1] + $taskHeight * 0.28)) 500 | Out-Null
         Find-Ui -Description 'Ellipse' | Out-Null
         Tap-Ui (Find-Ui -Description 'More actions')
@@ -334,6 +337,9 @@ try {
     if ($CheckConnections) {
         # A fresh move after reopening proves that bindings survived persistence, rather
         # than accepting a visually identical, detached line. Viewport may be refitted.
+        # Reopening restores the last drawing tool; choose Select explicitly. Match the
+        # exact label so the separate Selection actions button cannot satisfy this lookup.
+        Tap-Ui (Find-Ui -Description 'Select' -ExactDescription)
         $taskReopenedMovement = Move-ConnectionTarget
         Tap-Ui (Find-Ui -Description 'Undo')
         Assert-ConnectionFrames $taskReopenedMovement.Before

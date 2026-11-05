@@ -1,5 +1,12 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath unused -LoadHelpersOnly
+function Get-Ui {
+    [xml] $fixture = '<hierarchy><node content-desc="Select" enabled="true" bounds="[0,0][48,48]"/><node content-desc="Selection actions" enabled="true" bounds="[48,0][96,48]"/></hierarchy>'
+    return $fixture.SelectNodes('//node')
+}
+if ((Find-Ui -Description 'Select' -ExactDescription).'content-desc' -cne 'Select') {
+    throw 'Exact tool selection must not match the later Selection actions control.'
+}
 $script:frames = [Collections.Generic.Queue[string]]::new()
 $script:commands = [Collections.Generic.List[object]]::new()
 function Invoke-Adb {
