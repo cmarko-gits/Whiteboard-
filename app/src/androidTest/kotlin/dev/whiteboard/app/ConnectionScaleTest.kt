@@ -1,7 +1,6 @@
 package dev.whiteboard.app
 
 import android.os.Build
-import android.os.Debug
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -38,22 +37,22 @@ class ConnectionScaleTest {
             val board = Board(name = "Connection profile $count", pages = listOf(page))
             val timings = JSONObject()
             val allocations = JSONObject()
-            fun allocatedBytes(): Long = checkNotNull(Debug.getRuntimeStat("art.gc.bytes-allocated").toLongOrNull())
             fun measure(name: String, iterations: Int = 5, block: () -> Unit) {
-                val allocated = ArrayList<Long>(iterations)
+                val allocated = ArrayList<RuntimeAllocationSample>(iterations)
                 val samples = List(iterations) {
-                    val before = allocatedBytes()
+                    val before = RuntimeAllocationSnapshot.read()
                     val started = SystemClock.elapsedRealtimeNanos()
                     block()
                     val elapsed = (SystemClock.elapsedRealtimeNanos() - started) / 1_000_000.0
-                    allocated.add((allocatedBytes() - before).also { assertTrue("Monotonic ART allocation counter", it >= 0L) })
+                    allocated.add(RuntimeAllocationSample(before, RuntimeAllocationSnapshot.read()))
                     elapsed
                 }.sorted()
-                val sortedAllocations = allocated.sorted()
+                val sortedAllocations = allocated.mapNotNull { it.usableBytes }.sorted()
                 allocations.put(
                     name,
-                    JSONObject().put("samplesBytes", JSONArray(allocated))
-                        .put("medianBytes", sortedAllocations[sortedAllocations.size / 2]).put("maxBytes", sortedAllocations.last())
+                    JSONObject().put("samples", JSONArray(allocated.map { it.json() })).put("validSamples", sortedAllocations.size)
+                        .put("medianBytes", sortedAllocations.getOrNull(sortedAllocations.size / 2) ?: JSONObject.NULL)
+                        .put("maxBytes", sortedAllocations.lastOrNull() ?: JSONObject.NULL)
                 )
                 timings.put(
                     name,
@@ -114,14 +113,37 @@ class ConnectionScaleTest {
                     "debug emulator algorithm measurements on instrumentation worker; not rendering, UI frame time, physical hardware or release performance"
                 )
                 .put("api", Build.VERSION.SDK_INT).put("model", Build.MODEL).put("maxHeapBytes", Runtime.getRuntime().maxMemory())
+                .put("allocationSchema", 2)
                 .put(
                     "allocationScope",
-                    "ART process-wide cumulative bytes allocated during each operation; includes counter reads and concurrent work; not retained cache size"
+                    "ART approximate process-wide counter observations; raw snapshots and GC overlap retained; valid sample summaries only; not retained cache size"
                 )
                 .put("graphs", reports)
             val file = File(output, "connection-scale-profile.json")
             file.parentFile?.mkdirs()
             file.writeText(report.toString(2))
         }
+    }
+
+    @Test fun allocationObservationsPreserveRegressionsGcOverlapAndUnavailableCounters() {
+        val before = RuntimeAllocationSnapshot(1000, 2)
+        val valid = RuntimeAllocationSample(before, RuntimeAllocationSnapshot(1400, 2))
+        assertEquals("observed", valid.status)
+        assertEquals(400L, valid.usableBytes)
+        val regressed = RuntimeAllocationSample(before, RuntimeAllocationSnapshot(900, 2))
+        assertEquals("counter-regressed", regressed.status)
+        assertEquals(-100L, regressed.rawDeltaBytes)
+        assertEquals(-100L, regressed.json().getLong("rawDeltaBytes"))
+        assertNull(regressed.usableBytes)
+        val collected = RuntimeAllocationSample(before, RuntimeAllocationSnapshot(900, 3))
+        assertEquals("gc-overlap", collected.status)
+        assertNull(collected.usableBytes)
+        assertNull(RuntimeAllocationSample(before, RuntimeAllocationSnapshot(1400, 3)).usableBytes)
+        val unavailable = RuntimeAllocationSample(before, RuntimeAllocationSnapshot(null, 2))
+        assertEquals("unavailable", unavailable.status)
+        assertTrue(unavailable.json().isNull("rawDeltaBytes"))
+        assertNull(unavailable.usableBytes)
+        assertNull(RuntimeAllocationSample(before, RuntimeAllocationSnapshot(1400, null)).usableBytes)
+        assertThrows(IllegalArgumentException::class.java) { RuntimeAllocationSnapshot(-1, 2) }
     }
 }
