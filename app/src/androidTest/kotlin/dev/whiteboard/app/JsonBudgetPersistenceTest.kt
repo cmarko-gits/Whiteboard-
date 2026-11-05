@@ -58,4 +58,30 @@ class JsonBudgetPersistenceTest {
         assertNull(repository.draft(rejected.id))
         assertEquals(listOf(original), repository.savedBoards())
     }
+
+    @Test fun productionBudgetPersistsTheLargeGraphWithRealisticUuidLengthIdentities(): Unit = runBlocking {
+        val nodes = List(10_000) { index ->
+            val x = (index % 100) * 160f
+            val y = (index / 100) * 140f
+            Shape(
+                id = "00000000-0000-0000-0000-${index.toString().padStart(12, '0')}",
+                bounds = Bounds(x, y, x + 100f, y + 80f),
+                kind = Tool.RECTANGLE,
+                style = InkStyle()
+            )
+        }
+        val edges = List(nodes.size - 1) { index ->
+            Connector(
+                id = "10000000-0000-0000-0000-${index.toString().padStart(12, '0')}",
+                start = ConnectorEnd.Bound(nodes[index].id, ConnectionPort.RIGHT),
+                end = ConnectorEnd.Bound(nodes[index + 1].id, ConnectionPort.LEFT)
+            )
+        }
+        val board = Board(name = "UUID graph", pages = listOf(Page(elements = nodes + edges)))
+        val production = LocalBoardRepository(database)
+        production.save(board)
+        val loaded = production.load(board.id)
+        assertEquals(board, loaded)
+        assertEquals(board.activePage.geometry.resolve(edges.last()), loaded.activePage.geometry.resolve(edges.last()))
+    }
 }

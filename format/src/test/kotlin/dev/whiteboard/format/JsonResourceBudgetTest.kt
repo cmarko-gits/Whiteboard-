@@ -81,6 +81,15 @@ class JsonResourceBudgetTest {
         assertThrows(IllegalArgumentException::class.java) { DocumentDeltaCodec(allocationBudget = -1) }
     }
 
+    @Test fun theDefaultBudgetPreservesHeapHeadroomAndHasAFiniteUpperBound() {
+        val mib = 1024L * 1024
+        assertEquals(32 * mib, JsonSafety.allocationBudgetForHeap(64 * mib))
+        assertEquals(64 * mib, JsonSafety.allocationBudgetForHeap(128 * mib))
+        assertEquals(80 * mib, JsonSafety.allocationBudgetForHeap(192 * mib))
+        assertEquals(80 * mib, JsonSafety.allocationBudgetForHeap(Long.MAX_VALUE))
+        assertThrows(IllegalArgumentException::class.java) { JsonSafety.allocationBudgetForHeap(0) }
+    }
+
     @Test fun encodersDoNotReturnADocumentTheirOwnReadersWouldReject() {
         val note = Note(bounds = Bounds(0f, 0f, 200f, 200f), text = "x".repeat(16_000))
         val page = Page(elements = listOf(note))
@@ -111,11 +120,16 @@ class JsonResourceBudgetTest {
         val nodes = List(10_000) { index ->
             val x = (index % 100) * 160f
             val y = (index / 100) * 140f
-            Shape(id = "node-$index", bounds = Bounds(x, y, x + 100f, y + 80f), kind = Tool.RECTANGLE, style = InkStyle())
+            Shape(
+                id = "00000000-0000-0000-0000-${index.toString().padStart(12, '0')}",
+                bounds = Bounds(x, y, x + 100f, y + 80f),
+                kind = Tool.RECTANGLE,
+                style = InkStyle()
+            )
         }
         val edges = List(nodes.size - 1) { index ->
             Connector(
-                id = "edge-$index",
+                id = "10000000-0000-0000-0000-${index.toString().padStart(12, '0')}",
                 start = ConnectorEnd.Bound(nodes[index].id, ConnectionPort.RIGHT),
                 end = ConnectorEnd.Bound(nodes[index + 1].id, ConnectionPort.LEFT)
             )

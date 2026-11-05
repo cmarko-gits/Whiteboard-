@@ -7,7 +7,7 @@ import org.json.JSONObject
 typealias UnsupportedDocumentVersion = dev.whiteboard.core.model.UnsupportedDocumentVersion
 
 /** Explicit, versioned format: no reflective class names or executable serialized objects. */
-class DocumentCodec(private val allocationBudget: Long = JsonSafety.DEFAULT_ALLOCATION_BUDGET) {
+class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAllocationBudget()) {
     init {
         require(allocationBudget > 0)
     }

@@ -11,7 +11,7 @@ import org.json.JSONObject
 /** Strict, versioned operation transport. Unknown fields are errors rather than acknowledged, discarded edits. */
 class DocumentDeltaCodec(
     private val documents: DocumentCodec = DocumentCodec(),
-    private val allocationBudget: Long = JsonSafety.DEFAULT_ALLOCATION_BUDGET
+    private val allocationBudget: Long = JsonSafety.defaultAllocationBudget()
 ) {
     init {
         require(allocationBudget > 0)

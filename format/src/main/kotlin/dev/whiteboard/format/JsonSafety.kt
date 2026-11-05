@@ -6,10 +6,17 @@ import dev.whiteboard.core.model.DocumentFailure
 /** Strict, bounded preflight before recursive platform parsing. No JSON objects or numeric big integers are allocated here. */
 object JsonSafety {
     // Accounting policy for temporary input/tree storage, not an exact platform heap prediction.
-    const val DEFAULT_ALLOCATION_BUDGET = 64L * 1024 * 1024
+    const val DEFAULT_ALLOCATION_BUDGET = 80L * 1024 * 1024
+
+    fun defaultAllocationBudget(): Long = allocationBudgetForHeap(Runtime.getRuntime().maxMemory())
+
+    internal fun allocationBudgetForHeap(maximumHeapBytes: Long): Long {
+        require(maximumHeapBytes > 0)
+        return minOf(DEFAULT_ALLOCATION_BUDGET, (maximumHeapBytes / 2).coerceAtLeast(1))
+    }
 
     fun check(source: String, maximumDepth: Int = 32) {
-        check(source, maximumDepth, DEFAULT_ALLOCATION_BUDGET)
+        check(source, maximumDepth, defaultAllocationBudget())
     }
 
     internal fun check(source: String, maximumDepth: Int, allocationBudget: Long) {
