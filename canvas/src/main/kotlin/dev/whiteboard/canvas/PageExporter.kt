@@ -9,7 +9,7 @@ import kotlin.math.*
 class PageExporter(private val assets: AssetProvider? = null) {
     fun bitmap(page: Page, maxDimension: Int = 4096): Bitmap {
         require(maxDimension in 64..8192)
-        val bounds = (page.contentBounds ?: Bounds(0f, 0f, 960f, 640f)).expand(32f)
+        val bounds = (page.visibleContentBounds ?: Bounds(0f, 0f, 960f, 640f)).expand(32f)
         val scale = min(2f, min(maxDimension / max(bounds.width, bounds.height), sqrt(16_000_000f / max(1f, bounds.width * bounds.height))))
         val width = ceil(bounds.width * scale).toInt().coerceAtLeast(1)
         val height = ceil(bounds.height * scale).toInt().coerceAtLeast(1)

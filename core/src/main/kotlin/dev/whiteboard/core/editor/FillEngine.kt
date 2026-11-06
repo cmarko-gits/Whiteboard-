@@ -11,7 +11,7 @@ object FillEngine {
     }
 
     fun target(page: Page, point: Point): Target {
-        for (container in page.elements.asReversed()) {
+        for (container in page.visibleElements.asReversed()) {
             for (leaf in container.leaves().asReversed()) {
                 if (!page.geometry.renderBounds(leaf).contains(point)) continue
                 val content = leaf.content()

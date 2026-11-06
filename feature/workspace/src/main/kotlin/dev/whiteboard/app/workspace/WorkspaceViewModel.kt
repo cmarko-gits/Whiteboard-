@@ -8,6 +8,7 @@ import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.concurrency.DefaultAppDispatchers
 import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.editor.LayerStep
+import dev.whiteboard.core.editor.MindMapEdits
 import dev.whiteboard.core.editor.ObjectAlignment
 import dev.whiteboard.core.editor.ObjectClipboard
 import dev.whiteboard.core.editor.ObjectRotation
@@ -79,6 +80,7 @@ class WorkspaceViewModel @Inject constructor(
     private val clipboardRetentionId = newId()
     private val retentionId = newId()
     private var connectionGeneration = 0L
+    private var openingGeneration = 0L
     private var recoveryJob: Job? = null
     private var brushJob: Job? = null
     private data class FailedOperation(val boardId: String?, val action: suspend () -> Unit)
@@ -103,14 +105,21 @@ class WorkspaceViewModel @Inject constructor(
         if (board.activePage.elements.isNotEmpty()) mutable.update { it.copy(editor = it.editor?.copy(initialFit = true)) }
     }
     fun open(id: String, query: String? = null) = work {
+        val generation = ++openingGeneration
+        val previous = session
         mutable.update { it.copy(loading = true) }
-        val opened = persistence.open(id)
-        val board = opened.saved
-        val draft = opened.recovery
-        if (draft != null) {
-            mutable.update { it.copy(loading = false, recovery = PendingRecovery(board, draft, query)) }
-        } else {
-            activate(board, query = query)
+        try {
+            val opened = persistence.open(id)
+            if (generation != openingGeneration || session !== previous) return@work
+            val board = opened.saved
+            val draft = opened.recovery
+            if (draft != null) {
+                mutable.update { it.copy(loading = false, recovery = PendingRecovery(board, draft, query)) }
+            } else {
+                activate(board, query = query)
+            }
+        } finally {
+            if (generation == openingGeneration) mutable.update { it.copy(loading = false) }
         }
     }
     fun createPrivateCopy(source: Board, name: String) = work {
@@ -126,7 +135,7 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(recovery = null) }
     }
     private suspend fun activate(board: Board, recovered: Boolean = false, query: String? = null) {
-        connectionGeneration++
+        val generation = ++connectionGeneration
         val match = board.firstTextMatch(query)
         var opened = if (match == null) board else board.copy(activePageId = match.pageId)
         match?.element?.let { target ->
@@ -134,8 +143,21 @@ class WorkspaceViewModel @Inject constructor(
             val view = Viewport().pan(120f - bounds.left, 160f - bounds.top)
             opened = opened.withPage(opened.activePage.copy(viewport = view))
         }
-        session = DocumentSession(opened).also { if (recovered) it.markRecovered() }
+        val current = DocumentSession(opened).also { if (recovered) it.markRecovered() }
+        val hidden = match?.element?.id?.takeIf { opened.activePage.mindMapIndex?.isVisible(it) == false }
+        val reveal = if (hidden == null) {
+            null
+        } else {
+            withContext(dispatchers.computation) {
+                val calculation = currentCoroutineContext()
+                MindMapEdits.reveal(opened.activePage, hidden, current.editBudgetBytes) { calculation.ensureActive() }
+            }
+        }
+        reveal?.let { current.applyMindMapEdit(it) }
+        if (generation != connectionGeneration) return
         persistence.markOpened(board.id)
+        if (generation != connectionGeneration) return
+        session = current
         val settings = mutable.value.settings
         mutable.update {
             it.copy(
@@ -145,8 +167,8 @@ class WorkspaceViewModel @Inject constructor(
                 editor = EditorUi(
                     board.id,
                     board.name,
-                    opened.activePage,
-                    pages = opened.pages,
+                    current.page,
+                    pages = current.board.pages,
                     selectedIds = setOfNotNull(match?.element?.id),
                     canPaste = clipboard.available,
                     tool = if (match?.element != null) Tool.SELECT else settings.lastTool,
@@ -155,6 +177,7 @@ class WorkspaceViewModel @Inject constructor(
             )
         }
         publish()
+        if (reveal != null) scheduleRecovery()
     }
 
     fun canvas(event: CanvasEvent, source: EditorUi? = null) {
@@ -206,7 +229,7 @@ class WorkspaceViewModel @Inject constructor(
                 is CanvasEvent.Rejected -> report(DocumentFailure(event.error))
                 CanvasEvent.ConnectionTargetMissing -> mutable.update { it.copy(message = UiNotice(R.string.connection_target_hint)) }
                 is CanvasEvent.Select -> {
-                    val ids = event.ids.intersect(current.page.elements.map { it.id }.toSet())
+                    val ids = event.ids.intersect(current.page.visibleElements.map { it.id }.toSet())
                     mutable.update {
                         it.copy(editor = it.editor?.copy(selectedIds = ids, tool = if (ids.isNotEmpty()) Tool.SELECT else it.editor.tool))
                     }
@@ -217,7 +240,7 @@ class WorkspaceViewModel @Inject constructor(
                 }
                 is CanvasEvent.EditText -> {
                     val existing = event.existing?.let { previous ->
-                        current.page.elements.firstOrNull { it.id == previous.id } as? Element
+                        current.page.visibleElements.firstOrNull { it.id == previous.id } as? Element
                     }
                     if (event.existing != null && existing == null) return
                     val content = existing?.content()
@@ -425,14 +448,14 @@ class WorkspaceViewModel @Inject constructor(
     }
     fun selectedElements(): List<PageObject> {
         val ids = mutable.value.editor?.selectedIds.orEmpty()
-        return session?.page?.elements?.filter { it.id in ids }.orEmpty()
+        return session?.page?.visibleElements?.filter { it.id in ids }.orEmpty()
     }
     fun selectAll() {
         mutable.update {
             it.copy(
                 editor = it.editor?.copy(
                     tool = Tool.SELECT,
-                    selectedIds = session?.page?.elements?.map { e ->
+                    selectedIds = session?.page?.visibleElements?.map { e ->
                         e.id
                     }?.toSet().orEmpty()
                 )
@@ -653,7 +676,7 @@ class WorkspaceViewModel @Inject constructor(
                     dirty = current.dirty,
                     canUndo = current.canUndo,
                     canRedo = current.canRedo,
-                    selectedIds = state.editor.selectedIds.intersect(current.page.elements.map { it.id }.toSet())
+                    selectedIds = state.editor.selectedIds.intersect(current.page.visibleElements.map { it.id }.toSet())
                 )
             )
         }

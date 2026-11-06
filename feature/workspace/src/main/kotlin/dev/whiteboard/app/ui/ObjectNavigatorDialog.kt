@@ -30,14 +30,14 @@ import kotlinx.coroutines.withContext
 fun ObjectNavigatorDialog(page: Page, dismiss: () -> Unit, select: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
-    val elements by produceState(page.elements, page.elements, query, context) {
+    val elements by produceState(page.visibleElements, page.visibleElements, query, context) {
         value = withContext(Dispatchers.Default) {
             val search = query.trim()
             val calculation = currentCoroutineContext()
             if (search.isEmpty()) {
-                page.elements
+                page.visibleElements
             } else {
-                page.elements.filter { element ->
+                page.visibleElements.filter { element ->
                     calculation.ensureActive()
                     describeCanvasElement(context, element).contains(search, ignoreCase = true) ||
                         element.leaves().map { it.content() }.any { leaf ->

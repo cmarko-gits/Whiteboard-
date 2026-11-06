@@ -18,7 +18,7 @@ class PageGeometry internal constructor(val page: Page) {
     fun connectionTargetAt(point: Point, tolerance: Float): Element? {
         require(tolerance.isFinite() && tolerance >= 0f)
         val ports = connectionPorts()
-        for (element in page.elements.asReversed()) {
+        for (element in page.visibleElements.asReversed()) {
             if (element is Element && ports.supports(element.id) && hitTest(element, point, tolerance)) return element
         }
         return null
@@ -47,7 +47,7 @@ class PageGeometry internal constructor(val page: Page) {
     fun connectionTargets(checkpoint: () -> Unit = {}): List<Element> {
         val ports = connectionPorts(checkpoint)
         return buildList {
-            page.elements.forEach { element ->
+            page.visibleElements.forEach { element ->
                 checkpoint()
                 if (element is Element && ports.supports(element.id)) add(element)
                 if (element is ElementGroup) {
@@ -62,7 +62,7 @@ class PageGeometry internal constructor(val page: Page) {
 
     fun topmostAt(point: Point, tolerance: Float): PageObject? {
         require(tolerance.isFinite() && tolerance >= 0f)
-        return page.elements.lastOrNull { hitTest(it, point, tolerance) }
+        return page.visibleElements.lastOrNull { hitTest(it, point, tolerance) }
     }
 
     /** Replaces objects at their original layer positions. The source page and history are untouched. */

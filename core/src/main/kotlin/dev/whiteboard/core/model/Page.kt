@@ -44,8 +44,12 @@ class Page private constructor(
 
     val id: String get() = content.pageId
     val elements: List<PageObject> get() = content.elements
+
+    /** Display/input/export projection; canonical objects remain available to persistence/history. */
+    val visibleElements: List<PageObject> get() = mindMapIndex?.visibleObjects ?: elements
     val geometry: PageGeometry by lazy { PageGeometry(this) }
     val contentBounds: Bounds? get() = content.bounds
+    val visibleContentBounds: Bounds? get() = mindMapIndex?.visibleBounds ?: content.bounds
 
     fun copy(
         id: String = this.id,

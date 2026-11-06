@@ -127,7 +127,7 @@ class DocumentFiles @Inject constructor(
         val document = PdfDocument()
         try {
             board.pages.forEachIndexed { index, source ->
-                val bounds = (source.contentBounds ?: Bounds(0f, 0f, 595f, 842f)).expand(24f)
+                val bounds = (source.visibleContentBounds ?: Bounds(0f, 0f, 595f, 842f)).expand(24f)
                 val landscape = bounds.width > bounds.height
                 val width = if (landscape) 842 else 595
                 val height = if (landscape) 595 else 842

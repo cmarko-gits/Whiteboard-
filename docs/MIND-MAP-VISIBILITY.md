@@ -1,0 +1,13 @@
+# F06 — vidljiva projekcija
+
+Razvojni podkorak nad domenskim komandama fb47a18. F06 je i dalje otvoren; novi template/dijalozi, branch clipboard i potpuna kvalifikacija nisu završeni. Kvalifikovani korisnički paket ostaje 0.7.2, a ne ovaj razvojni kod.
+
+Page.elements/contentBounds ostaju kanonski sadržaj za validaciju, istoriju, editable backup, draft i serijalizaciju. Page.visibleElements/visibleContentBounds služe prikazu i interakciji. MindMapPageIndex čuva nepromenljivu projekciju i lenjo računa vidljivi okvir preko istog content resolver-a, uz proveru celokupne kanonske geometrije. Prazna/otvorena mapa koristi postojeći kanonski okvir. Metadata kopije dele indeks; collapse menja semantički identitet i vidljivu projekciju. Warm preview dobija nove vidljive objekte i world okvir bez čuvanja stare Page fasade.
+
+Renderer (editor/thumbnail/export), Fit, PNG/JPEG/PDF okvir, native i accessibility selekcija, rectangle selection, snapping, connection target picker, Fill i Objects dijalog koriste isti vidljivi skup. Skrivene grane i obične veze sa skrivenim krajem se ne crtaju/ne nude kao mete; sadržaj ostaje sačuvan. WhiteboardView prekida aktivan gest kada se promeni i semantička scena, ne samo lista objekata. Stari accessibility čvor više ne sme delovati na skriven objekat.
+
+Globalna tekstualna pretraga i dalje indeksira kanonski skriveni tekst. Izričito otvaranje takvog rezultata otvara put predaka jednim undoable MindMapEdits.reveal planom na computation dispatcher-u i zakazuje recovery. Obično otvaranje bez tog rezultata ne menja collapse stanje niti dirty zastavicu. Undo otkrivanja vraća prethodnu semantiku i uklanja nevidljivu selekciju. Trajni main zapis ne menja se pre Save-a.
+
+Lokalno prolazi 475 JVM slučajeva (338 core + 77 format + 5 data + 55 app), bez grešaka/preskakanja, pun stil/arhitektura i Android kompilacija. Osam novih core slučajeva proverava vidljivi/canonical okvir, picking/port mete, Fill, običnu spoljnu vezu, metadata deljenje i warm/rotated geometriju. Šest ViewModel slučajeva proverava Select all/native izbor, skriveni edit, običan open, search reveal/recovery/Undo, zastarelu aktivaciju i cancellation/busy stanje.
+
+Četiri nova MindMapRenderTest Android slučaja su samo kompajlirana: stvarni raster renderer, isti vidljivi PNG/JPEG/PDF okvir prema nezavisnoj referenci, semantic collapse tokom native drag-a i framework accessibility čvor koji nestaje/odbija staru akciju. Njihovo izvršavanje na pet emulator profila tek sledi; nisu uračunati kao lokalno izvršeni testovi. Dokazi: task-16-visibility-native-local.log i task-16-visibility-full-style.log. Rezultati komandi fb47a18 ili ranijih kandidata ne predstavljaju potvrdu ove projekcije.

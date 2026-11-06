@@ -5,7 +5,6 @@ import java.util.Collections
 /**
  * One immutable ownership/visibility index for all trees on a page. No Page facade is retained.
  * A caller must also check this semantic snapshot's identity when accepting an asynchronous plan.
- * Document persistence and editor integration are intentionally a subsequent step.
  */
 class MindMapPageIndex private constructor(page: Page, trees: List<MindMapTree>, checkpoint: () -> Unit, source: MindMapPageIndex?) {
     constructor(page: Page, trees: List<MindMapTree>, checkpoint: () -> Unit = {}) : this(page, trees, checkpoint, null)
@@ -15,6 +14,19 @@ class MindMapPageIndex private constructor(page: Page, trees: List<MindMapTree>,
     private val byId: Map<String, MindMapTree>
     private val owners: Map<String, MindMapTree>
     private val hiddenObjects: Set<String>
+
+    /** Validate the complete canonical geometry even when only the visible frame is requested. */
+    val visibleBounds: Bounds? by lazy {
+        val canonical = content.bounds
+        if (hiddenObjects.isEmpty()) {
+            canonical
+        } else {
+            visibleObjects.fold<PageObject, Bounds?>(null) { frame, element ->
+                val bounds = content.renderBounds(element)
+                frame?.union(bounds) ?: bounds
+            }
+        }
+    }
 
     init {
         checkpoint()

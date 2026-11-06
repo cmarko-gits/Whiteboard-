@@ -1,5 +1,11 @@
 # Izvršavanje preostalih zadataka
 
+## F06 vidljiva projekcija, 6. novembar 2026.
+
+Vidljivi renderer/input/AX/Fit/PNG/JPEG/PDF potrošači sada koriste Page.visibleElements/visibleContentBounds. Canonical document/history/backup geometrija ostaje cela i validirana. Search rezultat u skrivenoj grani otkriva put jednim Undo/recovery planom; kasna aktivacija i otkazivanje imaju svoje regresije. Lokalno prolazi 475 JVM (338+77+5+55), stil/arhitektura i Android kompilacija četiri nova renderer/export/gesture/framework-AX slučaja (ukupno 131 app native); izvršavanje nove projekcije tek sledi. MIND-MAP-VISIBILITY.md.
+
+Prethodni domenski izvor fb47a18 ima CI 42180340332 u toku: verify uspešan, 461 JVM, OSV 155, release politika i current-source scan 415 bez nalaza; pet profila još nije konačno potvrđeno. Nema novog distribuiranog paketa. Slede branch clipboard i puni pristupačni UI/template. **13/47 završeno, 34 preostalo.**
+
 ## F06 komande i storage ispravka, 6. novembar 2026.
 
 85c410f/CI 42176438620 ostaje neuspešan: 445 JVM i build/lint/OSV 155/APK politika prolaze; na svakom od pet profila prolazi 125/126 app i 13/13 data. Isti novi Room test otkriva nedostajuće mapiranje parse greške u repository-ju. Source scanner prijavljuje pregledan lažno pozitivan prose red. Ispravka obuhvata usku decode granicu za saved/draft/retained assets, očuvanje limit/future-version/cancellation razloga i izuzetak isključivo za tačan istorijski fingerprint. MIND-MAP-STORAGE-REVIEW.md čuva objašnjenje, neuspešni dokazi nisu uklonjeni.

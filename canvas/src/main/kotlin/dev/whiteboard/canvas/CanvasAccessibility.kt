@@ -16,7 +16,7 @@ import kotlin.math.max
 
 data class CanvasAccessibilitySnapshot(val page: Page, val viewport: Viewport, val selected: Set<String>) {
     val pageId get() = page.id
-    val elements get() = page.elements
+    val elements get() = page.visibleElements
 }
 
 /** Bounded visible-node window; the Objects dialog provides access to the entire page. */

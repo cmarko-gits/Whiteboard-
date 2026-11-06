@@ -166,7 +166,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             clearGesture()
         } else if (activePointer >= 0 &&
             (
-                this.page.elements !== page.elements || this.tool != tool ||
+                !this.page.sharesSceneWith(page) || this.tool != tool ||
                     pendingObjectMenu != null && selectedIds != dragOriginal.map { it.id }.toSet()
                 )
         ) {
@@ -175,17 +175,17 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         this.page = page
         this.tool = tool
         this.ink = ink
-        this.selectedIds = selectedIds
+        this.selectedIds = page.mindMapIndex?.let { index -> selectedIds.filterTo(HashSet(), index::isVisible) } ?: selectedIds
         if (accessibilityChanged) canvasAccessibility?.changed()
         invalidate()
     }
     fun revealElement(id: String) {
-        val element = page.elements.firstOrNull { it.id == id } ?: return
+        val element = page.visibleElements.firstOrNull { it.id == id } ?: return
         viewport = Viewport.fit(page.geometry.renderBounds(element), width.toFloat(), height.toFloat(), 48 * density)
         cameraChanged()
     }
     fun fitContent() {
-        viewport = Viewport.fit(page.contentBounds, width.toFloat(), height.toFloat(), 36 * density)
+        viewport = Viewport.fit(page.visibleContentBounds, width.toFloat(), height.toFloat(), 36 * density)
         cameraChanged()
     }
     fun resetCamera() {
@@ -232,7 +232,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     private fun openObjectMenu(ids: Set<String>, accessibility: Boolean = false): Boolean {
         val show = onObjectMenu ?: return false
         val scene = if (accessibility) accessibilitySnapshot?.invoke(viewport)?.page ?: page else page
-        val valid = scene.elements.filter { it.id in ids }.map { it.id }.toSet()
+        val valid = scene.visibleElements.filter { it.id in ids }.map { it.id }.toSet()
         if (valid.isEmpty()) return false
         clearGesture()
         if (accessibility) emitAccessibilityEvent(CanvasEvent.Select(valid)) else onEvent(CanvasEvent.Select(valid))
@@ -306,7 +306,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                 }
                 R.id.canvas_fit -> {
                     val scene = accessibilitySnapshot?.invoke(viewport)?.page ?: page
-                    viewport = Viewport.fit(scene.contentBounds, width.toFloat(), height.toFloat(), 36 * density)
+                    viewport = Viewport.fit(scene.visibleContentBounds, width.toFloat(), height.toFloat(), 36 * density)
                     cameraChanged(accessibility = true)
                 }
                 AccessibilityActionCompat.ACTION_SCROLL_LEFT.id -> {
@@ -433,7 +433,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         canvas.scale(viewport.scale, viewport.scale)
         renderer.drawBackground(canvas, page, visible, viewport.scale)
         val geometry = previewGeometry ?: page.geometry
-        geometry.page.elements.forEach {
+        geometry.page.visibleElements.forEach {
             if (it.id !in erased &&
                 geometry.renderBounds(it).expand(10f).intersects(visible)
             ) {
@@ -450,7 +450,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         }
         renderer.drawLiveStroke(canvas, activePath, samples.firstOrNull(), samples.size == 1, ink, tool)
         preview?.let { renderer.drawElement(canvas, it) }
-        val selected = selectionPreview.ifEmpty { page.elements.filter { it.id in selectedIds } }
+        val selected = selectionPreview.ifEmpty { page.visibleElements.filter { it.id in selectedIds } }
         val selectedBounds = selected.map { geometry.selectionBounds(it) }.reduceOrNull(Bounds::union)
         (selectionArea ?: selectedBounds)?.let {
             val b = it.expand(6 * density / viewport.scale)
@@ -515,7 +515,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                     Tool.PEN, Tool.PENCIL, Tool.MARKER, Tool.HIGHLIGHTER -> addSample(point)
                     Tool.ERASER -> erase(point)
                     Tool.SELECT -> {
-                        val current = page.elements.filter { it.id in selectedIds }
+                        val current = page.visibleElements.filter { it.id in selectedIds }
                         val handle = current.map { page.geometry.selectionBounds(it) }
                             .reduceOrNull(Bounds::union)?.expand(6 * density / viewport.scale)
                         resizing =
@@ -534,7 +534,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
                             viewport.toDocument(Point(width.toFloat(), height.toFloat()))
                         )
                         snapCandidates =
-                            page.elements.filter { it.id !in ids && page.geometry.renderBounds(it).intersects(visible) }
+                            page.visibleElements.filter { it.id !in ids && page.geometry.renderBounds(it).intersects(visible) }
                                 .map { page.geometry.selectionBounds(it) }
                         onEvent(CanvasEvent.Select(ids))
                         if (!resizing && hit != null && onObjectMenu != null) {
@@ -773,7 +773,7 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
             Tool.SELECT -> {
                 if (selectionPreview.isNotEmpty()) onEvent(CanvasEvent.Replace(selectionPreview))
                 selectionArea?.let { area ->
-                    val ids = page.elements.filter { page.geometry.renderBounds(it).intersects(area) }.map { it.id }.toSet()
+                    val ids = page.visibleElements.filter { page.geometry.renderBounds(it).intersects(area) }.map { it.id }.toSet()
                     onEvent(CanvasEvent.Select(ids))
                 }
                 val single = dragOriginal.singleOrNull() as? Element
