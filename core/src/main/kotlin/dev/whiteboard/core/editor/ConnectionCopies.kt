@@ -31,12 +31,14 @@ object ConnectionCopies {
         require(selected.size + edges.size == selectedIds.size) { "Unknown or child-only copy selection" }
 
         val sourceEdges = definitions.map { it.id }.toHashSet()
+        val sourceMaps = page.mindMaps.map { it.id }.toHashSet()
         val allocated = HashSet<String>()
         fun nextIdentity(): String {
             checkpoint()
             return identity().also { id ->
                 require(
-                    id.isNotBlank() && id.length <= 128 && !page.content.containsId(id) && id !in sourceEdges && allocated.add(id)
+                    id.isNotBlank() && id.length <= 128 && !page.content.containsId(id) && id !in sourceEdges && id !in sourceMaps &&
+                        allocated.add(id)
                 ) { "Invalid copied object ID" }
             }
         }

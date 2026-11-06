@@ -7,7 +7,8 @@ import java.util.Collections
  * A caller must also check this semantic snapshot's identity when accepting an asynchronous plan.
  * Document persistence and editor integration are intentionally a subsequent step.
  */
-class MindMapPageIndex(page: Page, trees: List<MindMapTree>, checkpoint: () -> Unit = {}) {
+class MindMapPageIndex private constructor(page: Page, trees: List<MindMapTree>, checkpoint: () -> Unit, source: MindMapPageIndex?) {
+    constructor(page: Page, trees: List<MindMapTree>, checkpoint: () -> Unit = {}) : this(page, trees, checkpoint, null)
     private val content = page.content
     val trees: List<MindMapTree>
     val visibleObjects: List<PageObject>
@@ -18,7 +19,22 @@ class MindMapPageIndex(page: Page, trees: List<MindMapTree>, checkpoint: () -> U
     init {
         checkpoint()
         require(trees.size <= MAX_TREES) { "Too many mind maps" }
-        if (trees.isEmpty()) {
+        if (source != null) {
+            require(content.isPreviewOf(source.content)) { "Semantic preview requires validated stable membership" }
+            this.trees = source.trees
+            byId = source.byId
+            owners = source.owners
+            hiddenObjects = source.hiddenObjects
+            val visible = if (hiddenObjects.isEmpty()) {
+                page.elements
+            } else {
+                page.elements.filter {
+                    checkpoint()
+                    it.id !in hiddenObjects
+                }
+            }
+            visibleObjects = Collections.unmodifiableList(visible)
+        } else if (trees.isEmpty()) {
             this.trees = emptyList()
             byId = emptyMap()
             owners = emptyMap()
@@ -87,6 +103,10 @@ class MindMapPageIndex(page: Page, trees: List<MindMapTree>, checkpoint: () -> U
 
     /** Metadata-only page copies share canonical geometry. Semantic identity is checked separately. */
     fun matchesGeometry(page: Page): Boolean = content === page.content
+
+    /** Reuses topology/visibility only after PageContent verified stable identities and definitions. */
+    internal fun rebindPreview(page: Page, checkpoint: () -> Unit): MindMapPageIndex? =
+        if (page.content.isPreviewOf(content)) MindMapPageIndex(page, trees, checkpoint, this) else null
 
     fun tree(id: String): MindMapTree = requireNotNull(byId[id]) { "Unknown mind map" }
 

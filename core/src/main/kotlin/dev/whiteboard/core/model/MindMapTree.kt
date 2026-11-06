@@ -22,6 +22,9 @@ data class MindMapNode(val id: String, val parentId: String? = null, val connect
 class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint: () -> Unit = {}) {
     val nodes: List<MindMapNode>
     val rootId: String
+
+    /** Conservative history accounting for topology values, excluding derived page indexes. */
+    val estimatedBytes: Long
     private val byId: Map<String, MindMapNode>
     private val children: Map<String, List<MindMapNode>>
 
@@ -33,6 +36,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
         val indexed = LinkedHashMap<String, MindMapNode>(nodes.size)
         val edges = HashSet<String>()
         var root: String? = null
+        var bytes = 128L + id.length * 2L
         nodes.forEach { node ->
             checkpoint()
             require(node.id != id && indexed.put(node.id, node) == null) { "Duplicate mind-map identity" }
@@ -43,6 +47,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
                 require(node.connectionId != id && edges.add(checkNotNull(node.connectionId))) { "Duplicate mind-map connection" }
             }
             prepared.add(node)
+            bytes += 96L + node.id.length * 2L + (node.parentId?.length ?: 0) * 2L + (node.connectionId?.length ?: 0) * 2L
         }
         rootId = requireNotNull(root) { "Missing mind-map root" }
         val childLists = LinkedHashMap<String, MutableList<MindMapNode>>()
@@ -76,6 +81,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
         this.nodes = Collections.unmodifiableList(prepared)
         byId = Collections.unmodifiableMap(indexed)
         children = Collections.unmodifiableMap(immutableChildren)
+        estimatedBytes = bytes
     }
 
     fun node(id: String): MindMapNode = requireNotNull(byId[id]) { "Unknown mind-map node" }
@@ -181,6 +187,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
 
     override fun equals(other: Any?): Boolean = this === other || other is MindMapTree && id == other.id && nodes == other.nodes
     override fun hashCode(): Int = 31 * id.hashCode() + nodes.hashCode()
+    override fun toString(): String = "MindMapTree(id=$id, rootId=$rootId, nodeCount=${nodes.size})"
 
     companion object {
         // Every node after the root also needs a canonical Connector in Page.elements.

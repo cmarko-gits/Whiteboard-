@@ -1,6 +1,6 @@
 # F06 — lokalni mind-map: ugovor pre implementacije
 
-Status: razvojna osnova 0.8.0/code 17 na codex/mind-map-foundation, početni domenski model i lokalni testovi, bez aktivne funkcije ili migracije. Ova osnova se ne distribuira kao završena funkcija. Postojeći MIND_MAP template i sačuvane table ostaju obični Note/Line objekti. Z08 optimizacija 0.7.2/source 1176e59 ima nezavisnu CI kvalifikaciju; ovaj dokument ne menja taj paket. F06 se ne zatvara projektovanjem ili izolovanim graph modelom.
+Status: razvojna 0.8.0/code 17 na codex/mind-map-foundation. Tree/page indeks i affine-note osnova source 95e3804 prošli su CI 42172357173 (421 JVM, pet profila po 123 app + 13 data, tri R8/jezička toka). Sledeći Page/format 6 podkorak lokalno prolazi 445 JVM i kompajliranje 126 app + 13 data testova; nova matrica sledi. [MIND-MAP-PERSISTENCE.md](MIND-MAP-PERSISTENCE.md) definiše implementirani storage/snapshot ugovor. UI, pune komande grana i visible scene potrošači nisu završeni. Template ostaje običan Note/Line crtež; nema distribuiranog 0.8.0 kandidata. Kvalifikovani paket je 0.7.2/source 1176e59.
 
 ## Autoritativni podaci i granice
 

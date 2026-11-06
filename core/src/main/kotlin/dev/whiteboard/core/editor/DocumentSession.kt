@@ -19,7 +19,9 @@ interface DocumentChange {
 data class PageListChange(val before: List<Page>, val after: List<Page>, val beforeActive: String, val afterActive: String) :
     DocumentChange {
     override val assetIds = (before + after).flatMap { it.elements }.referencedAssets()
-    override val estimatedBytes = (before + after).sumOf { page -> 128L + page.elements.sumOf { it.estimatedBytes() } }
+    override val estimatedBytes = (before + after).sumOf { page ->
+        128L + page.elements.sumOf { it.estimatedBytes() } + page.mindMaps.sumOf { it.estimatedBytes }
+    }
     override fun apply(board: Board, forward: Boolean) =
         board.copy(pages = if (forward) after else before, activePageId = if (forward) afterActive else beforeActive)
 }
@@ -95,6 +97,11 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
 
     fun execute(command: DocumentChange) {
         val prepared = prepareTargetRemoval(command)
+        if (prepared is PageListChange && (prepared.before + prepared.after).any { it.mindMaps.isNotEmpty() } &&
+            prepared.estimatedBytes > historyByteLimit
+        ) {
+            throw DocumentFailure(DocumentError.EDIT_LIMIT)
+        }
         if (prepared is EditCommand &&
             (
                 board.pages.first { it.id == prepared.pageId }.content.connections.isNotEmpty() ||
@@ -185,7 +192,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         applySelectionEdit(SelectionAlignment.plan(page, ids, alignment, historyByteLimit))
 
     fun applySelectionEdit(plan: SelectionEditPlan): Boolean {
-        if (page.id != plan.original.id || page.elements !== plan.original.elements || plan.replacements.isEmpty()) return false
+        if (!page.sharesSceneWith(plan.original) || plan.replacements.isEmpty()) return false
         val replacements = plan.replacements.associateBy(PageObject::id)
         val deltas = page.elements.mapIndexedNotNull { index, before ->
             replacements[before.id]?.takeIf { it != before }?.let { after ->
@@ -331,14 +338,16 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
     fun duplicatePage(id: String) {
         require(board.pages.size < 1000)
         val original = board.pages.first { it.id == id }
+        val copied = ConnectionCopies.duplicate(
+            original,
+            original.elements.filterIsInstance<Connector>(),
+            original.elements.map { it.id }.toSet()
+        )
         val added = original.copy(
             id = newId(),
             name = "${original.name.take(115)} copy",
-            elements = ConnectionCopies.duplicate(
-                original,
-                original.elements.filterIsInstance<Connector>(),
-                original.elements.map { it.id }.toSet()
-            ).objects
+            elements = copied.objects,
+            mindMaps = MindMapCopies.duplicate(original.mindMaps, copied.identities)
         )
         val pages = board.pages.toMutableList().apply { add(indexOfFirst { it.id == id } + 1, added) }
         changePages(pages, added.id)
@@ -409,8 +418,8 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         val surviving = result.filterIsInstance<Connector>().filter { before.content.connections[it.id] == it }
         if (surviving.isEmpty()) return command
         val changes = ConnectionTargetRemoval.plan(
-            before.copy(elements = before.elements.filterIsInstance<Element>()),
-            before.copy(elements = result.filterIsInstance<Element>()),
+            before.copy(elements = before.elements.filterIsInstance<Element>(), mindMaps = emptyList()),
+            before.copy(elements = result.filterIsInstance<Element>(), mindMaps = emptyList()),
             surviving
         )
         if (changes.isEmpty()) return command

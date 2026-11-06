@@ -1,5 +1,15 @@
 # Izvršavanje preostalih zadataka
 
+## F06 Page/format 6 podkorak, 6. novembar 2026.
+
+Affine osnova source 95e38040de74415cc292d4dfe844125d03b1a78a, CI 42172357173, prolazi svih šest poslova: 421 JVM i pet profila po 123 app + 13 data, tri R8/jezička toka; 557 jedinstvenih slučajeva. Dokazi su artifacts/task-16-95e3804-evidence.json. To je format 5 i zasebna ranija osnova, bez novog storage podkoraka.
+
+Novi rad povezuje semantički indeks sa Page, čuva geometry/semantic stale identitet, ponovo vezuje warm preview bez starog Page lanca, dodaje format 6 i delta envelope 2 uz čitanje legitimnih starih formata, strict integer header-e i flat tree JSON. Writer odbija ponovljene/prevelike metadata liste pre pravljenja stabla. Complete-page duplicate rekey-uje map/node/parent/edge identitete; tree vrednosti ulaze u history accounting i oversized map PageListChange ne gubi sopstveni Undo. Pomoćne geometrijske target-removal projekcije su izričito bez semantike, dok konačan dokument zadržava mapu.
+
+Lokalno: 445 JVM (314 core + 77 format + 5 data + 49 app), bez grešaka/preskakanja, pun stil/arhitektura i kompajlirani 126 app + 13 data testova. Tri nova native Room slučaja za saved/draft, import i oštećenu topologiju/decimalni header još nisu izvršena. Prvi format pokušaj imao je dva zastarela writer-version=5 assertion-a; taj log je sačuvan, assertions sada prate writer VERSION, a novi slučajevi izričito čitaju 1–5 i odbijaju semantička polja pod starom oznakom. MIND-MAP-PERSISTENCE.md vezuje obim i ograničenja. Nova puna matrica je obavezna za sledeći izvor.
+
+F06 nije završen: slede tree komande, vidljivi renderer/input/AX/izvoz i UI/template. **13/47 završeno, 34 preostalo.** Kvalifikovani APK ostaje 0.7.2, novi razvojni format nije distribuiran korisniku.
+
 ## Nastavak 6. novembra 2026: Z08 paket i F06 osnova
 
 0.7.2/source 1176e599e54d6d1c6e8ab7be1b59c684f3520b09, CI 42095770590: svih šest poslova prolazi, 399 JVM i pet profila po 123 app + 13 data, tri R8/jezička toka. 535 jedinstvenih slučajeva. Paket, VCS/potpis/ZIP-P16/ELF64, manifest/DEX/offline-font, OSV/notices 155, source scan 397, history 111/117 svih lokalnih refs i 381-entry poređenje prema tri CI APK-a prolaze. Novi renderer i release-reopened snimci pregledani uz entry SHA-256. LOCAL-0.7.2-CANDIDATE.md i artifacts/task-08-1176e59-* vezuju sve dokaze za source/paket.

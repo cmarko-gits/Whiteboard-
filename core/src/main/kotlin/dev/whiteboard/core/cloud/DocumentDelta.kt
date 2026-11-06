@@ -18,15 +18,23 @@ data class PageMutation(
     val background: ValueChange<Background>? = null,
     val color: ValueChange<Int>? = null,
     val objects: List<ObjectMutation> = emptyList(),
-    val order: List<String>? = null
+    val order: List<String>? = null,
+    val mindMaps: ValueChange<List<MindMapTree>>? = null
 ) {
     init {
         require(id.length in 1..128)
         require(objects.size <= 100_000 && objects.map { it.id }.toSet().size == objects.size)
         require(created == null || created.id == id)
         require(!(deleted && created != null))
-        if (deleted || created != null) require(name == null && background == null && color == null && objects.isEmpty() && order == null)
+        if (deleted ||
+            created != null
+        ) {
+            require(name == null && background == null && color == null && objects.isEmpty() && order == null && mindMaps == null)
+        }
         require(order == null || (order.size <= 100_000 && order.toSet().size == order.size))
+        require(
+            mindMaps == null || (mindMaps.expected.size <= MindMapPageIndex.MAX_TREES && mindMaps.value.size <= MindMapPageIndex.MAX_TREES)
+        )
     }
 }
 data class DocumentDelta(
@@ -75,10 +83,11 @@ class DeltaEngine(private val fingerprints: ElementFingerprint) {
                     background = changed(previous.background, page.background),
                     color = changed(previous.backgroundColor, page.backgroundColor),
                     objects = objects,
-                    order = changedOrder(previous.elements.map { it.id }, page.elements.map { it.id })
+                    order = changedOrder(previous.elements.map { it.id }, page.elements.map { it.id }),
+                    mindMaps = changed(previous.mindMaps, page.mindMaps)
                 )
                 if (mutation.name != null || mutation.background != null || mutation.color != null || objects.isNotEmpty() ||
-                    mutation.order != null
+                    mutation.order != null || mutation.mindMaps != null
                 ) {
                     changes += mutation
                 }
@@ -132,7 +141,14 @@ class DeltaEngine(private val fingerprints: ElementFingerprint) {
                         name = merge(previous.name, mutation.name, mutation.id),
                         background = merge(previous.background, mutation.background, mutation.id),
                         backgroundColor = merge(previous.backgroundColor, mutation.color, mutation.id),
-                        elements = reorder(objects, mutation.order)
+                        elements = if (mutation.objects.isEmpty() &&
+                            mutation.order == null
+                        ) {
+                            previous.elements
+                        } else {
+                            reorder(objects, mutation.order)
+                        },
+                        mindMaps = merge(previous.mindMaps, mutation.mindMaps, mutation.id)
                     )
                 }
             }

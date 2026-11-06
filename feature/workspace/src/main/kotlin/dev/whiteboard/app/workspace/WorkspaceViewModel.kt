@@ -526,7 +526,7 @@ class WorkspaceViewModel @Inject constructor(
                 ConnectionRequest(boardId, original, existing, targets, start, end, startPoint, point(end), ink, existing?.arrow ?: true)
             }
             if (generation != connectionGeneration) return@work
-            if (session === current && current.page.id == original.id && current.page.elements === original.elements) {
+            if (session === current && current.page.sharesSceneWith(original)) {
                 mutable.update { it.copy(connectionRequest = request) }
             } else {
                 mutable.update { it.copy(message = UiNotice(R.string.connection_changed)) }
@@ -564,7 +564,7 @@ class WorkspaceViewModel @Inject constructor(
             }
             if (mutable.value.connectionRequest?.id != request.id) return@work
             if (session !== current || current.board.id != request.boardId || current.page.id != request.page.id ||
-                current.page.elements !== request.page.elements
+                !current.page.sharesSceneWith(request.page)
             ) {
                 dismissConnection()
                 mutable.update { it.copy(message = UiNotice(R.string.connection_changed)) }
@@ -603,7 +603,7 @@ class WorkspaceViewModel @Inject constructor(
     }
 
     private fun sourceMatches(current: DocumentSession, source: EditorUi): Boolean =
-        current.board.id == source.boardId && current.page.id == source.page.id && current.page.elements === source.page.elements
+        current.board.id == source.boardId && current.page.sharesSceneWith(source.page)
     fun applyText(text: String, size: Float, bold: Boolean, italic: Boolean, alignment: TextAlignment, color: Int) {
         val request = mutable.value.textRequest ?: return
         if (text.isNotBlank()) {

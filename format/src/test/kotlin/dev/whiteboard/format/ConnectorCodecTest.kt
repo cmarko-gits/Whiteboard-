@@ -30,7 +30,7 @@ class ConnectorCodecTest {
 
     @Test fun documentPageAndObjectRoundTripsStoreDefinitionsWithoutDerivedBounds() {
         val root = root()
-        assertEquals(5, root.getInt("version"))
+        assertEquals(DocumentCodec.VERSION, root.getInt("version"))
         assertEquals("connector", connection(root).getString("type"))
         assertFalse(connection(root).has("bounds"))
         assertEquals(board, codec.decode(root.toString()))
@@ -183,7 +183,7 @@ class ConnectorCodecTest {
         val deltaCodec = DocumentDeltaCodec()
         val delta = engine.between(base, after)
         val encoded = deltaCodec.encode(delta)
-        assertEquals(5, JSONObject(encoded).getInt("documentVersion"))
+        assertEquals(DocumentCodec.VERSION, JSONObject(encoded).getInt("documentVersion"))
         val restored = deltaCodec.decode(encoded)
         assertEquals(delta, restored)
         assertEquals(after, engine.apply(base, restored).board)

@@ -11,14 +11,17 @@ class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAlloc
     init {
         require(allocationBudget > 0)
     }
-    fun encodePageJson(page: Page): String = encodePage(page).toString().also {
+    fun encodePageJson(page: Page): String = encodePage(page).put("version", VERSION).toString().also {
         require(it.length <= MAX_DOCUMENT_CHARACTERS)
         JsonSafety.check(it, 32, allocationBudget)
     }
     fun decodePageJson(source: String): Page {
         require(source.length <= MAX_DOCUMENT_CHARACTERS)
         JsonSafety.check(source, 32, allocationBudget)
-        return decodePage(JSONObject(source))
+        val root = JSONObject(source)
+        // Legacy standalone pages had no version. New semantic metadata must be explicit.
+        val version = if (root.has("version")) readVersion(root) else 5
+        return decodePage(root, version)
     }
 
     fun encodeElementJson(element: PageObject): String = encodeElement(element).toString().also {
@@ -51,9 +54,7 @@ class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAlloc
         require(source.length <= MAX_DOCUMENT_CHARACTERS) { "Document is too large" }
         JsonSafety.check(source, 32, allocationBudget)
         val root = JSONObject(source)
-        val version = root.getInt("version")
-        require(root.get("version") is Number && root.getDouble("version") == version.toDouble()) { "Invalid document version" }
-        if (version !in 1..VERSION) throw UnsupportedDocumentVersion(version)
+        val version = readVersion(root)
         val pages = root.getJSONArray("pages")
         require(pages.length() in 1..1000)
         return Board(
@@ -82,11 +83,18 @@ class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAlloc
             }
         )
         put("objects", JSONArray().apply { page.elements.forEach { put(encodeElement(it)) } })
+        if (page.mindMaps.isNotEmpty()) put("mindMaps", MindMapJson.encode(page.mindMaps))
     }
     private fun decodePage(root: JSONObject, version: Int = VERSION): Page {
+        if (root.has("version")) {
+            val declared = readVersion(root)
+            require(declared == version) { "Page version differs from document" }
+        }
         val objects = root.getJSONArray("objects")
         require(objects.length() <= 100_000)
         val view = root.getJSONObject("viewport")
+        require(version >= 6 || !root.has("mindMaps")) { "Mind maps require document version 6" }
+        val maps = if (root.has("mindMaps")) MindMapJson.decode(root.getJSONArray("mindMaps")) else emptyList()
         return Page(
             root.getString("id"),
             root.getString("name"),
@@ -95,7 +103,8 @@ class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAlloc
             List(objects.length()) {
                 decodeElement(objects.getJSONObject(it), version = version)
             },
-            Viewport(Point(view.float("x"), view.float("y")), view.float("scale"))
+            Viewport(Point(view.float("x"), view.float("y")), view.float("scale")),
+            maps
         ).also { it.contentBounds }
     }
     private fun encodeElement(element: PageObject): JSONObject = JSONObject().apply {
@@ -308,13 +317,23 @@ class DocumentCodec(private val allocationBudget: Long = JsonSafety.defaultAlloc
         require(root.keys().asSequence().all { it in allowed }) { "Unknown connection field" }
     }
 
+    private fun readVersion(root: JSONObject): Int {
+        val value = root.get("version")
+        // Floating-point coercion can round a fractional header differently on JVM and Android.
+        require(value is Int || value is Long) { "Document version must be an integer token" }
+        val version = root.getInt("version")
+        require((value as Number).toLong() == version.toLong()) { "Document version is out of range" }
+        if (version !in 1..VERSION) throw UnsupportedDocumentVersion(version)
+        return version
+    }
+
     // The JVM JSON library also has put(String, Float); Android's platform class only supports Double.
     private fun JSONObject.putFloat(name: String, value: Float) = put(name, value.toDouble())
     private fun JSONObject.float(name: String) = getDouble(name).toFloat()
     private fun JSONArray.point() = Point(getDouble(0).toFloat(), getDouble(1).toFloat())
     private fun JSONObject.optionalString(name: String): String? = if (has(name) && !isNull(name)) getString(name) else null
     companion object {
-        const val VERSION = 5
+        const val VERSION = 6
         const val MAX_DOCUMENT_CHARACTERS = 64 * 1024 * 1024
     }
 }

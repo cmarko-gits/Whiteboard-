@@ -35,6 +35,12 @@ class DocumentDeltaCodec(
                             page.background?.let { put("background", change(it.expected.name, it.value.name)) }
                             page.color?.let { put("color", change(it.expected, it.value)) }
                             page.order?.let { put("order", JSONArray(it)) }
+                            page.mindMaps?.let {
+                                put(
+                                    "mindMaps",
+                                    JSONObject().put("expected", MindMapJson.encode(it.expected)).put("value", MindMapJson.encode(it.value))
+                                )
+                            }
                             if (page.objects.isNotEmpty()) {
                                 put(
                                     "objects",
@@ -66,10 +72,11 @@ class DocumentDeltaCodec(
         JsonSafety.check(source, 32, allocationBudget)
         val root = JSONObject(source)
         fields(root, setOf("version", "documentVersion", "fingerprintVersion", "name", "pages", "order"))
-        require(root.getInt("version") == VERSION && root.getInt("fingerprintVersion") == FINGERPRINT_VERSION)
-        val documentVersion = root.getInt("documentVersion")
-        require(root.get("documentVersion") is Number && root.getDouble("documentVersion") == documentVersion.toDouble())
+        val transportVersion = integer(root, "version")
+        require(transportVersion in 1..VERSION && integer(root, "fingerprintVersion") == FINGERPRINT_VERSION)
+        val documentVersion = integer(root, "documentVersion")
         require(documentVersion in 1..DocumentCodec.VERSION)
+        require(transportVersion >= 2 || documentVersion <= 5) { "Document semantics require delta version 2" }
         val pages = root.getJSONArray("pages")
         require(pages.length() <= 1000)
         return DocumentDelta(
@@ -80,8 +87,13 @@ class DocumentDeltaCodec(
     }
 
     private fun decodePage(root: JSONObject, documentVersion: Int): PageMutation {
-        fields(root, setOf("id", "created", "deleted", "name", "background", "color", "objects", "order"))
+        fields(
+            root,
+            setOf("id", "created", "deleted", "name", "background", "color", "objects", "order") +
+                if (documentVersion >= 6) setOf("mindMaps") else emptySet()
+        )
         val objects = root.arrayOrNull("objects")
+        require(!root.has("mindMaps") || !root.isNull("mindMaps")) { "A semantic change cannot be null" }
         require(objects == null || objects.length() <= 100_000)
         val result = PageMutation(
             id = root.getString("id"),
@@ -119,11 +131,15 @@ class DocumentDeltaCodec(
                     )
                 }
             }.orEmpty(),
-            order = root.arrayOrNull("order")?.let { order(it, 100_000) }
+            order = root.arrayOrNull("order")?.let { order(it, 100_000) },
+            mindMaps = root.objectOrNull("mindMaps")?.let {
+                fields(it, setOf("expected", "value"))
+                ValueChange(MindMapJson.decode(it.getJSONArray("expected")), MindMapJson.decode(it.getJSONArray("value")))
+            }
         )
         require(
             result.created != null || result.deleted || result.name != null || result.background != null || result.color != null ||
-                result.objects.isNotEmpty() || result.order != null
+                result.objects.isNotEmpty() || result.order != null || result.mindMaps != null
         )
         return result
     }
@@ -133,7 +149,12 @@ class DocumentDeltaCodec(
         return ValueChange(root.getString("expected"), root.getString("value"))
     }
     private fun validatePage(root: JSONObject, documentVersion: Int) {
-        fields(root, setOf("id", "name", "background", "backgroundColor", "viewport", "objects"))
+        fields(
+            root,
+            setOf("id", "name", "background", "backgroundColor", "viewport", "objects") +
+                if (documentVersion >= 6) setOf("version", "mindMaps") else emptySet()
+        )
+        if (root.has("version")) require(integer(root, "version") == documentVersion) { "Page version differs from envelope" }
         fields(root.getJSONObject("viewport"), setOf("x", "y", "scale"))
         val objects = root.getJSONArray("objects")
         require(objects.length() <= 100_000)
@@ -177,6 +198,13 @@ class DocumentDeltaCodec(
     private fun fields(root: JSONObject, allowed: Set<String>) {
         require(root.keys().asSequence().all { it in allowed }) { "Unknown operation field" }
     }
+    private fun integer(root: JSONObject, key: String): Int {
+        val value = root.get(key)
+        require(value is Int || value is Long) { "Operation version must be an integer token" }
+        val integer = root.getInt(key)
+        require((value as Number).toLong() == integer.toLong()) { "Operation version is out of range" }
+        return integer
+    }
     private fun JSONObject.objectOrNull(key: String): JSONObject? = if (has(key) && !isNull(key)) getJSONObject(key) else null
     private fun JSONObject.arrayOrNull(key: String): JSONArray? = if (has(key) && !isNull(key)) getJSONArray(key) else null
     companion object {
@@ -192,7 +220,7 @@ class DocumentDeltaCodec(
             "affine" to COMMON + setOf("source", "placement"),
             "connector" to setOf("id", "type", "start", "end", "style", "arrow")
         )
-        const val VERSION = 1
+        const val VERSION = 2
         const val FINGERPRINT_VERSION = 1
         const val MAX_CHARACTERS = 8 * 1024 * 1024
     }

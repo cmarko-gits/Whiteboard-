@@ -13,7 +13,10 @@ class Page private constructor(
     val background: Background,
     val backgroundColor: Int,
     val viewport: Viewport,
-    internal val content: PageContent
+    internal val content: PageContent,
+    maps: List<MindMapTree>,
+    sharedIndex: MindMapPageIndex? = null,
+    checkpoint: () -> Unit = {}
 ) {
     constructor(
         id: String = newId(),
@@ -21,8 +24,23 @@ class Page private constructor(
         background: Background = Background.DOTS,
         backgroundColor: Int = 0xFFFAFBF7.toInt(),
         elements: List<PageObject> = emptyList(),
-        viewport: Viewport = Viewport()
-    ) : this(name, background, backgroundColor, viewport, PageContent(id, elements))
+        viewport: Viewport = Viewport(),
+        mindMaps: List<MindMapTree> = emptyList()
+    ) : this(name, background, backgroundColor, viewport, PageContent(id, elements), mindMaps)
+
+    val mindMapIndex: MindMapPageIndex? = if (maps.isEmpty()) {
+        null
+    } else if (sharedIndex != null && sharedIndex.trees === maps) {
+        if (sharedIndex.matchesGeometry(this)) {
+            sharedIndex
+        } else {
+            sharedIndex.rebindPreview(this, checkpoint)
+                ?: MindMapPageIndex(this, maps, checkpoint)
+        }
+    } else {
+        MindMapPageIndex(this, maps, checkpoint)
+    }
+    val mindMaps: List<MindMapTree> get() = mindMapIndex?.trees ?: emptyList()
 
     val id: String get() = content.pageId
     val elements: List<PageObject> get() = content.elements
@@ -35,17 +53,31 @@ class Page private constructor(
         background: Background = this.background,
         backgroundColor: Int = this.backgroundColor,
         elements: List<PageObject> = this.elements,
-        viewport: Viewport = this.viewport
+        viewport: Viewport = this.viewport,
+        mindMaps: List<MindMapTree> = this.mindMaps
     ): Page = Page(
         name,
         background,
         backgroundColor,
         viewport,
-        if (id == this.id && elements === this.elements) content else PageContent(id, elements)
+        if (id == this.id && elements === this.elements) content else PageContent(id, elements),
+        mindMaps,
+        mindMapIndex
     )
 
-    internal fun withPreview(elements: List<PageObject>, checkpoint: () -> Unit): Page =
-        Page(name, background, backgroundColor, viewport, PageContent.preview(content, elements, checkpoint))
+    internal fun withPreview(elements: List<PageObject>, checkpoint: () -> Unit): Page = Page(
+        name,
+        background,
+        backgroundColor,
+        viewport,
+        PageContent.preview(content, elements, checkpoint),
+        mindMaps,
+        mindMapIndex,
+        checkpoint
+    )
+
+    /** Geometry and semantic identity; names, background and camera are independent metadata. */
+    fun sharesSceneWith(other: Page): Boolean = content === other.content && mindMapIndex === other.mindMapIndex
 
     operator fun component1(): String = id
     operator fun component2(): String = name
@@ -53,10 +85,11 @@ class Page private constructor(
     operator fun component4(): Int = backgroundColor
     operator fun component5(): List<PageObject> = elements
     operator fun component6(): Viewport = viewport
+    operator fun component7(): List<MindMapTree> = mindMaps
 
     override fun equals(other: Any?): Boolean = this === other || other is Page &&
         id == other.id && name == other.name && background == other.background && backgroundColor == other.backgroundColor &&
-        elements == other.elements && viewport == other.viewport
+        elements == other.elements && viewport == other.viewport && mindMaps == other.mindMaps
 
     override fun hashCode(): Int {
         var result = id.hashCode()
@@ -64,11 +97,12 @@ class Page private constructor(
         result = 31 * result + background.hashCode()
         result = 31 * result + backgroundColor
         result = 31 * result + elements.hashCode()
-        return 31 * result + viewport.hashCode()
+        result = 31 * result + viewport.hashCode()
+        return 31 * result + mindMaps.hashCode()
     }
 
     override fun toString(): String =
-        "Page(id=$id, name=$name, background=$background, backgroundColor=$backgroundColor, elements=$elements, viewport=$viewport)"
+        "Page(id=$id, name=$name, background=$background, backgroundColor=$backgroundColor, elements=$elements, viewport=$viewport, mindMaps=$mindMaps)"
 
     companion object {
         const val MAX_ELEMENTS = 100_000
@@ -127,6 +161,8 @@ internal class PageContent private constructor(
     }
 
     fun containsId(id: String): Boolean = id in ids
+
+    internal fun isPreviewOf(source: PageContent): Boolean = previewState?.source === source
 
     private data class RenderFrame(val definition: PageObject, val bounds: Bounds)
     private class RenderFrames(private val entries: Map<String, RenderFrame>, private val fallback: RenderFrames? = null) {
