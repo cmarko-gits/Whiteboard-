@@ -57,6 +57,7 @@ fun EditorScreen(
     onSettings: () -> Unit
 ) {
     val workspace by viewModel.state.collectAsState()
+    val branchRemoval by viewModel.branchRemoval.state.collectAsState()
     val compact = LocalConfiguration.current.screenHeightDp < 500
     var nativeView by remember { mutableStateOf<WhiteboardView?>(null) }
     var more by remember { mutableStateOf(false) }
@@ -73,7 +74,7 @@ fun EditorScreen(
         if (editor.selectedIds.isEmpty()) selectionMenu = false
     }
     Column(Modifier.fillMaxSize()) {
-        if (workspace.clipboardBusy ||
+        if (branchRemoval.busy || workspace.clipboardBusy ||
             workspace.connectionBusy && workspace.connectionRequest == null
         ) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -444,6 +445,10 @@ fun EditorScreen(
         }
     }
     if (rotation) RotationDialog(rotating, rotationSequence, { rotation = false }) { viewModel.rotateSelected(it) }
+    val removal = branchRemoval.request
+    if (removal != null && removal.boardId == editor.boardId && removal.pageId == editor.page.id) {
+        BranchRemovalDialog(removal, viewModel.branchRemoval::dismiss) { viewModel.branchRemoval.confirm(removal.id) }
+    }
     val connection = workspace.connectionRequest
     if (connection != null && connection.boardId == editor.boardId && connection.page.id == editor.page.id) {
         ConnectionDialog(connection, workspace.connectionBusy, workspace.connectionError, viewModel::dismissConnection) {

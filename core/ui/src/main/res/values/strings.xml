@@ -362,4 +362,10 @@
     <string name="connection_changed">The page changed. Open the connection editor again.</string>
     <string name="connection_target_hint">Start and finish the connection on two different objects.</string>
     <string name="clipboard_changed">The board changed. Copy, cut or paste again.</string>
+    <string name="branch_changed">The branch changed. Select it and try again.</string>
+    <string name="branch_delete">Delete branch</string>
+    <string name="branch_cut">Cut branch</string>
+    <string name="branch_remove_message">Nodes: %1$d. Objects: %2$d. This includes hidden descendants. Undo can restore the whole change.</string>
+    <string name="branch_cut_message">Nodes: %1$d. Objects: %2$d. This cuts the whole branch, including hidden descendants, into the private clipboard. Undo can restore the removed branch.</string>
+    <string name="mind_map_connection_locked">This connection defines a mind-map branch and cannot be edited or detached separately.</string>
 </resources>

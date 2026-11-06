@@ -87,6 +87,15 @@ class WorkspaceViewModel @Inject constructor(
     private var brushJob: Job? = null
     private data class FailedOperation(val boardId: String?, val action: suspend () -> Unit)
     private var failedOperation: FailedOperation? = null
+    val branchRemoval = BranchRemovalController(viewModelScope, dispatchers, { session }, { current, plan, copied ->
+        check(current.applyMindMapEdit(plan))
+        copied?.let {
+            clipboard.copy(it)
+            files.protectSession(clipboardRetentionId, clipboard.assetIds)
+            mutable.update { value -> value.copy(editor = value.editor?.copy(canPaste = true)) }
+        }
+        changed()
+    }, { resource -> mutable.update { it.copy(message = UiNotice(resource)) } }, ::report)
     init {
         viewModelScope.launch {
             preferences.values.catch {
@@ -137,6 +146,7 @@ class WorkspaceViewModel @Inject constructor(
         mutable.update { it.copy(recovery = null) }
     }
     private suspend fun activate(board: Board, recovered: Boolean = false, query: String? = null) {
+        branchRemoval.dismiss()
         val generation = ++connectionGeneration
         val match = board.firstTextMatch(query)
         var opened = if (match == null) board else board.copy(activePageId = match.pageId)
@@ -212,8 +222,7 @@ class WorkspaceViewModel @Inject constructor(
                     }
                 }
                 is CanvasEvent.Delete -> {
-                    current.delete(event.ids)
-                    changed()
+                    deleteObjects(event.ids)
                 }
                 is CanvasEvent.EraseStrokes -> {
                     current.eraseStrokes(event.ids)
@@ -435,9 +444,16 @@ class WorkspaceViewModel @Inject constructor(
     fun currentViewport(pageId: String): Viewport? = session?.board?.pages?.firstOrNull { it.id == pageId }?.viewport
     fun deleteSelected() {
         val ids = mutable.value.editor?.selectedIds ?: return
-        session?.delete(ids)
-        clearSelection()
-        changed()
+        deleteObjects(ids)
+    }
+    private fun deleteObjects(ids: Set<String>) {
+        val current = session ?: return
+        if (ids.any { current.page.mindMapIndex?.ownerOfObject(it) != null }) {
+            branchRemoval.request(ids)
+        } else {
+            current.delete(ids)
+            changed()
+        }
     }
     fun duplicateSelected() = clipboardWork {
         val current = session ?: return@clipboardWork
@@ -469,22 +485,30 @@ class WorkspaceViewModel @Inject constructor(
             )
         }
     }
-    fun copySelected(cut: Boolean = false) = clipboardWork {
-        val current = session ?: return@clipboardWork
-        val source = current.page
-        val elements = selectedElements()
-        if (elements.isEmpty()) return@clipboardWork
-        val ids = elements.map { it.id }.toSet()
-        val copied = withContext(dispatchers.computation) {
-            val calculation = currentCoroutineContext()
-            MindMapCopies.branches(source, ids, checkpoint = { calculation.ensureActive() })
+    fun copySelected(cut: Boolean = false): Job {
+        val selected = mutable.value.editor?.selectedIds.orEmpty()
+        if (cut &&
+            selected.any { session?.page?.mindMapIndex?.ownerOfObject(it) != null }
+        ) {
+            return branchRemoval.request(selected, cut = true)
         }
-        if (!clipboardSourceIsCurrent(current, source)) return@clipboardWork
-        if (cut) current.delete(ids)
-        clipboard.copy(copied)
-        files.protectSession(clipboardRetentionId, clipboard.assetIds)
-        mutable.update { it.copy(editor = it.editor?.copy(canPaste = true)) }
-        if (cut) changed()
+        return clipboardWork {
+            val current = session ?: return@clipboardWork
+            val source = current.page
+            val elements = selectedElements()
+            if (elements.isEmpty()) return@clipboardWork
+            val ids = elements.map { it.id }.toSet()
+            val copied = withContext(dispatchers.computation) {
+                val calculation = currentCoroutineContext()
+                MindMapCopies.branches(source, ids, checkpoint = { calculation.ensureActive() })
+            }
+            if (!clipboardSourceIsCurrent(current, source)) return@clipboardWork
+            if (cut) current.delete(ids)
+            clipboard.copy(copied)
+            files.protectSession(clipboardRetentionId, clipboard.assetIds)
+            mutable.update { it.copy(editor = it.editor?.copy(canPaste = true)) }
+            if (cut) changed()
+        }
     }
     fun paste() = clipboardWork {
         val current = session ?: return@clipboardWork
@@ -559,6 +583,10 @@ class WorkspaceViewModel @Inject constructor(
         }
         val existing = id?.let { value -> original.elements.firstOrNull { it.id == value } as? Connector }
         if (id != null && existing == null) return@work
+        if (existing != null && original.mindMapIndex?.ownerOfObject(existing.id) != null) {
+            mutable.update { it.copy(message = UiNotice(R.string.mind_map_connection_locked)) }
+            return@work
+        }
         val selected = mutable.value.editor?.selectedIds.orEmpty()
         val boardId = current.board.id
         val generation = ++connectionGeneration
@@ -658,6 +686,10 @@ class WorkspaceViewModel @Inject constructor(
         val current = session ?: return@work
         if (source != null && !sourceMatches(current, source)) return@work
         val definition = current.page.elements.firstOrNull { it.id == id } as? Connector ?: return@work
+        if (current.page.mindMapIndex?.ownerOfObject(id) != null) {
+            mutable.update { it.copy(message = UiNotice(R.string.mind_map_connection_locked)) }
+            return@work
+        }
         val resolved = current.page.geometry.resolve(definition) as Line
         current.replace(definition.copy(start = ConnectorEnd.Free(resolved.start), end = ConnectorEnd.Free(resolved.end)))
         changed()
@@ -762,6 +794,7 @@ class WorkspaceViewModel @Inject constructor(
         persistence.discardDraft(current.board.id)
         if (session !== current) return@work
         session = null
+        branchRemoval.dismiss()
         dismissConnection()
         files.releaseSession(retentionId)
         mutable.update { it.copy(editor = null, textRequest = null) }

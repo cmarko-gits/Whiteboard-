@@ -1,5 +1,15 @@
 # Izvršavanje preostalih zadataka
 
+## F06 branch potvrde, 6. novembar 2026.
+
+Novi BranchRemovalController/UI vezuju Delete/Cut za pripremljeni snapshot i tačan broj kanonskih objekata/čvorova sa skrivenim potomcima. Cancel/new board/dismiss otkazuju worker; stale confirm ne može obrisati novu scenu, kamera je nezavisna. Managed veze imaju jasan razlog odbijanja generic Edit/Detach. Lokalno prolazi 500 JVM (350+77+5+68), arhitektura i Android kompilacija; novi native 200% font/landscape/Cancel/confirm/Cut/Paste/Undo/Save/reopen tok još nije izvršen (132 app native ukupno). MIND-MAP-BRANCH-REMOVAL.md.
+
+6b53d42/CI 42183053409 potvrđuje verify/494 JVM i API 33 po 131 app + 13 data, ali API 36 staje pre app testova: WindowManager prikazuje fokusiran SystemUI ANR prozor, launcher ne dobija focused/drawn stanje. Lastanr izveštaj sam kaže no ANR; sačuvan window dokaz pokazuje modalni ANR. Neuspeh nije ignorisan niti pretvoren u prolaz. Preostali profili još rade; po završetku predviđen je samo jedan ciljani retry istog API 36 izvora, uz zadržane prethodne artefakte i startup uslove. Nema nove kvalifikacije ili distribucije.
+
+Prvi 6b53d42 pokušaj je završen: verify i četiri device profila prolaze; svaki izvršava 131 app + 13 data bez grešaka/preskakanja. Sačuvani su task-16-6b53d42-attempt1-evidence.json i poseban failed API 36 bounded ZIP. Jedan ciljani API 36 retry istog izvora zatražen je 08:06 UTC (HTTP 201), uz zapis task-16-6b53d42-api36-retry.json; rezultat još nije potvrđen. Novi UI se odvaja na codex/mind-map-editor da ne prekine taj run concurrency pravilom.
+
+Puni node editor/template ostaju naredni UI podkorak. **13/47 završeno, 34 preostalo.**
+
 ## F06 privatni branch clipboard, 6. novembar 2026.
 
 fb47a18/CI 42180340332 sada prolazi svih šest poslova: 461 JVM i pet profila po 127 app + 13 data, nula grešaka/preskakanja, tri R8/jezička toka uz vraćen jezik, OSV 155, release policy i source scan 415. 601 jedinstveni slučaj. Digest-verified final dokazi: artifacts/task-16-fb47a18-evidence.json. Storage ispravka je time izvršena i potvrđena; 85c410f neuspeh ostaje u evidenciji. Nema distribuiranog novog 0.8.0 paketa.

@@ -5,6 +5,10 @@ import java.util.ArrayDeque
 import java.util.Collections
 
 class MindMapEditPlan internal constructor(val original: Page, internal val command: EditCommand, val focusId: String?) {
+    val removedObjectCount: Int = command.deltas.count { it.after == null }
+    val removedNodeCount: Int = command.mindMaps?.let { change ->
+        (change.before.sumOf { it.nodes.size } - change.after.sumOf { it.nodes.size }).coerceAtLeast(0)
+    } ?: 0
     init {
         require(command.pageId == original.id)
     }

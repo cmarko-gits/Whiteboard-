@@ -363,4 +363,10 @@
     <string name="connection_changed">Stranica je promenjena. Ponovo otvori uređivanje veze.</string>
     <string name="connection_target_hint">Započni i završi vezu na dva različita objekta.</string>
     <string name="clipboard_changed">Tabla je promenjena. Ponovi kopiranje, isecanje ili lepljenje.</string>
+    <string name="branch_changed">Grana je promenjena. Izaberi je i pokušaj ponovo.</string>
+    <string name="branch_delete">Obriši granu</string>
+    <string name="branch_cut">Iseci granu</string>
+    <string name="branch_remove_message">Čvorovi: %1$d. Objekti: %2$d. Uključeni su i skriveni potomci. Opozovi vraća celu izmenu.</string>
+    <string name="branch_cut_message">Čvorovi: %1$d. Objekti: %2$d. Cela grana sa skrivenim potomcima iseca se u privatnu ostavu. Opozovi vraća uklonjenu granu.</string>
+    <string name="mind_map_connection_locked">Ova veza definiše granu mape uma i ne može zasebno da se uređuje ili odveže.</string>
 </resources>
