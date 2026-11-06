@@ -117,15 +117,15 @@ internal fun SelectionActions(
                     viewModel.ungroupSelected()
                 }
             )
-            DropdownMenuItem(text = { Text(stringResource(R.string.copy)) }, onClick = {
+            DropdownMenuItem(text = { Text(stringResource(R.string.copy)) }, enabled = !workspace.clipboardBusy, onClick = {
                 onExpandedChange(false)
                 viewModel.copySelected()
             })
-            DropdownMenuItem(text = { Text(stringResource(R.string.cut)) }, onClick = {
+            DropdownMenuItem(text = { Text(stringResource(R.string.cut)) }, enabled = !workspace.clipboardBusy, onClick = {
                 onExpandedChange(false)
                 viewModel.copySelected(cut = true)
             })
-            DropdownMenuItem(text = { Text(stringResource(R.string.duplicate)) }, onClick = {
+            DropdownMenuItem(text = { Text(stringResource(R.string.duplicate)) }, enabled = !workspace.clipboardBusy, onClick = {
                 onExpandedChange(false)
                 viewModel.duplicateSelected()
             })

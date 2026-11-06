@@ -73,7 +73,11 @@ fun EditorScreen(
         if (editor.selectedIds.isEmpty()) selectionMenu = false
     }
     Column(Modifier.fillMaxSize()) {
-        if (workspace.connectionBusy && workspace.connectionRequest == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (workspace.clipboardBusy ||
+            workspace.connectionBusy && workspace.connectionRequest == null
+        ) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack, enabled = !editor.saving) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.back))
@@ -123,7 +127,7 @@ fun EditorScreen(
                     DropdownMenuItem(text = { Text(stringResource(R.string.paste)) }, onClick = {
                         more = false
                         viewModel.paste()
-                    }, enabled = editor.canPaste)
+                    }, enabled = editor.canPaste && !workspace.clipboardBusy)
                     DropdownMenuItem(text = { Text(stringResource(R.string.pages)) }, onClick = {
                         more = false
                         pages = true
@@ -304,7 +308,7 @@ fun EditorScreen(
                             onProperties = { properties = true },
                             onConnection = { viewModel.showConnection(it, nativeView?.documentCenter(), editor) }
                         )
-                        IconButton(onClick = { viewModel.duplicateSelected() }) {
+                        IconButton(onClick = { viewModel.duplicateSelected() }, enabled = !workspace.clipboardBusy) {
                             Icon(Icons.Outlined.ContentCopy, stringResource(R.string.duplicate))
                         }
                         IconButton(onClick = { viewModel.deleteSelected() }) {

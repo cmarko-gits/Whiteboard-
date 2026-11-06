@@ -162,6 +162,23 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
             )
         )
     }
+    fun addAll(fragment: PageFragment) {
+        if (fragment.mindMaps.isEmpty()) {
+            addAll(fragment.objects)
+            return
+        }
+        val maps = page.mindMaps + fragment.mindMaps
+        // Validate all cross-fragment identities and bindings before publishing any object/history.
+        val validated = page.copy(elements = page.elements + fragment.objects, mindMaps = maps)
+        validated.contentBounds
+        execute(
+            EditCommand(
+                page.id,
+                fragment.objects.mapIndexed { index, element -> ElementDelta(null, LocatedElement(page.elements.size + index, element)) },
+                MindMapChange(page.mindMaps, maps)
+            )
+        )
+    }
     fun replaceAll(elements: List<PageObject>) {
         val replacements = elements.associateBy { it.id }
         val existingIds = page.elements.map { it.id }.toSet()

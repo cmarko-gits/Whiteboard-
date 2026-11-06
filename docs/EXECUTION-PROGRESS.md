@@ -1,5 +1,13 @@
 # Izvršavanje preostalih zadataka
 
+## F06 privatni branch clipboard, 6. novembar 2026.
+
+fb47a18/CI 42180340332 sada prolazi svih šest poslova: 461 JVM i pet profila po 127 app + 13 data, nula grešaka/preskakanja, tri R8/jezička toka uz vraćen jezik, OSV 155, release policy i source scan 415. 601 jedinstveni slučaj. Digest-verified final dokazi: artifacts/task-16-fb47a18-evidence.json. Storage ispravka je time izvršena i potvrđena; 85c410f neuspeh ostaje u evidenciji. Nema distribuiranog novog 0.8.0 paketa.
+
+Vidljivi podkorak 3ce980c lokalno prolazi 475 JVM; novi clipboard rad sada prolazi 494 (350+77+5+62), pun stil/arhitekturu i kompilaciju 131 app native slučaja. PageFragment i branch-aware privatni clipboard prenose skrivene potomke i topologiju, atomic Undo, independent roots i F05 external detach. Priprema se obavlja na computation dispatcher-u, sa immutable paste snapshot-om, scene/session guard-om, busy/cancellation zaštitom i potrošnjom offset-a tek nakon primene. Dvanaest core i sedam novih VM slučajeva uključuju stale/parallel, kameru i promenu selekcije tokom cut-a. MIND-MAP-CLIPBOARD.md čuva i prvi async test neuspeh zbog nedostajućeg join-a; novi posebni test čuva proveru paralelnih zahteva. Nova Android matrica za visibility/clipboard tek sledi.
+
+Slede pune branch potvrde, pristupačni adaptivni UI i pravi template, zatim konačna kvalifikacija. **13/47 završeno, 34 preostalo.**
+
 ## F06 vidljiva projekcija, 6. novembar 2026.
 
 Vidljivi renderer/input/AX/Fit/PNG/JPEG/PDF potrošači sada koriste Page.visibleElements/visibleContentBounds. Canonical document/history/backup geometrija ostaje cela i validirana. Search rezultat u skrivenoj grani otkriva put jednim Undo/recovery planom; kasna aktivacija i otkazivanje imaju svoje regresije. Lokalno prolazi 475 JVM (338+77+5+55), stil/arhitektura i Android kompilacija četiri nova renderer/export/gesture/framework-AX slučaja (ukupno 131 app native); izvršavanje nove projekcije tek sledi. MIND-MAP-VISIBILITY.md.

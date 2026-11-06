@@ -35,3 +35,7 @@ Source secret scanner istog 85c410f izvora prijavio je jedan pregledan lažno po
 Ove rezultate ne pripisivati 95e3804: taj raniji izvor ima svoju zelenu regresiju (421 JVM i pet profila po 123 app + 13 data), format 5 i još nema Page/codec integraciju.
 
 **F06 ostaje otvoren; 13/47 glavnih zadataka završeno, 34 preostala.**
+
+## Potvrđena ispravka i komande
+
+Izvor fb47a182e0a9d85676b8b9d961166173081ddf80 / CI 42180340332 prolazi svih šest poslova iz prvog pokušaja: 461 JVM (330/77/5/49), pet profila po 127 app + 13 data, bez grešaka/preskakanja; 601 jedinstveni slučaj. Četiri MindMapPersistenceTest slučaja izvršena su na svim profilima, uključujući stable INVALID_DOCUMENT, retained-assets fail-closed i očuvani UnsupportedDocumentVersion. Tri R8/jezička toka prolaze uz vraćen prethodni jezik. OSV 155, release policy i current-source scan 415 bez nalaza. Artifacts/task-16-fb47a18-evidence.json čuva SHA-256 poreklo svih šest originalnih CI arhiva i ograničene izvedene izveštaje. Ovo potvrđuje storage/command podkorak, bez novijeg visible/clipboard koda ili distribuiranog 0.8.0 kandidata. Neuspešni 85c410f nalazi ostaju sačuvani.

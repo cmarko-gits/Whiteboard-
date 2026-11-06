@@ -8,6 +8,7 @@ import dev.whiteboard.core.concurrency.AppDispatchers
 import dev.whiteboard.core.concurrency.DefaultAppDispatchers
 import dev.whiteboard.core.editor.DocumentSession
 import dev.whiteboard.core.editor.LayerStep
+import dev.whiteboard.core.editor.MindMapCopies
 import dev.whiteboard.core.editor.MindMapEdits
 import dev.whiteboard.core.editor.ObjectAlignment
 import dev.whiteboard.core.editor.ObjectClipboard
@@ -63,7 +64,8 @@ data class WorkspaceUi(
     val alignmentSequence: Long = 0,
     val connectionRequest: ConnectionRequest? = null,
     val connectionBusy: Boolean = false,
-    val connectionError: Int? = null
+    val connectionError: Int? = null,
+    val clipboardBusy: Boolean = false
 )
 
 @HiltViewModel
@@ -437,13 +439,18 @@ class WorkspaceViewModel @Inject constructor(
         clearSelection()
         changed()
     }
-    fun duplicateSelected() = work {
-        val current = session ?: return@work
-        val temporary = ObjectClipboard()
-        temporary.copy(current.page, mutable.value.editor?.selectedIds.orEmpty())
-        val copies = temporary.paste()
+    fun duplicateSelected() = clipboardWork {
+        val current = session ?: return@clipboardWork
+        val source = current.page
+        val ids = mutable.value.editor?.selectedIds.orEmpty()
+        if (ids.isEmpty()) return@clipboardWork
+        val copies = withContext(dispatchers.computation) {
+            val calculation = currentCoroutineContext()
+            MindMapCopies.branches(source, ids, Point(24f, 24f), current.editBudgetBytes) { calculation.ensureActive() }
+        }
+        if (!clipboardSourceIsCurrent(current, source)) return@clipboardWork
         current.addAll(copies)
-        mutable.update { it.copy(editor = it.editor?.copy(selectedIds = copies.map { copy -> copy.id }.toSet())) }
+        mutable.update { it.copy(editor = it.editor?.copy(selectedIds = copies.objects.map { copy -> copy.id }.toSet())) }
         changed()
     }
     fun selectedElements(): List<PageObject> {
@@ -462,21 +469,52 @@ class WorkspaceViewModel @Inject constructor(
             )
         }
     }
-    fun copySelected(cut: Boolean = false) = work {
-        val current = session ?: return@work
+    fun copySelected(cut: Boolean = false) = clipboardWork {
+        val current = session ?: return@clipboardWork
+        val source = current.page
         val elements = selectedElements()
-        if (elements.isEmpty()) return@work
-        clipboard.copy(current.page, elements.map { it.id }.toSet())
+        if (elements.isEmpty()) return@clipboardWork
+        val ids = elements.map { it.id }.toSet()
+        val copied = withContext(dispatchers.computation) {
+            val calculation = currentCoroutineContext()
+            MindMapCopies.branches(source, ids, checkpoint = { calculation.ensureActive() })
+        }
+        if (!clipboardSourceIsCurrent(current, source)) return@clipboardWork
+        if (cut) current.delete(ids)
+        clipboard.copy(copied)
         files.protectSession(clipboardRetentionId, clipboard.assetIds)
         mutable.update { it.copy(editor = it.editor?.copy(canPaste = true)) }
-        if (cut) deleteSelected()
+        if (cut) changed()
     }
-    fun paste() = work {
-        val current = session ?: return@work
-        val copies = clipboard.paste()
-        current.addAll(copies)
-        mutable.update { it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = copies.map { copy -> copy.id }.toSet())) }
+    fun paste() = clipboardWork {
+        val current = session ?: return@clipboardWork
+        val source = current.page
+        val request = clipboard.pasteRequest()
+        val plan = withContext(dispatchers.computation) {
+            val calculation = currentCoroutineContext()
+            request.prepare { calculation.ensureActive() }
+        }
+        if (!clipboardSourceIsCurrent(current, source) || !clipboard.isCurrent(plan)) return@clipboardWork
+        current.addAll(plan.fragment)
+        check(clipboard.accept(plan))
+        mutable.update {
+            it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = plan.fragment.objects.map { copy -> copy.id }.toSet()))
+        }
         changed()
+    }
+    private fun clipboardWork(block: suspend () -> Unit) = work {
+        if (mutable.value.clipboardBusy) return@work
+        mutable.update { it.copy(clipboardBusy = true) }
+        try {
+            block()
+        } finally {
+            mutable.update { it.copy(clipboardBusy = false) }
+        }
+    }
+    private fun clipboardSourceIsCurrent(current: DocumentSession, source: Page): Boolean {
+        if (session === current && current.page.sharesSceneWith(source)) return true
+        if (mutable.value.editor?.boardId == current.board.id) mutable.update { it.copy(message = UiNotice(R.string.clipboard_changed)) }
+        return false
     }
     fun reorderSelected(front: Boolean) = work {
         if (session?.reorder(mutable.value.editor?.selectedIds.orEmpty(), front) == true) changed()

@@ -179,7 +179,7 @@ class WorkspaceViewModelTest {
         val original = Note(bounds = Bounds(999_999_936f, 0f, 1_000_000_000f, 100f), text = "Boundary")
         model.canvas(CanvasEvent.Add(original))
         model.selectAll()
-        model.copySelected()
+        model.copySelected().join()
         model.paste().join()
         assertEquals(2, model.state.value.editor!!.page.elements.size)
         model.save().join()

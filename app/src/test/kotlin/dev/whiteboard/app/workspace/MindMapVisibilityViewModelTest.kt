@@ -8,6 +8,7 @@ import dev.whiteboard.core.testing.*
 import dev.whiteboard.core.usecase.DocumentTransfers
 import dev.whiteboard.core.usecase.EditorPersistence
 import dev.whiteboard.core.usecase.ManagePreferences
+import dev.whiteboard.ui.R
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -122,5 +123,159 @@ class MindMapVisibilityViewModelTest {
         assertFalse(model.state.value.loading)
         assertNull(model.state.value.message)
         assertEquals(page, repository.load(board.id).activePage)
+    }
+
+    @Test fun cuttingAndPastingACollapsedRootKeepsTheWholeHiddenMapAndSeparateUndoSteps() = runTest {
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        model.copySelected(cut = true).join()
+        assertTrue(model.state.value.editor!!.page.elements.isEmpty())
+        assertTrue(model.state.value.editor!!.page.mindMaps.isEmpty())
+        assertTrue(model.state.value.editor!!.canPaste)
+        model.paste().join()
+        val pasted = checkNotNull(model.state.value.editor).page
+        assertEquals(3, pasted.elements.size)
+        assertEquals(1, pasted.mindMaps.size)
+        assertEquals(1, pasted.visibleElements.size)
+        assertNotEquals(tree.id, pasted.mindMaps.single().id)
+        assertEquals(setOf(pasted.mindMaps.single().rootId), model.state.value.editor!!.selectedIds)
+        model.undo()
+        assertTrue(model.state.value.editor!!.page.elements.isEmpty())
+        model.undo()
+        assertEquals(page, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.dirty)
+        model.redo()
+        model.redo()
+        assertEquals(pasted, model.state.value.editor!!.page)
+    }
+
+    @Test fun duplicateSelectedPreservesHiddenDescendantsAndNewBindingsThroughSaveAndUndo() = runTest {
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        model.duplicateSelected().join()
+        val duplicated = checkNotNull(model.state.value.editor).page
+        assertEquals(6, duplicated.elements.size)
+        assertEquals(2, duplicated.mindMaps.size)
+        assertEquals(2, duplicated.visibleElements.size)
+        assertEquals(1, model.state.value.editor!!.selectedIds.size)
+        duplicated.mindMaps.forEach { it.validateObjects(duplicated) }
+        model.save().join()
+        assertEquals(duplicated, repository.load(board.id).activePage)
+        model.undo()
+        assertEquals(page, model.state.value.editor!!.page)
+        model.redo()
+        assertEquals(duplicated, model.state.value.editor!!.page)
+    }
+
+    @Test fun aLateCopyCannotChangeTheClipboardOrSelectionOfANewlyActivatedBoard() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        cpu = computation
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        val copy = model.copySelected()
+        runCurrent()
+        assertTrue(model.state.value.clipboardBusy)
+        model.create("New board during copy").join()
+        val active = checkNotNull(model.state.value.editor)
+        computation.scheduler.runCurrent()
+        runCurrent()
+        copy.join()
+        assertEquals(active, model.state.value.editor)
+        assertFalse(model.state.value.editor!!.canPaste)
+        assertFalse(model.state.value.clipboardBusy)
+        assertNull(model.state.value.message)
+        assertEquals(page, repository.load(board.id).activePage)
+    }
+
+    @Test fun aSceneChangeWhileDuplicatingRejectsTheOldResultAndReleasesBusyState() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        cpu = computation
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        val duplicate = model.duplicateSelected()
+        runCurrent()
+        model.canvas(CanvasEvent.Fill(root.bounds.center, 0xFF112233.toInt()))
+        val changed = model.state.value.editor!!.page
+        computation.scheduler.runCurrent()
+        runCurrent()
+        duplicate.join()
+        assertEquals(changed, model.state.value.editor!!.page)
+        assertEquals(3, changed.elements.size)
+        assertEquals(R.string.clipboard_changed, model.state.value.message?.resource)
+        assertFalse(model.state.value.clipboardBusy)
+    }
+
+    @Test fun cancellingACutKeepsTheDocumentHistoryAndClipboardUntouched() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        cpu = computation
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        val cut = model.copySelected(cut = true)
+        runCurrent()
+        cut.cancel()
+        computation.scheduler.runCurrent()
+        runCurrent()
+        assertTrue(cut.isCancelled)
+        assertEquals(page, model.state.value.editor!!.page)
+        assertFalse(model.state.value.editor!!.canUndo)
+        assertFalse(model.state.value.editor!!.canPaste)
+        assertFalse(model.state.value.clipboardBusy)
+        assertNull(model.state.value.message)
+    }
+
+    @Test fun parallelPasteClicksCommitOnlyOnceAndAnIndependentCameraChangeIsPreserved() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        cpu = computation
+        repository.save(board)
+        model.open(board.id).join()
+        model.selectAll()
+        val copy = model.copySelected()
+        runCurrent()
+        computation.scheduler.runCurrent()
+        runCurrent()
+        copy.join()
+        val first = model.paste()
+        runCurrent()
+        val duplicate = model.paste()
+        runCurrent()
+        assertTrue(duplicate.isCompleted)
+        val camera = Viewport(Point(50f, 60f), 2f)
+        model.canvas(CanvasEvent.Camera(camera))
+        computation.scheduler.runCurrent()
+        runCurrent()
+        first.join()
+        val pasted = model.state.value.editor!!.page
+        assertEquals(2, pasted.mindMaps.size)
+        assertEquals(6, pasted.elements.size)
+        assertEquals(camera, pasted.viewport)
+        assertFalse(model.state.value.clipboardBusy)
+        model.undo()
+        assertEquals(page.elements, model.state.value.editor!!.page.elements)
+        assertEquals(camera, model.state.value.editor!!.page.viewport)
+    }
+
+    @Test fun changingSelectionDuringCutCannotDeleteTheNewSelection() = runTest {
+        val computation = StandardTestDispatcher(TestCoroutineScheduler())
+        cpu = computation
+        val unrelated = root.copy(id = "ordinary", bounds = Bounds(600f, 0f, 700f, 80f))
+        repository.save(board.withPage(page.copy(elements = page.elements + unrelated)))
+        model.open(board.id).join()
+        model.canvas(CanvasEvent.Select(setOf(root.id)))
+        val cut = model.copySelected(cut = true)
+        runCurrent()
+        model.canvas(CanvasEvent.Select(setOf(unrelated.id)))
+        computation.scheduler.runCurrent()
+        runCurrent()
+        cut.join()
+        assertEquals(listOf(unrelated), model.state.value.editor!!.page.elements)
+        assertEquals(setOf(unrelated.id), model.state.value.editor!!.selectedIds)
+        assertTrue(model.state.value.editor!!.canPaste)
+        model.undo()
+        assertEquals(page.elements + unrelated, model.state.value.editor!!.page.elements)
     }
 }

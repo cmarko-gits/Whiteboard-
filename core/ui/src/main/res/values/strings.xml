@@ -361,4 +361,5 @@
     <string name="connection_invalid">Choose valid, different objects or free positions for the two ends.</string>
     <string name="connection_changed">The page changed. Open the connection editor again.</string>
     <string name="connection_target_hint">Start and finish the connection on two different objects.</string>
+    <string name="clipboard_changed">The board changed. Copy, cut or paste again.</string>
 </resources>

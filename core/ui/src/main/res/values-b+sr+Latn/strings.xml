@@ -362,4 +362,5 @@
     <string name="connection_invalid">Izaberi ispravne, različite objekte ili slobodne položaje za početak i kraj.</string>
     <string name="connection_changed">Stranica je promenjena. Ponovo otvori uređivanje veze.</string>
     <string name="connection_target_hint">Započni i završi vezu na dva različita objekta.</string>
+    <string name="clipboard_changed">Tabla je promenjena. Ponovi kopiranje, isecanje ili lepljenje.</string>
 </resources>
