@@ -1,5 +1,13 @@
 # Izvršavanje preostalih zadataka
 
+## F06 komande i storage ispravka, 6. novembar 2026.
+
+85c410f/CI 42176438620 ostaje neuspešan: 445 JVM i build/lint/OSV 155/APK politika prolaze; na svakom od pet profila prolazi 125/126 app i 13/13 data. Isti novi Room test otkriva nedostajuće mapiranje parse greške u repository-ju. Source scanner prijavljuje pregledan lažno pozitivan prose red. Ispravka obuhvata usku decode granicu za saved/draft/retained assets, očuvanje limit/future-version/cancellation razloga i izuzetak isključivo za tačan istorijski fingerprint. MIND-MAP-STORAGE-REVIEW.md čuva objašnjenje, neuspešni dokazi nisu uklonjeni.
+
+Nove domenske komande: create/child/sibling/edit/collapse/reveal/reparent/delete branch, atomski geometry+semantic Undo/Redo, hidden descendants i external detach, bounded history, scene guard i group zaštita. Lokalno prolazi 461 JVM (330+77+5+49), pun stil/arhitektura i kompilacija četiri Room slučaja (127 ukupnih app native slučajeva); stvarno Android izvršavanje ispravke tek sledi na novom izvoru. MIND-MAP-COMMANDS.md opisuje ugovor i 16 novih regresija.
+
+Slede povezivanje vidljive projekcije i korisnički UI/clipboard/template. **13/47 završeno, 34 preostalo.** Kvalifikovani APK ostaje 0.7.2; razvojni 0.8.0 nije distribuiran.
+
 ## F06 Page/format 6 podkorak, 6. novembar 2026.
 
 Affine osnova source 95e38040de74415cc292d4dfe844125d03b1a78a, CI 42172357173, prolazi svih šest poslova: 421 JVM i pet profila po 123 app + 13 data, tri R8/jezička toka; 557 jedinstvenih slučajeva. Dokazi su artifacts/task-16-95e3804-evidence.json. To je format 5 i zasebna ranija osnova, bez novog storage podkoraka.

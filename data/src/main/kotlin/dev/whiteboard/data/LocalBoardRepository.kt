@@ -34,7 +34,20 @@ class LocalBoardRepository(
         requireNotNull(dao.board(id)) { "Board not found" }
         val chunks = dao.document(id)
         require(chunks.isNotEmpty()) { "Document data is unavailable" }
-        return codec.decode(chunks.joinToString(""))
+        return decode(chunks.joinToString(""))
+    }
+
+    /** Stored document content is untrusted; preserve explicit limits and future-version metadata. */
+    private fun decode(source: String): Board = try {
+        codec.decode(source)
+    } catch (failure: DocumentFailure) {
+        throw failure
+    } catch (future: UnsupportedDocumentVersion) {
+        throw future
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (malformed: Exception) {
+        throw DocumentFailure(DocumentError.INVALID_DOCUMENT, malformed)
     }
     override suspend fun save(board: Board) = storageCall(dispatcher) {
         mutations.withLock { database.withTransaction { put(board) } }
@@ -67,7 +80,7 @@ class LocalBoardRepository(
         }
     }
     override suspend fun draft(id: String): Board? = storageCall(dispatcher) {
-        database.withTransaction { dao.draft(id).takeIf { it.isNotEmpty() }?.joinToString("")?.let(codec::decode) }
+        database.withTransaction { dao.draft(id).takeIf { it.isNotEmpty() }?.joinToString("")?.let(::decode) }
     }
     override suspend fun discardDraft(id: String) {
         mutations.withLock { dao.deleteDraft(id) }
@@ -96,7 +109,7 @@ class LocalBoardRepository(
         database.withTransaction {
             dao.ids().flatMap { id ->
                 val saved = read(id).referencedAssets()
-                val draft = dao.draft(id).takeIf { it.isNotEmpty() }?.joinToString("")?.let(codec::decode)
+                val draft = dao.draft(id).takeIf { it.isNotEmpty() }?.joinToString("")?.let(::decode)
                 saved + (draft?.referencedAssets() ?: emptySet())
             }.toSet()
         }

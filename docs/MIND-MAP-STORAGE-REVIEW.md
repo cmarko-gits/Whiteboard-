@@ -1,0 +1,9 @@
+# Pregled neuspešne F06 storage matrice
+
+Izvor 85c410f1d668042e573d8524965e189759142d92, CI 42176438620, prvi pokušaj. Svi neuspešni poslovi i redigovani dokazi ostaju sačuvani u artifacts/task-16-85c410f-* i artifacts/security/task-16-85c410f-history-findings.*. Nije pokrenut retry pokvarenog izvora niti distribuiran novi APK.
+
+Svih pet emulator profila izvršilo je 126 app i 13 data slučajeva. Jedini app pad na svakom je malformedStoredTopologyCannotEraseMetadataOrAnIndependentValidRecoveryRevision: parser ispravno odbija stranu parent referencu, ali repository nije prevodio IllegalArgumentException u očekivani DocumentFailure(INVALID_DOCUMENT). Učitavanje se popravlja na uskoj codec granici, sa istim ponašanjem za main, draft i retained asset popis. Posebni limit/future-version/cancellation razlozi ostaju očuvani. Native regresija proverava i nepromenjene chunk-ove, nezavisni recovery i fail-closed asset retention.
+
+Verify prolazi 445 JVM, build/lint, OSV 155 i APK politiku, zatim pada na generic-api-key nalazu u docs/MIND-MAP-PERSISTENCE.md, red 13. Pregled izvornog reda i redigovanog izveštaja pokazuje običan srpski opis integer JSON header-a. To nije tajna niti je potreban opoziv kredencijala. Trenutni tekst je preformulisan. Jedini .gitleaksignore unos je tačan istorijski fingerprint sa source commit-om, pravilom, fajlom i redom. Ne izuzima sadašnje/buduće source nalaze, celo pravilo ili dokumentaciju.
+
+Direktni lokalni gitleaks git --all sa tim istorijskim izuzetkom obrađuje 113 commit-a bez nalaza; direktni docs scan takođe prolazi. Izveštaji: task-16-history-reviewed.* i task-16-docs-reviewed.*. Nije pokrenut lokalni source-snapshot kopirajući alat; puna aktuelna source provera sledi u CI-ju novog commit-a. Novi command kod i storage ispravka moraju dobiti sopstvene rezultate, ne rezultate prethodne zelene affine osnove.

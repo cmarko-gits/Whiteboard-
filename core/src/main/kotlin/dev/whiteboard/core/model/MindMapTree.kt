@@ -16,7 +16,7 @@ data class MindMapNode(val id: String, val parentId: String? = null, val connect
 }
 
 /**
- * Bounded, immutable tree topology. This value is not yet integrated into the document format/UI.
+ * Bounded, immutable tree topology shared by document persistence and editor commands.
  * Input order defines sibling order; all validation and traversal are iterative and cancellable.
  */
 class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint: () -> Unit = {}) {
@@ -26,6 +26,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
     /** Conservative history accounting for topology values, excluding derived page indexes. */
     val estimatedBytes: Long
     private val byId: Map<String, MindMapNode>
+    private val byConnection: Map<String, MindMapNode>
     private val children: Map<String, List<MindMapNode>>
 
     init {
@@ -34,7 +35,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
         require(nodes.size in 1..MAX_NODES) { "Mind-map node limit exceeded" }
         val prepared = ArrayList<MindMapNode>(nodes.size)
         val indexed = LinkedHashMap<String, MindMapNode>(nodes.size)
-        val edges = HashSet<String>()
+        val edges = LinkedHashMap<String, MindMapNode>()
         var root: String? = null
         var bytes = 128L + id.length * 2L
         nodes.forEach { node ->
@@ -44,7 +45,9 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
                 require(root == null) { "A mind map needs one root" }
                 root = node.id
             } else {
-                require(node.connectionId != id && edges.add(checkNotNull(node.connectionId))) { "Duplicate mind-map connection" }
+                require(node.connectionId != id && edges.put(checkNotNull(node.connectionId), node) == null) {
+                    "Duplicate mind-map connection"
+                }
             }
             prepared.add(node)
             bytes += 96L + node.id.length * 2L + (node.parentId?.length ?: 0) * 2L + (node.connectionId?.length ?: 0) * 2L
@@ -80,11 +83,13 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
         checkpoint()
         this.nodes = Collections.unmodifiableList(prepared)
         byId = Collections.unmodifiableMap(indexed)
+        byConnection = Collections.unmodifiableMap(edges)
         children = Collections.unmodifiableMap(immutableChildren)
         estimatedBytes = bytes
     }
 
     fun node(id: String): MindMapNode = requireNotNull(byId[id]) { "Unknown mind-map node" }
+    fun nodeForObject(id: String): MindMapNode? = byId[id] ?: byConnection[id]
 
     fun childrenOf(id: String): List<MindMapNode> {
         node(id)

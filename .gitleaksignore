@@ -1,0 +1,3 @@
+# Reviewed false positive: Serbian prose explaining integer JSON version headers, not a credential.
+# Exact historical commit/file/rule/line only; current and future source findings remain enabled.
+85c410f1d668042e573d8524965e189759142d92:docs/MIND-MAP-PERSISTENCE.md:generic-api-key:13

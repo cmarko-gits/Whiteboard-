@@ -26,24 +26,29 @@ data class PageListChange(val before: List<Page>, val after: List<Page>, val bef
         board.copy(pages = if (forward) after else before, activePageId = if (forward) afterActive else beforeActive)
 }
 
-data class EditCommand(val pageId: String, val deltas: List<ElementDelta>) : DocumentChange {
+data class EditCommand(val pageId: String, val deltas: List<ElementDelta>, val mindMaps: MindMapChange? = null) : DocumentChange {
     override val assetIds = deltas.flatMap { listOfNotNull(it.before?.element, it.after?.element) }
         .referencedAssets()
     override val estimatedBytes = deltas.sumOf {
         (it.before?.element?.estimatedBytes() ?: 0L) + (it.after?.element?.estimatedBytes() ?: 0L) +
             64L
-    }
+    } + (mindMaps?.estimatedBytes ?: 0L)
     init {
-        require(deltas.isNotEmpty())
+        require(deltas.isNotEmpty() || mindMaps != null)
     }
     override fun apply(board: Board, forward: Boolean): Board {
         val page = board.pages.first { it.id == pageId }
-        val updated = page.copy(elements = objects(page, forward))
+        val maps = mindMaps?.let {
+            require(page.mindMaps == if (forward) it.before else it.after) { "Semantic history belongs to a different snapshot" }
+            if (forward) it.after else it.before
+        } ?: page.mindMaps
+        val updated = page.copy(elements = objects(page, forward), mindMaps = maps)
         if (updated.content.connections.isNotEmpty()) updated.contentBounds
         return board.withPage(updated).copy(activePageId = pageId)
     }
 
     internal fun objects(page: Page, forward: Boolean): List<PageObject> {
+        if (deltas.isEmpty()) return page.elements
         val ids = deltas.flatMap { listOfNotNull(it.before?.element?.id, it.after?.element?.id) }.toSet()
         val retained = page.elements.filterNot { it.id in ids }
         val additions = deltas.mapNotNull { if (forward) it.after else it.before }.sortedBy { it.index }
@@ -105,7 +110,7 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         if (prepared is EditCommand &&
             (
                 board.pages.first { it.id == prepared.pageId }.content.connections.isNotEmpty() ||
-                    prepared.deltas.any { it.before?.element is Connector || it.after?.element is Connector }
+                    prepared.deltas.any { it.before?.element is Connector || it.after?.element is Connector } || prepared.mindMaps != null
                 ) &&
             prepared.estimatedBytes > historyByteLimit
         ) {
@@ -205,11 +210,17 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         execute(command)
         return true
     }
+    fun applyMindMapEdit(plan: MindMapEditPlan): Boolean {
+        if (!page.sharesSceneWith(plan.original)) return false
+        execute(plan.command)
+        return true
+    }
     fun group(ids: Set<String>): ElementGroup? {
         val selected = page.elements.mapIndexedNotNull { index, element ->
             if (element.id in ids) LocatedElement(index, element) else null
         }
         if (selected.size < 2) return null
+        if (selected.any { page.mindMapIndex?.ownerOfObject(it.element.id) != null }) return null
         if (selected.any { it.element !is Element }) return null
         val group = ElementGroup(children = selected.flatMap { (it.element as Element).leaves() })
         val location = selected.last().index - selected.size + 1
@@ -236,6 +247,10 @@ class DocumentSession(initial: Board, private val historyLimit: Int = 150, priva
         return selected
     }
     fun delete(ids: Set<String>) {
+        if (ids.any { page.mindMapIndex?.ownerOfObject(it) != null }) {
+            MindMapEdits.deleteSelection(page, ids, historyByteLimit)?.let { applyMindMapEdit(it) }
+            return
+        }
         val changes = page.elements.mapIndexedNotNull { index, element ->
             if (element.id in
                 ids

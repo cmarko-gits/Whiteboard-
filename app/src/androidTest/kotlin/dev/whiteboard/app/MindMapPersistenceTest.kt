@@ -97,5 +97,49 @@ class MindMapPersistenceTest {
             assertEquals(corrupted, database.boards().document(board.id).joinToString(""))
             assertEquals(draft, repository.draft(board.id))
         }
+        repository.save(board)
+        database.withTransaction {
+            database.boards().deleteDraft(board.id)
+            database.boards().draftChunks(listOf(dev.whiteboard.data.DraftChunk(board.id, 0, malformed.first())))
+        }
+        try {
+            repository.draft(board.id)
+            fail("Malformed recovery must be rejected")
+        } catch (failure: DocumentFailure) {
+            assertEquals(DocumentError.INVALID_DOCUMENT, failure.error)
+        }
+        assertEquals(board, repository.load(board.id))
+        try {
+            repository.retainedAssetIds()
+            fail("Malformed recovery must prevent asset pruning")
+        } catch (failure: DocumentFailure) {
+            assertEquals(DocumentError.INVALID_DOCUMENT, failure.error)
+        }
+    }
+
+    @Test fun aFutureStoredVersionKeepsItsSpecificErrorAndDoesNotRewriteSavedOrDraftContent(): Unit = runBlocking {
+        repository.save(board)
+        repository.saveDraft(draft)
+        val saved = database.boards().document(board.id).joinToString("")
+        val recovery = database.boards().draft(board.id).joinToString("")
+        val futureSaved = JSONObject(saved).put("version", 7).toString()
+        val futureDraft = JSONObject(recovery).put("version", 7).toString()
+        database.withTransaction {
+            database.boards().deleteDocument(board.id)
+            database.boards().documentChunks(listOf(DocumentChunk(board.id, 0, futureSaved)))
+            database.boards().deleteDraft(board.id)
+            database.boards().draftChunks(listOf(dev.whiteboard.data.DraftChunk(board.id, 0, futureDraft)))
+        }
+        for (read in listOf<suspend () -> Any?>({ repository.load(board.id) }, { repository.draft(board.id) })) {
+            try {
+                read()
+                fail("A future document needs a specific upgrade error")
+            } catch (future: UnsupportedDocumentVersion) {
+                assertEquals(7, future.version)
+            }
+        }
+        assertEquals(futureSaved, database.boards().document(board.id).joinToString(""))
+        assertEquals(futureDraft, database.boards().draft(board.id).joinToString(""))
+        assertEquals(board.name, database.boards().board(board.id)?.name)
     }
 }
