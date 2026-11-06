@@ -11,6 +11,7 @@ import androidx.test.runner.lifecycle.Stage
 import androidx.test.uiautomator.*
 import dev.whiteboard.core.model.*
 import dev.whiteboard.data.*
+import dev.whiteboard.ui.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -137,17 +138,17 @@ class MindMapBranchRemovalFlowTest {
 
         selectAll()
         control("Selection actions").click()
-        text("Cut").click()
+        clickTestDialogText(device, context.getString(R.string.cut))
         button("Cut branch")
         assertEquals(source.elements, repository.load(board.id).activePage.elements)
         button("Cancel").click()
         text("Saved on this device")
         control("Selection actions").click()
-        text("Cut").click()
+        clickTestDialogText(device, context.getString(R.string.cut))
         button("Cut branch").click()
         text("Unsaved changes")
         control("More actions").click()
-        text("Paste").click()
+        clickTestDialogText(device, context.getString(R.string.paste))
         val pasted = saveAndRead(board) { it.elements.size == 3 && it.mindMaps.size == 1 && it.mindMaps.single().id != tree.id }
         assertEquals(1, pasted.visibleElements.size)
         assertEquals(listOf(root.text, child.text), pasted.elements.filterIsInstance<Note>().map { it.text })
