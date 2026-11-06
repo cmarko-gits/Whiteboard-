@@ -169,7 +169,7 @@ class MindMapTree(val id: String = newId(), nodes: List<MindMapNode>, checkpoint
         require(!containsId(id)) { "Mind-map ID collides with a page object" }
         nodes.forEach { node ->
             checkpoint()
-            require(objects[node.id] is Note) { "A mind-map node must reference a top-level note" }
+            require(objects[node.id]?.content() is Note) { "A mind-map node must reference a top-level note" }
             if (node.parentId != null) {
                 val edge = objects[node.connectionId] as? Connector
                 require(edge?.start is ConnectorEnd.Bound && edge.end is ConnectorEnd.Bound) { "Missing bound mind-map connection" }

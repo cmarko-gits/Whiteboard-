@@ -1,6 +1,6 @@
-# Whiteboard za Android — lokalni kandidat 0.7.1
+# Whiteboard za Android — lokalni kandidat 0.7.2
 
-Lokalni razvojni paket dodaje budžet strukturne cene JSON ulaza i čuva prethodnu reviziju kada dokument prekorači limit. [LOCAL-0.7.1-CANDIDATE.md](docs/LOCAL-0.7.1-CANDIDATE.md) vezuje 523 jedinstvena testa, pet Android profila i tri release toka za tačan izvor/paket. [Korisničko uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje rad i pametne veze. F05 je zatvoren; **13/47 završeno, 34 otvoreno**. Konkretni [JSON resource nalaz](docs/JSON-RESOURCE-BUDGET.md) zatvoren je u ovom obimu; [optimizacija velikog grafa](docs/CONNECTION-PREVIEW-OPTIMIZATION.md) je tekući Z08 rad. Paket nije potvrda završetka cele aplikacije. Prethodni paketi i dokazi ostaju sačuvani.
+Kvalifikovani lokalni paket 0.7.2 ubrzava pripremu preview-a povezanih objekata. [LOCAL-0.7.2-CANDIDATE.md](docs/LOCAL-0.7.2-CANDIDATE.md) vezuje 535 jedinstvenih testova, pet Android profila, tri release toka, poređenje algoritama i tačan paket za izvor. [Uputstvo](docs/LOCAL-USER-GUIDE.md) opisuje funkcije. **13/47 završeno, 34 otvoreno**; Z08 nastavlja rad na preostalim cenama velikih scena. Zasebna razvojna osnova 0.8.0/code 17 uvodi F06 domenski model: [MIND-MAP-DESIGN.md](docs/MIND-MAP-DESIGN.md). Mind-map funkcija još nema čuvanje, komande i gotov UI; ta osnova nije distribuirani kandidat. Prethodni paketi i dokazi ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 

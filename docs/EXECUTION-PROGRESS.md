@@ -1,5 +1,15 @@
 # Izvršavanje preostalih zadataka
 
+## Nastavak 6. novembra 2026: Z08 paket i F06 osnova
+
+0.7.2/source 1176e599e54d6d1c6e8ab7be1b59c684f3520b09, CI 42095770590: svih šest poslova prolazi, 399 JVM i pet profila po 123 app + 13 data, tri R8/jezička toka. 535 jedinstvenih slučajeva. Paket, VCS/potpis/ZIP-P16/ELF64, manifest/DEX/offline-font, OSV/notices 155, source scan 397, history 111/117 svih lokalnih refs i 381-entry poređenje prema tri CI APK-a prolaze. Novi renderer i release-reopened snimci pregledani uz entry SHA-256. LOCAL-0.7.2-CANDIDATE.md i artifacts/task-08-1176e59-* vezuju sve dokaze za source/paket.
+
+Isti 10.000-node scenario ima median preview 2,74–5,94 ms prema 62,79–214,29 ms u 0.7.1 kohorti; svih 90 poređenja i sirovi podaci su sačuvani. Druge operacije imaju sopstvene sporije slučajeve i GC overlap; nema tvrdnje o 60 Hz ili retained memoriji. C7bd2b0/CI 42091269841 ostaje neuspešan/nedistribuiran: monotonic ART assertion na oba API 26 profila i startup/SystemUI prozor pre API 36 testova. Schema 2 čuva signed raw podatke, GC/status i valid-only sažetke, sa zasebnim native i host guard regresijama. Funkcionalne provere nisu isključene.
+
+F06 osnova 0.8.0/code 17/source 84f9de9/CI 42096432309 prolazi svih šest poslova, 420 JVM i pet profila po 123 app + 13 data (556 jedinstvenih), tri R8/jezička toka, OSV/notices 155 i source scan 402. To je regresija čistog tree/ownership/visibility modela; nema čuvanja novog modela, komandi, UI-ja ili distribuiranog 0.8.0 APK-a. Dodatni pregled otkrio je da postojeća rotacija Note-a pravi AffineElement; nova dopuna prihvata samo affine Note, čuva vlasništvo/collapse i odbija affine Text. Lokalno prolazi 421 JVM i 22 nova domenska slučaja; novi izvor zahteva svoju matricu.
+
+**13/47 glavnih zadataka završeno, 34 ostaje.** Z08 i F06 nastavljaju se; podkoraci nisu dodatni glavni zadaci. Fizički telefon, cloud/AI/backend i Play objava nisu vraćeni u obim. Lokalni prostor i dalje se prati prema limitu 3.400.000.000 bajtova.
+
 ## Z08: kvalifikovan JSON resource budžet 0.7.1
 
 Izvor d451e65a0bfaf7a857dd81a738eba12355929ef1, CI 42085746810, svih šest poslova prolazi iz prvog pokušaja. 388 JVM (268/66/5/49), pet Android profila po 122 app + 13 data i tri R8 connection/reopen/jezička toka: 523 jedinstvena slučaja. Sva tri nova Room slučaja uključuju produkcioni save/load 10.000-node/9.999-connection grafa sa punim UUID-length ID-jevima. Prvobitni 53df3e2 ostaje superseded-before-distribution; dodatni lokalni UUID neuspeh nije prikriven zelenim ranijim CI-jem.

@@ -1,5 +1,7 @@
 # Veze: izmerena cena velikog grafa
 
+Ovo je istorijski početni baseline. Novi kvalifikovani [0.7.2 profil](LOCAL-0.7.2-CANDIDATE.md) poredi svih pet profila sa svežim 0.7.1 izvorom; preview optimizacija je implementirana. Opisi punog preview rebuild-a ispod važe za početni izvor, a cene drugih operacija ostaju predmet rada.
+
 Početni izvor `5e0c5ba35f470238df87e2e3ce3f4ae1e38e7a48`, CI `41995668364`, 5. novembar 2026. ConnectionScaleTest prolazi na svih pet profila, ali cela matrica ima zasebne UI neuspehe i nije kvalifikovan kandidat. Merodavni originalni archive digest-i i pojedinačni entry SHA-256 su u `artifacts/task-15-5e0c5ba-evidence.json`; objedinjeni neizmenjeni podaci su u `artifacts/task-15-5e0c5ba-algorithms.json`.
 
 Ovo su debug algoritmi na instrumentation worker-u emulatora. Ne meri se Compose, Canvas iscrtavanje, GPU, raspored frejmova, input-to-display, baterija ili fizički uređaj. Razlike Android runtime-a, JIT-a i deljenih CI hostova utiču na rezultate; tabela ne predstavlja rangiranje telefona.

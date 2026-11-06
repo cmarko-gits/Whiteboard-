@@ -114,4 +114,22 @@ class MindMapPageIndexTest {
         }
         assertEquals(1, visits)
     }
+
+    @Test fun rotatedNotesKeepTreeOwnershipAndCollapseVisibilityWhileOtherAffineContentIsRejected() {
+        val rotation = AffineTransform2D.rotation(37.0, child.bounds.center)
+        val rotated = AffineElement.fromDocument(child, rotation)
+        val source = page.copy(elements = page.elements.map { if (it.id == child.id) rotated else it })
+        val index = MindMapPageIndex(source, listOf(tree))
+        assertSame(tree, index.ownerOfObject(rotated.id))
+        assertTrue(index.isVisible(rotated.id))
+        assertSame(rotated, index.visibleObjects.first { it.id == rotated.id })
+        val collapsed = MindMapPageIndex(source, listOf(tree.withCollapsed(root.id, true)))
+        assertFalse(collapsed.isVisible(rotated.id))
+        assertFalse(collapsed.isVisible(externalEdge.id))
+        val wrong = AffineElement.fromDocument(TextElement(id = child.id, bounds = child.bounds, text = "Other kind"), rotation)
+        assertThrows(IllegalArgumentException::class.java) {
+            MindMapPageIndex(page.copy(elements = page.elements.map { if (it.id == child.id) wrong else it }), listOf(tree))
+        }
+        assertEquals(child.text, (rotated.content() as Note).text)
+    }
 }
