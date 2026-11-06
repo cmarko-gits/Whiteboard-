@@ -1,6 +1,7 @@
 package dev.whiteboard.app
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,10 +33,23 @@ class MindMapBranchRemovalFlowTest {
     private var completed = false
     private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
-    private fun button(value: String) =
-        checkNotNull(device.wait(Until.findObject(By.text(value).clazz("android.widget.Button").clickable(true).enabled(true)), 10_000)) {
-            value
+    private fun button(value: String): UiObject2 {
+        val deadline = SystemClock.uptimeMillis() + 10_000
+        while (SystemClock.uptimeMillis() < deadline) {
+            try {
+                for (label in device.findObjects(By.text(value))) {
+                    var owner: UiObject2? = label
+                    var ancestors = 0
+                    while (owner != null && !owner.isClickable && ancestors++ < 16) owner = owner.parent
+                    if (owner?.isClickable == true && owner.isEnabled && !owner.visibleBounds.isEmpty) return owner
+                }
+            } catch (_: StaleObjectException) {
+                // Re-read the connected hierarchy after a Compose update; retain no old handle.
+            }
+            SystemClock.sleep(50)
         }
+        error("Enabled clickable dialog action was not exposed: $value")
+    }
     private fun selectAll() {
         control("More actions").click()
         text("Select all objects").click()

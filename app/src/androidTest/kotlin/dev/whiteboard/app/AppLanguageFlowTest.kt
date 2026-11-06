@@ -98,9 +98,9 @@ class AppLanguageFlowTest {
         clickTestDialogText(device, "Kanban")
         revealTestDialogText(device, "Naziv", towardTop = true)
         testDialogField(device, "Naziv").text = name
-        text("Potvrdi").click()
-        awaitTestKeyboardHidden(device)
+        clickTestDialogText(device, "Potvrdi")
         description("Dodatne radnje")
+        awaitTestKeyboardHidden(device)
         lateinit var model: WorkspaceViewModel
         lateinit var before: Page
         lateinit var boardId: String
