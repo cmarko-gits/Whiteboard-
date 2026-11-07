@@ -40,6 +40,11 @@ class MindMapEditorFlowTest {
         control("More actions").click()
         click("Mind maps")
         text("Done")
+        device.waitForIdle()
+    }
+    private suspend fun awaitKeyboardShown() = withTimeout(10_000) {
+        val shown = Regex("\\bmInputShown=true\\b")
+        while (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) delay(50)
     }
     private fun submitTitle(value: String) {
         val field = testDialogField(device, "Node title")
@@ -88,6 +93,18 @@ class MindMapEditorFlowTest {
         launchTestLibrary(device)
         openTestBoard(device, board.name)
         mapActions()
+        testDialogField(device, "Find a node").click()
+        testDialogField(device, "Find a node").text = "Central idea"
+        awaitKeyboardShown()
+        device.setOrientationLeft()
+        device.waitForIdle()
+        assertEquals("Central idea", testDialogField(device, "Find a node").text)
+        testDialogField(device, "Find a node").click()
+        awaitKeyboardShown()
+        click("Done")
+        awaitTestKeyboardHidden(device)
+        device.setOrientationNatural()
+        device.waitForIdle()
         node("Central idea").click()
         click("Add child")
         submitTitle("Native child")
@@ -134,10 +151,7 @@ class MindMapEditorFlowTest {
         testDialogField(device, "Horizontal movement").text = "-120"
         testDialogField(device, "Vertical movement").text = "80"
         testDialogField(device, "Horizontal movement").click()
-        withTimeout(10_000) {
-            val shown = Regex("\\bmInputShown=true\\b")
-            while (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) delay(50)
-        }
+        awaitKeyboardShown()
         device.setOrientationLeft()
         device.waitForIdle()
         assertEquals("-120", testDialogField(device, "Horizontal movement").text)

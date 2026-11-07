@@ -64,8 +64,12 @@ class MindMapEditorController internal constructor(
         }.also { active = it }
     }
 
-    fun apply(action: MindMapAction): Job = scope.launch {
+    fun apply(action: MindMapAction, requestId: String? = mutable.value.request?.id): Job = scope.launch {
         val request = mutable.value.request ?: return@launch
+        if (request.id != requestId) {
+            notice(R.string.mind_map_changed)
+            return@launch
+        }
         if (mutable.value.busy) return@launch
         active = currentCoroutineContext().job
         val sequence = generation

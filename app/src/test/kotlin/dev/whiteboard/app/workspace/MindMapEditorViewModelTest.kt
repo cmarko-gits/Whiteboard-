@@ -60,6 +60,25 @@ class MindMapEditorViewModelTest {
         model.open(board.id).join()
     }
 
+    @Test fun delayedActionFromAnOlderDialogCannotEditTheSameSceneThroughANewerRequest() = runTest {
+        open()
+        model.showMindMaps(root.id).join()
+        val previous = model.mindMaps.state.value.request!!
+        model.showMindMaps(root.id).join()
+        val current = model.mindMaps.state.value.request!!
+        assertNotEquals(previous.id, current.id)
+        model.mindMaps.apply(MindMapAction.Edit(root.id, "Stale title", child.color), previous.id).join()
+        assertEquals(page, model.state.value.editor!!.page)
+        assertSame(current, model.mindMaps.state.value.request)
+        assertFalse(model.state.value.editor!!.canUndo)
+        assertFalse(model.mindMaps.state.value.busy)
+        assertEquals(R.string.mind_map_changed, model.state.value.message?.resource)
+        model.mindMaps.apply(MindMapAction.Edit(root.id, "Current title", child.color), current.id).join()
+        assertEquals("Current title", (model.state.value.editor!!.page.elements.first { it.id == root.id } as Note).text)
+        model.undo()
+        assertEquals(page, model.state.value.editor!!.page)
+    }
+
     @Test fun creatingAMapOnABlankPagePublishesOneUndoableEditableRootAndFocus() = runTest {
         model.create("Blank").join()
         model.showMindMaps(position = Point(30f, 40f)).join()

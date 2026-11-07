@@ -14,8 +14,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -29,9 +32,12 @@ import dev.whiteboard.app.workspace.*
 import dev.whiteboard.core.model.*
 import dev.whiteboard.ui.*
 import dev.whiteboard.ui.R
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private enum class MapPanel { BROWSE, NODE, CREATE, CHILD, SIBLING, EDIT, PARENT, MOVE }
@@ -47,7 +53,7 @@ internal fun MindMapDialog(
     var panel by rememberSaveable(request.id) { mutableStateOf(if (request.selectedNodeId == null) MapPanel.BROWSE else MapPanel.NODE) }
     val row = nodeId?.let(request.byId::get)
     val dismiss: () -> Unit = { viewModel.mindMaps.dismiss() }
-    val apply: (MindMapAction) -> Unit = { viewModel.mindMaps.apply(it) }
+    val apply: (MindMapAction) -> Job = { viewModel.mindMaps.apply(it, request.id) }
     val back = { panel = if (row == null) MapPanel.BROWSE else MapPanel.NODE }
     when (panel) {
         MapPanel.BROWSE, MapPanel.PARENT -> {
@@ -190,56 +196,91 @@ private fun MindMapNodeList(
             }
         }
     }
-    InputAlertDialog(
-        onDismissRequest = dismiss,
-        title = { Text(stringResource(title)) },
-        text = { closeKeyboard ->
+    val scope = rememberCoroutineScope()
+    val doneFocus = remember { FocusRequester() }
+    var actionsPlaced by remember { mutableStateOf(false) }
+    var editing by rememberSaveable(title) { mutableStateOf(false) }
+    var settlingFocus by remember(title) { mutableStateOf(true) }
+    MindMapFormDialog(
+        title,
+        dismiss,
+        input = { closeKeyboard, _ ->
             Column(Modifier.fillMaxWidth()) {
                 MapError(error)
-                OutlinedTextField(query, {
-                    query = it.take(512)
-                }, label = { Text(stringResource(R.string.mind_map_search)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                if (rows.isEmpty()) Text(stringResource(R.string.mind_map_empty))
-                LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 360.dp)) {
-                    items(filtered, key = { it.node.id }) { row ->
-                        ListItem(
-                            headlineContent = { Text(row.note.text.take(200), maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                            supportingContent = {
-                                Text(
-                                    listOfNotNull(
-                                        stringResource(R.string.mind_map_number, row.mapNumber),
-                                        stringResource(R.string.mind_map_level, row.depth + 1),
-                                        if (!row.visible) stringResource(R.string.mind_map_hidden) else null,
-                                        if (row.node.collapsed) stringResource(R.string.mind_map_collapsed) else null
-                                    ).joinToString(" · ")
-                                )
-                            },
-                            modifier = Modifier.padding(
-                                start = (row.depth.coerceAtMost(6) * 12).dp
-                            ).fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = !busy, role = Role.Button) {
-                                closeKeyboard()
-                                select(row)
-                            }
-                        )
-                    }
-                    if (rows.isNotEmpty() && filtered.isEmpty()) item { Text(stringResource(R.string.no_objects)) }
-                }
+                OutlinedTextField(
+                    query,
+                    { query = it.take(512) },
+                    label = { Text(stringResource(R.string.mind_map_search)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().focusProperties { canFocus = !settlingFocus || editing }
+                        .onFocusChanged { if (it.isFocused) editing = true },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = {
+                        closeKeyboard()
+                        editing = false
+                    })
+                )
             }
         },
-        confirmButton = { closeKeyboard ->
-            TextButton(onClick = {
-                closeKeyboard()
-                dismiss()
-            }) { Text(stringResource(R.string.done)) }
-        },
-        dismissButton = { closeKeyboard ->
-            if (create !=
-                null
-            ) {
-                TextButton(onClick = {
+        actions = { closeKeyboard ->
+            LaunchedEffect(actionsPlaced) {
+                if (actionsPlaced) {
+                    withFrameNanos { }
+                    if (!editing) {
+                        closeKeyboard()
+                        doneFocus.requestFocus()
+                    }
+                    settlingFocus = false
+                }
+            }
+            if (create != null) {
+                TextButton(
+                    onClick = {
+                        closeKeyboard()
+                        create()
+                    },
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) { Text(stringResource(R.string.mind_map_new)) }
+            }
+            TextButton(
+                onClick = {
                     closeKeyboard()
-                    create()
-                }, enabled = !busy) { Text(stringResource(R.string.mind_map_new)) }
+                    if (editing) editing = false else dismiss()
+                },
+                modifier = Modifier.weight(1f, fill = false).focusRequester(doneFocus).onGloballyPositioned {
+                    actionsPlaced = it.isAttached && it.size.width > 0 && it.size.height > 0
+                }
+            ) { Text(stringResource(R.string.done)) }
+        },
+        body = { closeKeyboard ->
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
+                if (rows.isEmpty()) item { Text(stringResource(R.string.mind_map_empty)) }
+                items(filtered, key = { it.node.id }) { row ->
+                    ListItem(
+                        headlineContent = { Text(row.note.text.take(200), maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                        supportingContent = {
+                            Text(
+                                listOfNotNull(
+                                    stringResource(R.string.mind_map_number, row.mapNumber),
+                                    stringResource(R.string.mind_map_level, row.depth + 1),
+                                    if (!row.visible) stringResource(R.string.mind_map_hidden) else null,
+                                    if (row.node.collapsed) stringResource(R.string.mind_map_collapsed) else null
+                                ).joinToString(" · ")
+                            )
+                        },
+                        modifier = Modifier.padding(start = (row.depth.coerceAtMost(6) * 12).dp)
+                            .fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = !busy, role = Role.Button) {
+                                scope.launch {
+                                    closeKeyboard()
+                                    withFrameNanos { }
+                                    closeKeyboard()
+                                    select(row)
+                                }
+                            }
+                    )
+                }
+                if (rows.isNotEmpty() && filtered.isEmpty()) item { Text(stringResource(R.string.no_objects)) }
             }
         }
     )
@@ -254,12 +295,14 @@ private fun MindMapTitleDialog(
     favorites: List<Int>,
     saveFavorites: (List<Int>) -> Unit,
     dismiss: () -> Unit,
-    submit: (String, Int) -> Unit
+    submit: (String, Int) -> Job
 ) {
     var title by rememberSaveable { mutableStateOf(initial.take(20_000)) }
     var color by rememberSaveable { mutableIntStateOf(initialColor) }
     var tooLong by rememberSaveable { mutableStateOf(false) }
     val oversized = initial.length > 20_000
+    val commit = rememberMapCommit()
+    val processing = state.busy || commit.pending
     val focus = remember { FocusRequester() }
     var placed by remember { mutableStateOf(false) }
     LaunchedEffect(placed) {
@@ -271,7 +314,7 @@ private fun MindMapTitleDialog(
     val message = if (oversized || tooLong) stringResource(R.string.mind_map_title_limit) else state.error?.let { stringResource(it) }
     MindMapFormDialog(
         titleLabel,
-        dismiss,
+        { if (!processing) dismiss() },
         input = { closeKeyboard, compact ->
             Row(
                 Modifier.fillMaxWidth(),
@@ -285,8 +328,8 @@ private fun MindMapTitleDialog(
                         if (!tooLong) title = it
                     },
                     label = { Text(stringResource(R.string.mind_map_node_title)) },
-                    singleLine = compact,
-                    maxLines = if (compact) 1 else 4,
+                    singleLine = true,
+                    maxLines = 1,
                     isError = message != null,
                     supportingText = if (message !=
                         null
@@ -295,49 +338,49 @@ private fun MindMapTitleDialog(
                     } else {
                         null
                     },
-                    enabled = !state.busy && !oversized,
+                    enabled = !processing && !oversized,
                     modifier = Modifier.weight(1f).focusRequester(focus).onGloballyPositioned {
                         placed = it.isAttached && it.size.width > 0 && it.size.height > 0
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        if (!state.busy && !oversized && !tooLong && title.isNotBlank()) {
-                            closeKeyboard()
-                            submit(title, color)
+                        if (!processing && !oversized && !tooLong && title.isNotBlank()) {
+                            commit.submit(closeKeyboard) { submit(title, color) }
                         }
                     })
                 )
-                ColorPickerButton(color, favorites, saveFavorites, enabled = !state.busy && !oversized) { color = it }
+                ColorPickerButton(color, favorites, saveFavorites, enabled = !processing && !oversized) { color = it }
             }
         },
         actions = { closeKeyboard ->
             TextButton(onClick = {
                 closeKeyboard()
                 dismiss()
-            }, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
+            }, enabled = !processing, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
             TextButton(
                 onClick = {
-                    closeKeyboard()
-                    submit(title, color)
+                    commit.submit(closeKeyboard) { submit(title, color) }
                 },
-                enabled = !state.busy && !oversized && !tooLong && title.isNotBlank(),
+                enabled = !processing && !oversized && !tooLong && title.isNotBlank(),
                 modifier = Modifier.weight(1f, fill = false)
             ) { Text(stringResource(R.string.confirm)) }
         },
-        body = { }
+        body = { _ -> }
     )
 }
 
 @Composable
-private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submit: (Point) -> Unit) {
+private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submit: (Point) -> Job) {
     var x by rememberSaveable { mutableStateOf("240") }
     var y by rememberSaveable { mutableStateOf("0") }
     fun coordinate(value: String): Float? = value.toFloatOrNull()?.takeIf { it.isFinite() && it in -1_000_000_000f..1_000_000_000f }
+    val commit = rememberMapCommit()
+    val processing = state.busy || commit.pending
     val dx = coordinate(x)
     val dy = coordinate(y)
     MindMapFormDialog(
         R.string.mind_map_move,
-        dismiss,
+        { if (!processing) dismiss() },
         input = { _, _ ->
             Column(Modifier.fillMaxWidth()) {
                 MapError(state.error)
@@ -349,7 +392,7 @@ private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submi
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
                         modifier = Modifier.weight(1f),
-                        enabled = !state.busy,
+                        enabled = !processing,
                         isError = dx == null
                     )
                     OutlinedTextField(
@@ -359,7 +402,7 @@ private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submi
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
                         modifier = Modifier.weight(1f),
-                        enabled = !state.busy,
+                        enabled = !processing,
                         isError = dy == null
                     )
                 }
@@ -369,17 +412,18 @@ private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submi
             TextButton(onClick = {
                 closeKeyboard()
                 dismiss()
-            }, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
+            }, enabled = !processing, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
             TextButton(
                 onClick = {
-                    closeKeyboard()
-                    submit(Point(checkNotNull(dx), checkNotNull(dy)))
+                    commit.submit(closeKeyboard) { submit(Point(checkNotNull(dx), checkNotNull(dy))) }
                 },
-                enabled = !state.busy && dx != null && dy != null && (dx != 0f || dy != 0f),
+                enabled = !processing && dx != null && dy != null && (dx != 0f || dy != 0f),
                 modifier = Modifier.weight(1f, fill = false)
             ) { Text(stringResource(R.string.confirm)) }
         },
-        body = { Text(stringResource(R.string.mind_map_move_hint)) }
+        body = { _ ->
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) { Text(stringResource(R.string.mind_map_move_hint)) }
+        }
     )
 }
 
@@ -390,11 +434,12 @@ private fun MindMapFormDialog(
     dismiss: () -> Unit,
     input: @Composable (closeKeyboard: () -> Unit, compact: Boolean) -> Unit,
     actions: @Composable RowScope.(closeKeyboard: () -> Unit) -> Unit,
-    body: @Composable () -> Unit
+    body: @Composable (closeKeyboard: () -> Unit) -> Unit
 ) {
     InputDialog(dismiss) { closeKeyboard ->
         BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
             val compact = maxHeight < 240.dp
+            val inline = compact && WindowInsets.ime.getBottom(LocalDensity.current) > 0
             Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
                 Column(Modifier.padding(if (compact) 8.dp else 24.dp)) {
                     if (!compact) {
@@ -402,15 +447,41 @@ private fun MindMapFormDialog(
                         Spacer(Modifier.height(12.dp))
                     }
                     AdaptiveDialogContent(
-                        compact = compact,
+                        compact = inline,
                         input = { input(closeKeyboard, compact) },
                         actions = { actions(closeKeyboard) },
                         body = {
-                            if (!compact) Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) { body() }
+                            if (!inline) body(closeKeyboard)
                         }
                     )
                 }
             }
         }
     }
+}
+
+/** Commit after the dialog has released its own IME session, while its token is attached. */
+private class MapCommit(private val scope: CoroutineScope) {
+    var pending by mutableStateOf(false)
+        private set
+    fun submit(closeKeyboard: () -> Unit, action: () -> Job) {
+        if (pending) return
+        pending = true
+        scope.launch {
+            try {
+                closeKeyboard()
+                withFrameNanos { }
+                closeKeyboard()
+                action().join()
+            } finally {
+                pending = false
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberMapCommit(): MapCommit {
+    val scope = rememberCoroutineScope()
+    return remember(scope) { MapCommit(scope) }
 }
