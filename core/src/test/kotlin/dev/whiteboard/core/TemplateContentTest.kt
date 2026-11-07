@@ -31,15 +31,49 @@ class TemplateContentTest {
             assertEquals(english.background, localized.background)
             assertEquals(english.backgroundColor, localized.backgroundColor)
             assertEquals(english.elements.size, localized.elements.size)
+            val identities = localized.elements.zip(english.elements).associate { (after, before) -> after.id to before.id }
             english.elements.zip(localized.elements).forEach { (before, after) ->
                 val normalized = when (after) {
                     is TextElement -> after.copy(id = before.id, text = (before as TextElement).text)
                     is Note -> after.copy(id = before.id, text = (before as Note).text)
                     is Line -> after.copy(id = before.id)
+                    is Connector -> {
+                        fun remap(end: ConnectorEnd): ConnectorEnd = when (end) {
+                            is ConnectorEnd.Bound -> end.copy(targetId = identities.getValue(end.targetId))
+                            is ConnectorEnd.Free -> end
+                        }
+                        after.copy(id = before.id, start = remap(after.start), end = remap(after.end))
+                    }
                     else -> error("Unexpected template object")
                 }
                 assertEquals(before, normalized)
             }
+        }
+    }
+
+    @Test fun mindMapTemplateCreatesARealLocalizedTreeWithNewIdsAndEditableBoundEdges() {
+        val board = TemplateFactory.create("Plan", BoardTemplate.MIND_MAP, translated)
+        val page = board.activePage
+        val tree = page.mindMaps.single()
+        assertEquals(5, tree.nodes.size)
+        assertEquals(4, page.elements.filterIsInstance<Connector>().size)
+        assertTrue(page.elements.filterIsInstance<Line>().isEmpty())
+        val root = page.elements.first { it.id == tree.rootId } as Note
+        assertEquals(labels.getValue(TemplateLabel.CENTRAL_IDEA), root.text)
+        assertEquals(
+            listOf(TemplateLabel.PEOPLE, TemplateLabel.POSSIBILITIES, TemplateLabel.QUESTIONS, TemplateLabel.ACTIONS).map(labels::getValue),
+            tree.childrenOf(root.id).map { node -> (page.elements.first { it.id == node.id } as Note).text }
+        )
+        tree.validateObjects(page)
+        assertEquals(page.elements, page.visibleElements)
+        val other = TemplateFactory.create("Plan", BoardTemplate.MIND_MAP, translated).activePage
+        assertNotEquals(tree.id, other.mindMaps.single().id)
+        assertTrue(page.elements.map { it.id }.toSet().intersect(other.elements.map { it.id }.toSet()).isEmpty())
+    }
+
+    @Test fun ordinaryNoteLineTemplatesAreNotInferredAsMindMaps() {
+        for (template in BoardTemplate.entries.filter { it != BoardTemplate.MIND_MAP }) {
+            assertTrue(TemplateFactory.create("Plan", template, translated).activePage.mindMaps.isEmpty())
         }
     }
 

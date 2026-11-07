@@ -6,12 +6,15 @@ enum class BoardTemplate { BLANK, GRID, DOTS, RULED, BRAINSTORM, KANBAN, WEEKLY,
 
 object TemplateFactory {
     fun create(name: String, template: BoardTemplate, content: TemplateContent = TemplateContent.ENGLISH): Board {
-        val objects = mutableListOf<Element>()
+        val objects = mutableListOf<PageObject>()
+        var mindMaps = emptyList<MindMapTree>()
         fun title(text: String, x: Float, y: Float, width: Float = 900f) {
             objects.add(TextElement(bounds = Bounds(x, y, x + width, y + 70f), text = text, fontSize = 32f, bold = true))
         }
-        fun note(text: String, x: Float, y: Float, color: Int = 0xFFF4E6A3.toInt(), width: Float = 240f, height: Float = 180f) {
-            objects.add(Note(bounds = Bounds(x, y, x + width, y + height), text = text, color = color))
+        fun note(text: String, x: Float, y: Float, color: Int = 0xFFF4E6A3.toInt(), width: Float = 240f, height: Float = 180f): Note {
+            val value = Note(bounds = Bounds(x, y, x + width, y + height), text = text, color = color)
+            objects.add(value)
+            return value
         }
         fun arrow(x: Float, y: Float, toX: Float, toY: Float) {
             objects.add(Line(start = Point(x, y), end = Point(toX, toY), style = InkStyle(color = 0xFF315D4C.toInt()), arrow = true))
@@ -52,12 +55,22 @@ object TemplateFactory {
             }
             BoardTemplate.MIND_MAP -> {
                 title(content[MIND_MAP_TITLE], 40f, 30f)
-                listOf(100f to 170f, 780f to 170f, 100f to 540f, 780f to 540f).forEach { (x, y) -> arrow(650f, 430f, x + 120f, y + 80f) }
-                note(content[CENTRAL_IDEA], 440f, 350f, 0xFFD5E7CF.toInt())
+                val root = note(content[CENTRAL_IDEA], 440f, 350f, 0xFFD5E7CF.toInt())
+                val nodes = mutableListOf(MindMapNode(root.id))
                 listOf(PEOPLE, POSSIBILITIES, QUESTIONS, ACTIONS).forEachIndexed { index, label ->
                     val location = listOf(100f to 170f, 780f to 170f, 100f to 540f, 780f to 540f)[index]
-                    note(content[label], location.first, location.second, 0xFFD4E3F3.toInt())
+                    val child = note(content[label], location.first, location.second, 0xFFD4E3F3.toInt())
+                    val left = child.bounds.center.x < root.bounds.center.x
+                    val edge = Connector(
+                        start = ConnectorEnd.Bound(root.id, if (left) ConnectionPort.LEFT else ConnectionPort.RIGHT),
+                        end = ConnectorEnd.Bound(child.id, if (left) ConnectionPort.RIGHT else ConnectionPort.LEFT),
+                        style = InkStyle(color = 0xFF315D4C.toInt()),
+                        arrow = false
+                    )
+                    objects.add(objects.lastIndex, edge)
+                    nodes.add(MindMapNode(child.id, root.id, edge.id))
                 }
+                mindMaps = listOf(MindMapTree(nodes = nodes))
             }
             BoardTemplate.FLOWCHART -> {
                 title(content[FLOWCHART_TITLE], 40f, 30f)
@@ -83,6 +96,9 @@ object TemplateFactory {
             BoardTemplate.RULED -> Background.RULED
             else -> Background.PLAIN
         }
-        return Board(name = name, pages = listOf(Page(name = content[PAGE_ONE], background = background, elements = objects)))
+        return Board(
+            name = name,
+            pages = listOf(Page(name = content[PAGE_ONE], background = background, elements = objects, mindMaps = mindMaps))
+        )
     }
 }

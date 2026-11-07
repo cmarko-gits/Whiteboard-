@@ -1,5 +1,7 @@
 # F06 — pregled neuspeha native selektora potvrde
 
+> Aktuelna potvrda: source 23463e6/CI 42269898794 prolazi svih šest poslova bez retry-ja, 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka uz vraćen jezik; 645 jedinstvenih slučajeva. Bounded izveštaji imaju proverene GitHub digest-e u artifacts/task-16-23463e6-evidence.json. Ranije stanje ispod je istorijski podkorak. Novi editor/template opisuje [MIND-MAP-EDITOR.md](MIND-MAP-EDITOR.md); F06 i nova paket kvalifikacija ostaju otvoreni.
+
 d2f18034e98a4dba9cbc5527e64a29a8871f7834 / CI 42185382992: verify prolazi 500 JVM i prateće provere. Novi MindMapBranchRemovalFlowTest pada pre potvrde na pronalaženju Delete branch kontrole. Ovo nije isti nalaz kao 6b53d42/API 36 startup ANR; ovde je emulator podignut i aplikacija izvršena. Izvor nije kvalifikovan niti retry-ovan kao da nema test neuspeha.
 
 Pregledan je stvarni API 36 PNG pre cleanup-a, sa originalnim artifact/entry SHA proverama: mind-map-branch-removal-before-cleanup.png, entry SHA-256 B97786E577A9C0BD32C6793ABF56F667D0C10A2ACB7B5D52A05C13A771B6D6CE; XML 3B6B4E63C504B5BAF5419705727E6CBA048DBFBA3BAC397D1D3AD11F59C16F90. Na njemu su vidljivi modalni naslov Delete branch, Nodes: 2 / Objects: 3, Cancel i Delete branch potvrda. Dokument iza dijaloga još je Saved, sa jednom vidljivom root beleškom. Podaci nisu obrisani.

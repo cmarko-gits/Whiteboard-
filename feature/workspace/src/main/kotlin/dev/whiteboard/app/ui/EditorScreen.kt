@@ -58,6 +58,7 @@ fun EditorScreen(
 ) {
     val workspace by viewModel.state.collectAsState()
     val branchRemoval by viewModel.branchRemoval.state.collectAsState()
+    val mindMaps by viewModel.mindMaps.state.collectAsState()
     val compact = LocalConfiguration.current.screenHeightDp < 500
     var nativeView by remember { mutableStateOf<WhiteboardView?>(null) }
     var more by remember { mutableStateOf(false) }
@@ -70,11 +71,17 @@ fun EditorScreen(
     var properties by rememberSaveable { mutableStateOf(false) }
     var objects by rememberSaveable { mutableStateOf(false) }
     var selectionMenu by rememberSaveable(editor.page.id) { mutableStateOf(false) }
+    LaunchedEffect(mindMaps.focusSequence, mindMaps.focusId, mindMaps.focusBounds, editor.boardId, editor.page.id, nativeView) {
+        val target = mindMaps.focusId ?: return@LaunchedEffect
+        withFrameNanos { }
+        val bounds = mindMaps.focusBounds
+        if (bounds == null) nativeView?.revealElement(target) else nativeView?.revealBounds(bounds)
+    }
     LaunchedEffect(editor.selectedIds) {
         if (editor.selectedIds.isEmpty()) selectionMenu = false
     }
     Column(Modifier.fillMaxSize()) {
-        if (branchRemoval.busy || workspace.clipboardBusy ||
+        if (mindMaps.busy || branchRemoval.busy || workspace.clipboardBusy ||
             workspace.connectionBusy && workspace.connectionRequest == null
         ) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -120,6 +127,10 @@ fun EditorScreen(
                     DropdownMenuItem(text = { Text(stringResource(R.string.objects)) }, onClick = {
                         more = false
                         objects = true
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.mind_maps)) }, enabled = !mindMaps.busy, onClick = {
+                        more = false
+                        viewModel.showMindMaps(editor.selectedId, nativeView?.documentCenter(), editor)
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.select_all)) }, onClick = {
                         more = false
@@ -445,6 +456,10 @@ fun EditorScreen(
         }
     }
     if (rotation) RotationDialog(rotating, rotationSequence, { rotation = false }) { viewModel.rotateSelected(it) }
+    val mapRequest = mindMaps.request
+    if (mapRequest != null && mapRequest.boardId == editor.boardId && mapRequest.page.id == editor.page.id) {
+        MindMapDialog(mapRequest, mindMaps, viewModel, favoriteColors)
+    }
     val removal = branchRemoval.request
     if (removal != null && removal.boardId == editor.boardId && removal.pageId == editor.page.id) {
         BranchRemovalDialog(removal, viewModel.branchRemoval::dismiss) { viewModel.branchRemoval.confirm(removal.id) }

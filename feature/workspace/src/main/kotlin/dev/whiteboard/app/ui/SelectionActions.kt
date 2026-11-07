@@ -41,6 +41,13 @@ internal fun SelectionActions(
     Box {
         IconButton(onClick = { onExpandedChange(true) }) { Icon(Icons.Outlined.Tune, stringResource(R.string.selection_actions)) }
         DropdownMenu(expanded, { onExpandedChange(false) }) {
+            val mapObject = selected.singleOrNull()?.takeIf { editor.page.mindMapIndex?.ownerOfObject(it.id) != null }
+            if (mapObject != null) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.mind_map_actions)) }, onClick = {
+                    onExpandedChange(false)
+                    viewModel.showMindMaps(mapObject.id, source = editor)
+                })
+            }
             val connection = selected.singleOrNull() as? Connector
             DropdownMenuItem(
                 text = { Text(stringResource(if (connection == null) R.string.add_connection else R.string.edit_connection)) },
@@ -103,12 +110,18 @@ internal fun SelectionActions(
                     viewModel.stepSelectedLayer(LayerStep.BACKWARD)
                 }
             )
-            DropdownMenuItem(text = {
-                Text(stringResource(R.string.group))
-            }, enabled = selected.size > 1 && selected.all { it is Element }, onClick = {
-                onExpandedChange(false)
-                viewModel.groupSelected()
-            })
+            DropdownMenuItem(
+                text = {
+                    Text(stringResource(R.string.group))
+                },
+                enabled = selected.size > 1 && selected.all {
+                    it is Element && editor.page.mindMapIndex?.ownerOfObject(it.id) == null
+                },
+                onClick = {
+                    onExpandedChange(false)
+                    viewModel.groupSelected()
+                }
+            )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.ungroup)) },
                 enabled = editor.page.elements.any { it.id in editor.selectedIds && it is ElementGroup },

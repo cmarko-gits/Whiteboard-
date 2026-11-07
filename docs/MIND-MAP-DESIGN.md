@@ -1,6 +1,6 @@
 # F06 — lokalni mind-map: ugovor pre implementacije
 
-Status: razvojna 0.8.0/code 17 na codex/mind-map-foundation. Page/format 6 i domenske komande source fb47a18 prošli su CI 42180340332 (461 JVM, pet profila po 127 app + 13 data, tri R8/jezička toka; 601 jedinstveni slučaj). [MIND-MAP-PERSISTENCE.md](MIND-MAP-PERSISTENCE.md) čuva storage ugovor i prethodni neuspeh/ispravku. Novija [vidljiva scena](MIND-MAP-VISIBILITY.md) i [branch clipboard](MIND-MAP-CLIPBOARD.md) lokalno prolaze 494 JVM, stil/arhitekturu i native kompilaciju; njihova nova matrica sledi. Puni pristupačni UI/branch potvrde nisu završeni. Template ostaje običan Note/Line crtež; nema distribuiranog 0.8.0 kandidata. Kvalifikovani paket je 0.7.2/source 1176e59.
+Status: razvojna 0.8.0/code 17. Projekcija/clipboard source 6b53d42 ima zelenu CI 42183053409 kohortu (638 jedinstvenih slučajeva, jedan sačuvani API 36 startup retry). Branch potvrde source 23463e6/CI 42269898794 prolaze 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka; 645 jedinstvenih slučajeva. Novi [editor čvorova i semantički šablon](MIND-MAP-EDITOR.md) imaju 518 lokalnih JVM testova, stil/arhitekturu i Android kompilaciju, ali novu punu kvalifikaciju tek treba izvršiti. F06 ostaje otvoren. Nema distribuiranog 0.8.0 kandidata; kvalifikovani paket ostaje 0.7.2/source 1176e59.
 
 ## Autoritativni podaci i granice
 

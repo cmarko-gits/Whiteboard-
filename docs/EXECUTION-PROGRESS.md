@@ -1,5 +1,13 @@
 # Izvršavanje preostalih zadataka
 
+## F06 editor čvorova, 7. novembar 2026.
+
+Projekcija/clipboard 6b53d42 završili su CI 42183053409: 494 JVM i pet profila po 131 app + 13 data; API 36 prolazi jedan ciljani startup retry uz sačuvan prvobitni SystemUI ANR. Branch potvrde source 23463e6/CI 42269898794 sada prolaze svih šest poslova bez retry-ja: 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka, 645 jedinstvenih slučajeva. Digest-verified artefakti su task-16-23463e6-evidence.json. Raniji d2f1803/4f7c03b fixture neuspehi nisu prepisani.
+
+Novi kod dodaje zaseban MindMapEditorController sa immutable zahtevima, computation dispatcher-om, scene/session/generation guard-ovima i cancellation-om; čvorovi imaju create/child/sibling/edit/color, collapse/reveal, reparent, visible Select map, hidden whole-branch move i guarded Cut/Delete. Mind map šablon je stvarni petočvorni model; stare table se ne konvertuju. Lokalno prolazi 518 JVM (358+77+5+78), stil/arhitektura i kompilacija 134 app native slučaja. Nova dva Android toka i novi R8 mind-map smoke još zahtevaju izvršavanje na tačnom novom source-u. MIND-MAP-EDITOR.md čuva arhitekturu, ugovor i gates.
+
+**13/47 završeno, 34 otvoreno.** F06 još nije zatvoren; distribuirani paket ostaje 0.7.2. Kasniji CI/paket rezultati biće dodati sa source-om i hash-evima.
+
 ## F06 branch potvrde, 6. novembar 2026.
 
 Novi BranchRemovalController/UI vezuju Delete/Cut za pripremljeni snapshot i tačan broj kanonskih objekata/čvorova sa skrivenim potomcima. Cancel/new board/dismiss otkazuju worker; stale confirm ne može obrisati novu scenu, kamera je nezavisna. Managed veze imaju jasan razlog odbijanja generic Edit/Detach. Lokalno prolazi 500 JVM (350+77+5+68), arhitektura i Android kompilacija; novi native 200% font/landscape/Cancel/confirm/Cut/Paste/Undo/Save/reopen tok još nije izvršen (132 app native ukupno). MIND-MAP-BRANCH-REMOVAL.md.

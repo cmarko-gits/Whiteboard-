@@ -136,6 +136,24 @@ object MindMapEdits {
         return plan(page, page.elements, replace(page, changed), nodeId, byteBudget, checkpoint)
     }
 
+    /** Explicit branch translation includes hidden descendants without moving unrelated nodes. */
+    fun moveBranch(
+        page: Page,
+        nodeId: String,
+        delta: Point,
+        byteBudget: Long = DEFAULT_BUDGET,
+        checkpoint: () -> Unit = {}
+    ): MindMapEditPlan? {
+        val tree = owner(page, nodeId)
+        val nodes = tree.subtree(nodeId, checkpoint).mapTo(HashSet()) { it.id }
+        if (delta.x == 0f && delta.y == 0f) return null
+        val objects = page.elements.map {
+            checkpoint()
+            if (it.id in nodes) ObjectTranslation.translate(it, delta, checkpoint) else it
+        }
+        return plan(page, objects, page.mindMaps, visibleFocus(page, tree, nodeId, checkpoint), byteBudget, checkpoint)
+    }
+
     fun reparent(
         page: Page,
         nodeId: String,
@@ -151,11 +169,14 @@ object MindMapEdits {
         val expanded = tree.reveal(parentId, checkpoint).withCollapsed(parentId, false, checkpoint)
         val nodes = expanded.nodes.filterNot { it.id == nodeId } + node.copy(parentId = parentId)
         val changed = MindMapTree(tree.id, nodes, checkpoint)
+        val ports = page.geometry.connectionPorts(checkpoint)
+        val startPort = page.geometry.closestConnectionPort(parentId, ports.point(nodeId, ConnectionPort.CENTER))
+        val endPort = page.geometry.closestConnectionPort(nodeId, ports.point(parentId, startPort))
         val objects = page.elements.map {
             checkpoint()
             if (it.id == node.connectionId) {
                 val edge = it as Connector
-                edge.copy(start = ConnectorEnd.Bound(parentId, (edge.start as ConnectorEnd.Bound).port))
+                edge.copy(start = ConnectorEnd.Bound(parentId, startPort), end = ConnectorEnd.Bound(nodeId, endPort))
             } else {
                 it
             }

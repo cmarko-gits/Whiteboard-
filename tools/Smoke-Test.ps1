@@ -8,6 +8,7 @@ param(
     [switch] $CheckAlignment,
     [switch] $CheckObjectMenu,
     [switch] $CheckConnections,
+    [switch] $CheckMindMaps,
     [switch] $SkipAdaptiveResize,
     [switch] $LoadHelpersOnly
 )
@@ -36,11 +37,12 @@ function Get-Ui {
     return $taskXml.SelectNodes('//node')
 }
 function Find-Ui {
-    param([string] $Text, [string] $Description, [string] $Class, [int] $TimeoutSeconds = 15, [switch] $ExactDescription)
+    param([string] $Text, [string] $Description, [string] $Class, [int] $TimeoutSeconds = 15, [switch] $ExactDescription, [string] $TextPrefix)
     $taskUntil = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
     do {
         $taskNodes = @(Get-Ui | Where-Object {
             (-not $Text -or $_.text -eq $Text) -and
+            (-not $TextPrefix -or ([string]$_.text).StartsWith($TextPrefix, [StringComparison]::Ordinal)) -and
             (-not $Description -or $(if ($ExactDescription) { $_.'content-desc' -ceq $Description } else { $_.'content-desc' -like "$Description*" })) -and
             (-not $Class -or $_.class -eq $Class) -and
             $_.SelectNodes('ancestor-or-self::node[@enabled="false"]').Count -eq 0
@@ -345,6 +347,10 @@ try {
         Assert-ConnectionFrames $taskReopenedMovement.Before
         Capture 'release-reopened-connections'
         Write-Output 'PASS: optimized connections follow moved targets with exact Undo/Redo and saved reopen.'
+    }
+    if ($CheckMindMaps) {
+        . (Join-Path $PSScriptRoot 'MindMap-Smoke.ps1')
+        Invoke-MindMapSmoke -BoardName $taskName -PreviousSize $taskPreviousSize
     }
     Tap-Ui (Find-Ui -Description 'Back to boards')
     Capture 'phone-library'

@@ -17,16 +17,23 @@ import androidx.compose.ui.unit.dp
 import dev.whiteboard.ui.R
 
 @Composable
-fun ColorPickerButton(color: Int, favorites: List<Int>, saveFavorites: (List<Int>) -> Unit, select: (Int) -> Unit) {
+fun ColorPickerButton(
+    color: Int,
+    favorites: List<Int>,
+    saveFavorites: (List<Int>) -> Unit,
+    enabled: Boolean = true,
+    select: (Int) -> Unit
+) {
     var open by rememberSaveable { mutableStateOf(false) }
     FilledTonalIconButton(
         onClick = { open = true },
+        enabled = enabled,
         colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = Color(color),
             contentColor = if (Color(color).luminance() > 0.179f) Color.Black else Color.White
         )
     ) { Icon(Icons.Outlined.ColorLens, stringResource(R.string.custom_color)) }
-    if (open) {
+    if (open && enabled) {
         CustomColorDialog(color, favorites, saveFavorites, { open = false }) {
             select(it)
             open = false
@@ -37,7 +44,7 @@ fun ColorPickerButton(color: Int, favorites: List<Int>, saveFavorites: (List<Int
 @Composable
 fun ColorChoiceRow(color: Int, defaults: List<Int>, favorites: List<Int>, saveFavorites: (List<Int>) -> Unit, select: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ColorPickerButton(color, favorites, saveFavorites, select)
+        ColorPickerButton(color, favorites, saveFavorites, select = select)
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (listOf(color) + defaults + favorites).distinct().forEach { value -> ColorButton(value, value == color) { select(value) } }
         }

@@ -1,5 +1,7 @@
 # F06 — vidljiva projekcija
 
+> Aktuelna potvrda: source 23463e6/CI 42269898794 prolazi svih šest poslova bez retry-ja, 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka uz vraćen jezik; 645 jedinstvenih slučajeva. Bounded izveštaji imaju proverene GitHub digest-e u artifacts/task-16-23463e6-evidence.json. Ranije stanje ispod je istorijski podkorak. Novi editor/template opisuje [MIND-MAP-EDITOR.md](MIND-MAP-EDITOR.md); F06 i nova paket kvalifikacija ostaju otvoreni.
+
 Razvojni podkorak nad domenskim komandama fb47a18. F06 je i dalje otvoren; novi template/dijalozi, branch clipboard i potpuna kvalifikacija nisu završeni. Kvalifikovani korisnički paket ostaje 0.7.2, a ne ovaj razvojni kod.
 
 Page.elements/contentBounds ostaju kanonski sadržaj za validaciju, istoriju, editable backup, draft i serijalizaciju. Page.visibleElements/visibleContentBounds služe prikazu i interakciji. MindMapPageIndex čuva nepromenljivu projekciju i lenjo računa vidljivi okvir preko istog content resolver-a, uz proveru celokupne kanonske geometrije. Prazna/otvorena mapa koristi postojeći kanonski okvir. Metadata kopije dele indeks; collapse menja semantički identitet i vidljivu projekciju. Warm preview dobija nove vidljive objekte i world okvir bez čuvanja stare Page fasade.

@@ -87,6 +87,10 @@ class WorkspaceViewModel @Inject constructor(
     private var brushJob: Job? = null
     private data class FailedOperation(val boardId: String?, val action: suspend () -> Unit)
     private var failedOperation: FailedOperation? = null
+    val mindMaps = MindMapEditorController(viewModelScope, dispatchers, { session }, { ids, edited ->
+        mutable.update { it.copy(editor = it.editor?.copy(tool = Tool.SELECT, selectedIds = ids)) }
+        if (edited) changed() else publish()
+    }, { resource -> mutable.update { it.copy(message = UiNotice(resource)) } }, ::report)
     val branchRemoval = BranchRemovalController(viewModelScope, dispatchers, { session }, { current, plan, copied ->
         check(current.applyMindMapEdit(plan))
         copied?.let {
@@ -147,6 +151,7 @@ class WorkspaceViewModel @Inject constructor(
     }
     private suspend fun activate(board: Board, recovered: Boolean = false, query: String? = null) {
         branchRemoval.dismiss()
+        mindMaps.dismiss(clearFocus = true)
         val generation = ++connectionGeneration
         val match = board.firstTextMatch(query)
         var opened = if (match == null) board else board.copy(activePageId = match.pageId)
@@ -446,9 +451,27 @@ class WorkspaceViewModel @Inject constructor(
         val ids = mutable.value.editor?.selectedIds ?: return
         deleteObjects(ids)
     }
+    fun showMindMaps(id: String? = null, position: Point? = null, source: EditorUi? = null): Job {
+        val current = session
+        if (source != null && (current == null || !sourceMatches(current, source))) {
+            mutable.update { it.copy(message = UiNotice(R.string.mind_map_changed)) }
+            return viewModelScope.launch { }
+        }
+        branchRemoval.dismiss()
+        return mindMaps.open(id, position)
+    }
+    fun removeMindMapBranch(request: MindMapEditorRequest, id: String, cut: Boolean = false): Job {
+        if (!mindMaps.isCurrent(request) || id !in request.byId) {
+            mutable.update { it.copy(message = UiNotice(R.string.mind_map_changed)) }
+            return viewModelScope.launch { }
+        }
+        mindMaps.dismiss()
+        return branchRemoval.request(setOf(id), cut)
+    }
     private fun deleteObjects(ids: Set<String>) {
         val current = session ?: return
         if (ids.any { current.page.mindMapIndex?.ownerOfObject(it) != null }) {
+            mindMaps.dismiss()
             branchRemoval.request(ids)
         } else {
             current.delete(ids)
@@ -795,6 +818,7 @@ class WorkspaceViewModel @Inject constructor(
         if (session !== current) return@work
         session = null
         branchRemoval.dismiss()
+        mindMaps.dismiss(clearFocus = true)
         dismissConnection()
         files.releaseSession(retentionId)
         mutable.update { it.copy(editor = null, textRequest = null) }

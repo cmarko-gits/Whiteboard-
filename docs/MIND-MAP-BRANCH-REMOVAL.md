@@ -1,5 +1,7 @@
 # F06 — potvrda brisanja i isecanja grane
 
+> Aktuelna potvrda: source 23463e6/CI 42269898794 prolazi svih šest poslova bez retry-ja, 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka uz vraćen jezik; 645 jedinstvenih slučajeva. Bounded izveštaji imaju proverene GitHub digest-e u artifacts/task-16-23463e6-evidence.json. Ranije stanje ispod je istorijski podkorak. Novi editor/template opisuje [MIND-MAP-EDITOR.md](MIND-MAP-EDITOR.md); F06 i nova paket kvalifikacija ostaju otvoreni.
+
 Razvojni UI podkorak posle 6b53d42. Novi mind-map template i puni node editor još nisu aktivirani; ova zaštita važi i za uvezene dokumente sa postojećom semantikom. F06 ostaje otvoren; 13/47 završeno i 34 preostala glavna zadatka.
 
 BranchRemovalController odvojeno poseduje pripremu/životni vek potvrde. Na computation dispatcher-u priprema tačan MindMapEditPlan, broj uklonjenih kanonskih objekata/čvorova (sa skrivenim potomcima) i, za Cut, kompletan PageFragment. Pre objave potvrde proverava owner session, semantic/geometry snapshot i generation. UI potvrđuje ID te pripremljene operacije; ne čita ponovo trenutno izabrane ID-jeve.

@@ -1,5 +1,7 @@
 # F06 — privatni clipboard grana
 
+> Aktuelna potvrda: source 23463e6/CI 42269898794 prolazi svih šest poslova bez retry-ja, 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka uz vraćen jezik; 645 jedinstvenih slučajeva. Bounded izveštaji imaju proverene GitHub digest-e u artifacts/task-16-23463e6-evidence.json. Ranije stanje ispod je istorijski podkorak. Novi editor/template opisuje [MIND-MAP-EDITOR.md](MIND-MAP-EDITOR.md); F06 i nova paket kvalifikacija ostaju otvoreni.
+
 Razvojni podkorak, bez novog javnog paketa ili uključenog template-a. F06 ostaje otvoren; adaptivni pristupačni dijalozi, potvrda brisanja/cut grane i puna Android/R8 kvalifikacija slede. Broj glavnih zadataka ostaje 13/47 završeno i 34 preostala.
 
 PageFragment nosi kompletne kanonske objekte i semantičke mape zajedno. Odbrambena lista objekata i Page validacija sprečavaju da transfer ćutke izgubi parent/edge reference. DocumentSession.addAll(fragment) validira zajednički dokument i ubacuje objekte i MindMapChange kao jedan history korak; Undo/Redo koristi iste pripremljene identitete. Kolizija ili history limit ne sme objaviti deo dokumenta.

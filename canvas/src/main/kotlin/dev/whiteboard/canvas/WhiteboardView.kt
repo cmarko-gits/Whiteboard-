@@ -181,7 +181,10 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
     }
     fun revealElement(id: String) {
         val element = page.visibleElements.firstOrNull { it.id == id } ?: return
-        viewport = Viewport.fit(page.geometry.renderBounds(element), width.toFloat(), height.toFloat(), 48 * density)
+        revealBounds(page.geometry.renderBounds(element))
+    }
+    fun revealBounds(bounds: Bounds) {
+        viewport = Viewport.fit(bounds, width.toFloat(), height.toFloat(), 48 * density)
         cameraChanged()
     }
     fun fitContent() {

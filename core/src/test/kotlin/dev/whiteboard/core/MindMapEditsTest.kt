@@ -154,6 +154,19 @@ class MindMapEditsTest {
         assertEquals(a.id, tree.node(leaf.id).parentId)
     }
 
+    @Test fun aNewParentUsesFacingBoundaryPortsInsteadOfKeepingTheOldParentsUnrelatedDirection() {
+        val session = session()
+        session.applyMindMapEdit(checkNotNull(MindMapEdits.reparent(page, a.id, b.id)))
+        val relation = session.page.elements.first { it.id == ea.id } as Connector
+        assertEquals(ConnectorEnd.Bound(b.id, ConnectionPort.TOP), relation.start)
+        assertEquals(ConnectorEnd.Bound(a.id, ConnectionPort.BOTTOM), relation.end)
+        assertEquals(ea.style, relation.style)
+        assertEquals(ea.arrow, relation.arrow)
+        assertEquals(a.bounds, (session.page.elements.first { it.id == a.id } as Note).bounds)
+        session.undo()
+        assertEquals(page, session.page)
+    }
+
     @Test fun overlappingBranchSelectionRemovesHiddenDescendantsAndDetachesExternalLinksAtomically() {
         val source = page.copy(mindMaps = listOf(tree.withCollapsed(a.id, true)))
         val session = session(source)
