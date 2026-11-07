@@ -52,7 +52,9 @@ internal fun MindMapDialog(
     var nodeId by rememberSaveable(request.id) { mutableStateOf(request.selectedNodeId) }
     var panel by rememberSaveable(request.id) { mutableStateOf(if (request.selectedNodeId == null) MapPanel.BROWSE else MapPanel.NODE) }
     val row = nodeId?.let(request.byId::get)
-    val dismiss: () -> Unit = { viewModel.mindMaps.dismiss() }
+    val dismiss: () -> Unit = {
+        if (viewModel.mindMaps.state.value.request?.id == request.id) viewModel.mindMaps.dismiss()
+    }
     val apply: (MindMapAction) -> Job = { viewModel.mindMaps.apply(it, request.id) }
     val back = { panel = if (row == null) MapPanel.BROWSE else MapPanel.NODE }
     when (panel) {
@@ -201,6 +203,21 @@ private fun MindMapNodeList(
     var actionsPlaced by remember { mutableStateOf(false) }
     var editing by rememberSaveable(title) { mutableStateOf(false) }
     var settlingFocus by remember(title) { mutableStateOf(true) }
+    var closingInput by remember { mutableStateOf(false) }
+    fun finishSearch(closeKeyboard: () -> Unit, closePanel: Boolean) {
+        if (closingInput) return
+        editing = false
+        closingInput = true
+        scope.launch {
+            try {
+                releaseMapInput(closeKeyboard)
+                doneFocus.requestFocus()
+                if (closePanel) dismiss()
+            } finally {
+                closingInput = false
+            }
+        }
+    }
     MindMapFormDialog(
         title,
         dismiss,
@@ -212,12 +229,12 @@ private fun MindMapNodeList(
                     { query = it.take(512) },
                     label = { Text(stringResource(R.string.mind_map_search)) },
                     singleLine = true,
+                    enabled = !busy && !closingInput,
                     modifier = Modifier.fillMaxWidth().focusProperties { canFocus = !settlingFocus || editing }
                         .onFocusChanged { if (it.isFocused) editing = true },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
-                        closeKeyboard()
-                        editing = false
+                        finishSearch(closeKeyboard, closePanel = false)
                     })
                 )
             }
@@ -239,18 +256,18 @@ private fun MindMapNodeList(
                         closeKeyboard()
                         create()
                     },
-                    enabled = !busy,
+                    enabled = !busy && !closingInput,
                     modifier = Modifier.weight(1f, fill = false)
                 ) { Text(stringResource(R.string.mind_map_new)) }
             }
             TextButton(
                 onClick = {
-                    closeKeyboard()
-                    if (editing) editing = false else dismiss()
+                    if (busy) dismiss() else finishSearch(closeKeyboard, closePanel = !editing)
                 },
-                modifier = Modifier.weight(1f, fill = false).focusRequester(doneFocus).onGloballyPositioned {
-                    actionsPlaced = it.isAttached && it.size.width > 0 && it.size.height > 0
-                }
+                modifier = Modifier.weight(1f, fill = false).focusProperties { canFocus = true }
+                    .focusRequester(doneFocus).onGloballyPositioned {
+                        actionsPlaced = it.isAttached && it.size.width > 0 && it.size.height > 0
+                    }
             ) { Text(stringResource(R.string.done)) }
         },
         body = { closeKeyboard ->
@@ -270,11 +287,9 @@ private fun MindMapNodeList(
                             )
                         },
                         modifier = Modifier.padding(start = (row.depth.coerceAtMost(6) * 12).dp)
-                            .fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = !busy, role = Role.Button) {
+                            .fillMaxWidth().heightIn(min = 56.dp).clickable(enabled = !busy && !closingInput, role = Role.Button) {
                                 scope.launch {
-                                    closeKeyboard()
-                                    withFrameNanos { }
-                                    closeKeyboard()
+                                    releaseMapInput(closeKeyboard)
                                     select(row)
                                 }
                             }
@@ -469,9 +484,7 @@ private class MapCommit(private val scope: CoroutineScope) {
         pending = true
         scope.launch {
             try {
-                closeKeyboard()
-                withFrameNanos { }
-                closeKeyboard()
+                releaseMapInput(closeKeyboard)
                 action().join()
             } finally {
                 pending = false
@@ -484,4 +497,10 @@ private class MapCommit(private val scope: CoroutineScope) {
 private fun rememberMapCommit(): MapCommit {
     val scope = rememberCoroutineScope()
     return remember(scope) { MapCommit(scope) }
+}
+
+private suspend fun releaseMapInput(closeKeyboard: () -> Unit) {
+    closeKeyboard()
+    withFrameNanos { }
+    closeKeyboard()
 }

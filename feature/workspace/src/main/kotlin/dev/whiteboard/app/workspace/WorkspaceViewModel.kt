@@ -461,7 +461,7 @@ class WorkspaceViewModel @Inject constructor(
         return mindMaps.open(id, position)
     }
     fun removeMindMapBranch(request: MindMapEditorRequest, id: String, cut: Boolean = false): Job {
-        if (!mindMaps.isCurrent(request) || id !in request.byId) {
+        if (mindMaps.state.value.request?.id != request.id || !mindMaps.isCurrent(request) || id !in request.byId) {
             mutable.update { it.copy(message = UiNotice(R.string.mind_map_changed)) }
             return viewModelScope.launch { }
         }

@@ -31,7 +31,9 @@ class MindMapEditorFlowTest {
     private var completed = false
     private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
-    private fun node(value: String) = checkNotNull(device.wait(Until.findObject(By.textContains(value)), 10_000)) { value }
+    private fun node(value: String) = checkNotNull(
+        device.wait(Until.findObject(By.textContains(value).clazz("android.widget.TextView").pkg(context.packageName)), 10_000)
+    ) { value }
     private fun click(value: String) {
         text(value)
         clickTestDialogText(device, value)
