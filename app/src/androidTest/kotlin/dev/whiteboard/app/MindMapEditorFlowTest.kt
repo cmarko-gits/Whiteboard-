@@ -32,14 +32,19 @@ class MindMapEditorFlowTest {
     private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
     private fun node(value: String) = checkNotNull(device.wait(Until.findObject(By.textContains(value)), 10_000)) { value }
+    private fun click(value: String) {
+        text(value)
+        clickTestDialogText(device, value)
+    }
     private fun mapActions() {
         control("More actions").click()
-        clickTestDialogText(device, "Mind maps")
+        click("Mind maps")
+        text("Done")
     }
     private fun submitTitle(value: String) {
         val field = testDialogField(device, "Node title")
         field.text = value
-        clickTestDialogText(device, "Confirm")
+        click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
     }
@@ -84,31 +89,31 @@ class MindMapEditorFlowTest {
         openTestBoard(device, board.name)
         mapActions()
         node("Central idea").click()
-        clickTestDialogText(device, "Add child")
+        click("Add child")
         submitTitle("Native child")
         val withChild = save(board) { it.mindMaps.single().nodes.size == 6 }
         val child = withChild.elements.filterIsInstance<Note>().single { it.text == "Native child" }
         assertEquals(root.id, withChild.mindMaps.single().node(child.id).parentId)
         assertTrue(source.elements.all { old -> withChild.elements.first { it.id == old.id } == old })
         mapActions()
-        clickTestDialogText(device, "Add sibling")
+        click("Add sibling")
         submitTitle("Native sibling")
         val withSibling = save(board) { it.mindMaps.single().nodes.size == 7 }
         val sibling = withSibling.elements.filterIsInstance<Note>().single { it.text == "Native sibling" }
         mapActions()
-        clickTestDialogText(device, "Edit node")
+        click("Edit node")
         testDialogField(device, "Node title").text = "Edited sibling"
         device.setOrientationLeft()
         device.waitForIdle()
         assertEquals("Edited sibling", testDialogField(device, "Node title").text)
-        clickTestDialogText(device, "Confirm")
+        click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
         save(board) { it.elements.filterIsInstance<Note>().any { note -> note.id == sibling.id && note.text == "Edited sibling" } }
         device.setOrientationNatural()
         device.waitForIdle()
         mapActions()
-        clickTestDialogText(device, "Change parent")
+        click("Change parent")
         node("People").click()
         val reparented = save(board) { it.mindMaps.single().node(sibling.id).parentId == people.id }
         val managed = reparented.elements.first { it.id == reparented.mindMaps.single().node(sibling.id).connectionId } as Connector
@@ -119,16 +124,16 @@ class MindMapEditorFlowTest {
         control("Redo").click()
         save(board) { it.mindMaps.single().node(sibling.id).parentId == people.id }
         mapActions()
-        clickTestDialogText(device, "Mind maps")
+        click("Mind maps")
         node("People").click()
-        clickTestDialogText(device, "Collapse branch")
+        click("Collapse branch")
         val hidden = save(board) { it.mindMaps.single().node(people.id).collapsed }
         assertFalse(hidden.mindMapIndex!!.isVisible(sibling.id))
         mapActions()
-        clickTestDialogText(device, "Move whole branch")
+        click("Move whole branch")
         testDialogField(device, "Horizontal movement").text = "-120"
         testDialogField(device, "Vertical movement").text = "80"
-        clickTestDialogText(device, "Confirm")
+        click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
         val moved = save(board) {
@@ -140,12 +145,15 @@ class MindMapEditorFlowTest {
         assertEquals(hidden.mindMaps, moved.mindMaps)
         assertEquals(root, moved.elements.first { it.id == root.id })
         mapActions()
-        clickTestDialogText(device, "Expand branch")
+        click("Expand branch")
         val expanded = save(board) { !it.mindMaps.single().node(people.id).collapsed }
         assertTrue(expanded.mindMapIndex!!.isVisible(sibling.id))
         mapActions()
-        clickTestDialogText(device, "Select map")
+        click("Select map")
         text("Saved on this device")
+        withTimeout(10_000) {
+            while (control("Note: Edited sibling").visibleBounds.bottom > control("Zoom out").visibleBounds.top) delay(50)
+        }
         capture.snapshot("mind-map-node-editor-saved")
         control("Back to boards").click()
         openTestBoard(device, board.name)
@@ -163,16 +171,16 @@ class MindMapEditorFlowTest {
         launchTestLibrary(device)
         openTestBoard(device, board.name)
         mapActions()
-        clickTestDialogText(device, "New mind map")
+        click("New mind map")
         testDialogField(device, "Node title").text = "Cancelled"
-        clickTestDialogText(device, "Cancel")
+        click("Cancel")
         assertTrue(repository.load(board.id).activePage.mindMaps.isEmpty())
-        clickTestDialogText(device, "New mind map")
+        click("New mind map")
         testDialogField(device, "Node title").text = "Native map"
         control("Color picker").click()
         testDialogField(device, "HEX color").text = "336699"
-        clickTestDialogText(device, "Apply")
-        clickTestDialogText(device, "Confirm")
+        click("Apply")
+        click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
         val page = save(board) { it.mindMaps.size == 1 }

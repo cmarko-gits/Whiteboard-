@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -61,6 +62,7 @@ fun EditorScreen(
     val mindMaps by viewModel.mindMaps.state.collectAsState()
     val compact = LocalConfiguration.current.screenHeightDp < 500
     var nativeView by remember { mutableStateOf<WhiteboardView?>(null) }
+    var zoomControlsHeight by remember { mutableIntStateOf(0) }
     var more by remember { mutableStateOf(false) }
     var shapes by remember { mutableStateOf(false) }
     var pages by rememberSaveable { mutableStateOf(false) }
@@ -71,11 +73,19 @@ fun EditorScreen(
     var properties by rememberSaveable { mutableStateOf(false) }
     var objects by rememberSaveable { mutableStateOf(false) }
     var selectionMenu by rememberSaveable(editor.page.id) { mutableStateOf(false) }
-    LaunchedEffect(mindMaps.focusSequence, mindMaps.focusId, mindMaps.focusBounds, editor.boardId, editor.page.id, nativeView) {
+    LaunchedEffect(
+        mindMaps.focusSequence,
+        mindMaps.focusId,
+        mindMaps.focusBounds,
+        editor.boardId,
+        editor.page.id,
+        nativeView,
+        zoomControlsHeight
+    ) {
         val target = mindMaps.focusId ?: return@LaunchedEffect
         withFrameNanos { }
         val bounds = mindMaps.focusBounds
-        if (bounds == null) nativeView?.revealElement(target) else nativeView?.revealBounds(bounds)
+        if (bounds == null) nativeView?.revealElement(target, zoomControlsHeight) else nativeView?.revealBounds(bounds, zoomControlsHeight)
     }
     LaunchedEffect(editor.selectedIds) {
         if (editor.selectedIds.isEmpty()) selectionMenu = false
@@ -288,7 +298,11 @@ fun EditorScreen(
                     )
                 }
             }
-            Surface(Modifier.align(Alignment.BottomEnd).padding(14.dp), shape = RoundedCornerShape(14.dp), shadowElevation = 2.dp) {
+            Surface(
+                Modifier.align(Alignment.BottomEnd).onSizeChanged { zoomControlsHeight = it.height }.padding(14.dp),
+                shape = RoundedCornerShape(14.dp),
+                shadowElevation = 2.dp
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { nativeView?.zoomBy(0.8f) }) { Icon(Icons.Outlined.Remove, stringResource(R.string.zoom_out)) }
                     val resetZoomLabel = stringResource(R.string.reset_zoom)

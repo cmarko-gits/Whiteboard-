@@ -4,6 +4,18 @@ Najnoviji lokalni razvojni kandidat je 0.7.2: [rezultati, otvoreni nalazi i ogra
 
 Dokument sa previše objekata ili predugim tekstom može prekoračiti bezbednosni limit obrade. Aplikacija tada traži manje objekata ili kraći tekst. Neuspešno čuvanje zadržava prethodno sačuvanu reviziju i nesnimljene izmene; smanji sadržaj i ponovi Save. Recovery nije nezavisan backup.
 
+## Mape uma — razvojna 0.8.0
+
+Ovaj deo opisuje novi kod koji još čeka punu Android/R8 i paket kvalifikaciju; navedeni 0.7.2 paket nema ovaj editor.
+
+More actions → Mind maps → New mind map otvara naslov i birač boje korena. Confirm dodaje mapu jednim Undo korakom. Novi Mind map šablon već sadrži centralni čvor i četiri povezane ideje; ranije sačuvani obični crteži ostaju obični crteži.
+
+Izaberi čvor u pretraživoj listi ili na platnu pa otvori Mind-map actions. Add child dodaje potomka, Add sibling dodaje čvor istom roditelju, Edit node menja naslov i boju. Koren nema sibling ili novog roditelja. Change parent bira drugog čvora iste mape; ciklus se odbija uz poruku, bez gubitka prethodnog stanja. Cancel ne potvrđuje izmenu. Naslovi u ovom dijalogu mogu imati do 20.000 znakova; predugačak unos se odbija.
+
+Collapse branch skriva potomke na platnu i u slikovnom/PDF izvozu, uz očuvan sadržaj dokumenta. Expand branch vraća neposredno otvorene grane; dublje zasebno sklopljene grane ostaju sklopljene. Lista Mind maps prikazuje i skrivene čvorove, njihov nivo i mapu. Reveal and select node otvara put do izabranog čvora; taj edit se može opozvati. Select map bira i kadrira trenutno vidljive objekte bez promene sadržaja.
+
+Move whole branch pomera čvor i sve potomke, uključujući skrivene; negativni horizontalni pomeraj ide levo, negativni vertikalni gore. Cut branch / Delete branch prvo prikazuju broj svih zahvaćenih čvorova i objekata. Potvrda uključuje i skrivene potomke. Undo vraća celu promenu, a Paste objects ubacuje privatnu kopiju sa novim identitetima. Save čuva topologiju, boje i collapse stanje. Editable ZIP čuva i skriveni sadržaj; raster/PDF prikazuje vidljivu projekciju.
+
 ## Pametne veze
 
 Shapes → Connection bira alat za povezivanje. Povuci od jednog oblika, beleške, teksta, medija ili grupe do drugog objekta. Strelica se vezuje za njihove ivice i prati pomeranje, promenu veličine i rotaciju. Prekid dodira, drugi prst ili promena alata otkazuju nedovršen gest. Za precizan izbor koristi More actions → Connect objects.
@@ -14,7 +26,7 @@ Izabrana veza nudi Selection actions → Edit connection i Detach connection. De
 
 Brisanje cilja ostavlja kraj veze na poslednjem položaju, a jedan Undo vraća i cilj i vezivanje. Copy/Paste i Duplicate prave nove identitete: kopirana veza prati kopirane ciljeve; veza ka cilju koji nije kopiran dobija slobodan kraj u kopiji. Save/reopen, recovery, editable ZIP i PNG/JPG/PDF koriste iste krajnje tačke. Dokumenti sa vezama koriste format 5 i zahtevaju verziju aplikacije koja ga podržava; postojeći dokumenti formata 1–4 ostaju čitljivi.
 
-Ostaje otvoren nalaz memorijske cene veoma složenog JSON ulaza: [Z08 pregled](JSON-RESOURCE-BUDGET.md). Kandidat ne predstavlja završetak svih bezbednosnih, hardverskih i performance provera aplikacije.
+JSON resource nalaz zatvoren je kroz [budžet obrade](JSON-RESOURCE-BUDGET.md) i kvalifikovane regresije 0.7.1/0.7.2. Preostale committed-edit/copy/codec latencije i ukupna memorija velikih scena ostaju u Z08/H planu. Kandidat ne predstavlja završetak svih bezbednosnih, hardverskih i performance provera aplikacije.
 
 ## Table i biblioteka
 

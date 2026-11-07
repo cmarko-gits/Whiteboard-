@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -259,7 +260,13 @@ private fun MindMapTitleDialog(
     var tooLong by rememberSaveable { mutableStateOf(false) }
     val oversized = initial.length > 20_000
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { if (!oversized) focus.requestFocus() }
+    var placed by remember { mutableStateOf(false) }
+    LaunchedEffect(placed) {
+        if (placed && !oversized) {
+            withFrameNanos { }
+            focus.requestFocus()
+        }
+    }
     InputAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(titleLabel)) },
@@ -278,7 +285,9 @@ private fun MindMapTitleDialog(
                     isError = tooLong || oversized,
                     enabled =
                     !state.busy && !oversized,
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus).onGloballyPositioned {
+                        placed = it.isAttached && it.size.width > 0 && it.size.height > 0
+                    },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = {
                         if (!state.busy && !oversized && !tooLong && title.isNotBlank()) {

@@ -1,5 +1,7 @@
 # Whiteboard za Android — lokalni kandidat 0.7.2
 
+> Prva puna editor matrica 7f0fe83/CI 42330852735 nije prošla: API 33 je zelen, ostali profili imaju fixture prelaz ili stvarni tablet focus pad. [Pregled i ispravke](docs/MIND-MAP-EDITOR-CI-REVIEW.md) čuva izvor, sve rezultate, SHA-256 snimaka i dodatni vizuelni nalaz. Novi fix mora ponovo proći punu matricu; F06 ostaje otvoren.
+
 Kvalifikovani lokalni paket ostaje [0.7.2/source 1176e59](docs/LOCAL-0.7.2-CANDIDATE.md), sa 535 jedinstvenih testova, pet Android profila i tri release toka. **13/47 završeno, 34 otvoreno**; Z08 i ostale stavke ostaju u planu. Razvojna 0.8.0/code 17 sada ima [mind-map model](docs/MIND-MAP-DESIGN.md), vidljivu projekciju, privatni branch clipboard i potvrde grana: source 23463e6/CI 42269898794 prolazi 500 JVM i pet profila po 132 app + 13 data, uz tri R8/jezička toka. Novi [editor čvorova i semantički šablon](docs/MIND-MAP-EDITOR.md) imaju 518 lokalnih JVM testova, stil/arhitekturu i Android kompilaciju; nova puna CI/paket kvalifikacija još sledi. F06 ostaje otvoren; 0.8.0 nije distribuiran. Prethodni paketi i neuspešni pokušaji ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. AI, backend, nalozi, cloud i objavljivanje na Play-u nisu deo ove iteracije. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.

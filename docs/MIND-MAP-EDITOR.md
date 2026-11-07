@@ -1,5 +1,7 @@
 # F06 — editor čvorova i semantički šablon
 
+> Prva puna editor matrica 7f0fe83/CI 42330852735 nije prošla: API 33 je zelen, ostali profili imaju fixture prelaz ili stvarni tablet focus pad. [Pregled i ispravke](MIND-MAP-EDITOR-CI-REVIEW.md) čuva izvor, sve rezultate, SHA-256 snimaka i dodatni vizuelni nalaz. Novi fix mora ponovo proći punu matricu; F06 ostaje otvoren.
+
 Razvojna 0.8.0/code 17; F06 ostaje otvoren do nove Android/R8 i paket kvalifikacije. Najnoviji distribuirani razvojni paket ostaje 0.7.2/source 1176e59. Ovaj kod ne uključuje cloud, AI, naloge ili mrežne dozvole.
 
 ## Korisnički tok

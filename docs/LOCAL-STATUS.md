@@ -1,5 +1,7 @@
 # Whiteboard 0.4.0 — lokalni status i QA
 
+> Prva puna editor matrica 7f0fe83/CI 42330852735 nije prošla: API 33 je zelen, ostali profili imaju fixture prelaz ili stvarni tablet focus pad. [Pregled i ispravke](MIND-MAP-EDITOR-CI-REVIEW.md) čuva izvor, sve rezultate, SHA-256 snimaka i dodatni vizuelni nalaz. Novi fix mora ponovo proći punu matricu; F06 ostaje otvoren.
+
 Najnoviji kvalifikovani paket ostaje [0.7.2/source 1176e59](LOCAL-0.7.2-CANDIDATE.md). **13/47 završeno, 34 otvoreno**. F06 source 23463e6/CI 42269898794 potvrđuje 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka. Novi [editor čvorova i semantički šablon](MIND-MAP-EDITOR.md) lokalno prolaze 518 JVM, stil/arhitekturu i Android kompilaciju; puna nova CI/paket kvalifikacija još sledi. F06 nije zatvoren niti je 0.8.0 distribuiran. Ostatak dokumenta je istorijska 0.4.0 kohorta; aktuelni rad navode EXECUTION-PROGRESS.md i LOCAL-REMAINING-TASKS.md.
 
 Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.

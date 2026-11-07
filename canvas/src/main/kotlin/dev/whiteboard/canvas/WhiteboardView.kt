@@ -179,12 +179,13 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
         if (accessibilityChanged) canvasAccessibility?.changed()
         invalidate()
     }
-    fun revealElement(id: String) {
+    fun revealElement(id: String, bottomInsetPx: Int = 0) {
         val element = page.visibleElements.firstOrNull { it.id == id } ?: return
-        revealBounds(page.geometry.renderBounds(element))
+        revealBounds(page.geometry.renderBounds(element), bottomInsetPx)
     }
-    fun revealBounds(bounds: Bounds) {
-        viewport = Viewport.fit(bounds, width.toFloat(), height.toFloat(), 48 * density)
+    fun revealBounds(bounds: Bounds, bottomInsetPx: Int = 0) {
+        val availableHeight = (height - bottomInsetPx.coerceAtLeast(0)).coerceAtLeast(1)
+        viewport = Viewport.fit(bounds, width.toFloat(), availableHeight.toFloat(), 48 * density)
         cameraChanged()
     }
     fun fitContent() {

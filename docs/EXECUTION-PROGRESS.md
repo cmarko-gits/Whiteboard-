@@ -1,5 +1,13 @@
 # Izvršavanje preostalih zadataka
 
+## F06 editor — CI pregled i ispravke, 7. novembar 2026.
+
+7f0fe83/CI 42330852735 potvrđuje verify/518 JVM, OSV 155, source scan 435 i API 33 po 134 app + 13 data. Ostali profili imaju native neuspehe: readiness fixture Add sibling/Move whole branch/New mind map ili stvarni tablet BringIntoViewRequester pad pre postavljanja roditelja (tablet app regresija je nepotpuna). Puna matrica je neuspešna, bez retry-ja, bez novih R8/paket dokaza i bez distribucije.
+
+MindMap title fokus sada čeka pozitivni onGloballyPositioned i sledeći frame. Novi native fixture čeka stvarni dijalog/cilj pre driver akcije; asercije/timeout-i ostaju. Vizuelni API 33 nalaz preklapanja donjeg čvora i zoom kontrola dobija measured bottom inset za map reveal/Select map, uz native geometrijsku proveru. MIND-MAP-EDITOR-CI-REVIEW.md čuva pregledane snimke i hash-eve. 13/47 završeno, 34 otvoreno; nova kvalifikacija mora koristiti novi source.
+
+17/F07: FLOWCHART-DESIGN.md popisuje šest simbola, jedinstven object/text model, geometriju, storage i sve potrošače/QA kriterijume. To je završen arhitekturni podkorak, ne završena funkcija.
+
 ## F06 editor čvorova, 7. novembar 2026.
 
 Projekcija/clipboard 6b53d42 završili su CI 42183053409: 494 JVM i pet profila po 131 app + 13 data; API 36 prolazi jedan ciljani startup retry uz sačuvan prvobitni SystemUI ANR. Branch potvrde source 23463e6/CI 42269898794 sada prolaze svih šest poslova bez retry-ja: 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka, 645 jedinstvenih slučajeva. Digest-verified artefakti su task-16-23463e6-evidence.json. Raniji d2f1803/4f7c03b fixture neuspehi nisu prepisani.
