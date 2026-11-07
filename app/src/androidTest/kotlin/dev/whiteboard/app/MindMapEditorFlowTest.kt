@@ -133,9 +133,21 @@ class MindMapEditorFlowTest {
         click("Move whole branch")
         testDialogField(device, "Horizontal movement").text = "-120"
         testDialogField(device, "Vertical movement").text = "80"
+        testDialogField(device, "Horizontal movement").click()
+        withTimeout(10_000) {
+            val shown = Regex("\\bmInputShown=true\\b")
+            while (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) delay(50)
+        }
+        device.setOrientationLeft()
+        device.waitForIdle()
+        assertEquals("-120", testDialogField(device, "Horizontal movement").text)
+        assertEquals("80", testDialogField(device, "Vertical movement").text)
+        capture.snapshot("mind-map-branch-move-input")
         click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
+        device.setOrientationNatural()
+        device.waitForIdle()
         val moved = save(board) {
             it.geometry.selectionBounds(it.elements.first { objectValue -> objectValue.id == people.id }).center ==
                 people.bounds.center + Point(-120f, 80f)

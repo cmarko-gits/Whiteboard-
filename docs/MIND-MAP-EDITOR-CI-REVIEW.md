@@ -19,3 +19,11 @@ Pregledani sačuvani node-editor PNG A853AA44E37DDF1FF2F5AAC21AFAFA4F264F14E0C45
 PNG obojenog korena 0861355841606E5AA3FF20A23375E918C85F2401BBCFD127B0809DB45D789712 vizuelno pokazuje izabranu plavu boju i čitljiv beli naslov. Isti test proverava tačan bitmap pixel, Undo/Redo i sačuvani model. To je jedan uspešan profil, a ne puna kvalifikacija boja na svim uređajima.
 
 Ispravke traže novu punu matricu za novi source. F06 i glavni broj ostaju **13/47 završeno, 34 otvoreno** dok ne prođu Android/R8 i paket gates. F07 arhitekturni podkorak je u FLOWCHART-DESIGN.md.
+
+## Sledeći izvor da3908e: landscape IME nalaz
+
+CI 42332393903 potvrđuje verify/518 JVM, licence, OSV 155, source scan 438 i APK politiku. API 26 phone, 30 i 33 izvršavaju po 133/134 app + 13/13 data; njihov neuspeh je Confirm posle landscape rotacije naslovnog formulara. Raniji Add sibling readiness pad više nije mesto zaustavljanja ovih tokova. Ostali profili još rade u trenutku ovog zapisa; puna matrica nije kvalifikovana.
+
+Pregledani API 33 pre-cleanup PNG 3C7A1B8BF69D122254A66616BB73BC79C14F48951B85AF55A89FAAD9E364EB43 i XML 71B6323706F482A9A199FC957C22326A85B2F038842342CD82BECFA2D8A65B9D pokazuju očuvan Edited sibling naslov i otvorenu landscape tastaturu, dok su Confirm/Cancel prekriveni. Ovo je stvarni adaptivni UI nalaz, ne pogrešna test labela. Test ne zatvara tastaturu da bi ga sakrio.
+
+Title i signed-move formulari sada koriste postojeći InputDialog + AdaptiveDialogContent, system-bars/IME inset-e i stabilne roditelje input/action elemenata. Pri maloj visini unos i akcije su jedan pored drugog. Birač boje je uz naslov i ostaje dostupan u kompaktnoj formi; polja zadržavaju vrednosti pri rotaciji. Prethodni onGloballyPositioned/frame focus guard ostaje. Native ceo tok dodatno otvara tastaturu i rotira formular sa oba signed pomeraja, proverava njihove očuvane vrednosti, potvrdu i zatvaranje IME bez test Back-a. Nova puna matrica mora potvrditi ove izmene.

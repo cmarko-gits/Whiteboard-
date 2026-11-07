@@ -11,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -267,13 +268,16 @@ private fun MindMapTitleDialog(
             focus.requestFocus()
         }
     }
-    InputAlertDialog(
-        onDismissRequest = dismiss,
-        title = { Text(stringResource(titleLabel)) },
-        text = { closeKeyboard ->
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                MapError(state.error)
-                if (oversized || tooLong) Text(stringResource(R.string.mind_map_title_limit), color = MaterialTheme.colorScheme.error)
+    val message = if (oversized || tooLong) stringResource(R.string.mind_map_title_limit) else state.error?.let { stringResource(it) }
+    MindMapFormDialog(
+        titleLabel,
+        dismiss,
+        input = { closeKeyboard, compact ->
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedTextField(
                     title,
                     {
@@ -281,11 +285,18 @@ private fun MindMapTitleDialog(
                         if (!tooLong) title = it
                     },
                     label = { Text(stringResource(R.string.mind_map_node_title)) },
-                    maxLines = 4,
-                    isError = tooLong || oversized,
-                    enabled =
-                    !state.busy && !oversized,
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus).onGloballyPositioned {
+                    singleLine = compact,
+                    maxLines = if (compact) 1 else 4,
+                    isError = message != null,
+                    supportingText = if (message !=
+                        null
+                    ) {
+                        ({ Text(message, maxLines = if (compact) 1 else 3, overflow = TextOverflow.Ellipsis) })
+                    } else {
+                        null
+                    },
+                    enabled = !state.busy && !oversized,
+                    modifier = Modifier.weight(1f).focusRequester(focus).onGloballyPositioned {
                         placed = it.isAttached && it.size.width > 0 && it.size.height > 0
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -299,22 +310,21 @@ private fun MindMapTitleDialog(
                 ColorPickerButton(color, favorites, saveFavorites, enabled = !state.busy && !oversized) { color = it }
             }
         },
-        confirmButton = { closeKeyboard ->
+        actions = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
             TextButton(
                 onClick = {
                     closeKeyboard()
                     submit(title, color)
                 },
-                enabled =
-                !state.busy && !oversized && !tooLong && title.isNotBlank()
+                enabled = !state.busy && !oversized && !tooLong && title.isNotBlank(),
+                modifier = Modifier.weight(1f, fill = false)
             ) { Text(stringResource(R.string.confirm)) }
         },
-        dismissButton = { closeKeyboard ->
-            TextButton(onClick = {
-                closeKeyboard()
-                dismiss()
-            }) { Text(stringResource(R.string.cancel)) }
-        }
+        body = { }
     )
 }
 
@@ -325,60 +335,82 @@ private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submi
     fun coordinate(value: String): Float? = value.toFloatOrNull()?.takeIf { it.isFinite() && it in -1_000_000_000f..1_000_000_000f }
     val dx = coordinate(x)
     val dy = coordinate(y)
-    InputAlertDialog(
-        onDismissRequest = dismiss,
-        title = { Text(stringResource(R.string.mind_map_move)) },
-        text = {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    MindMapFormDialog(
+        R.string.mind_map_move,
+        dismiss,
+        input = { _, _ ->
+            Column(Modifier.fillMaxWidth()) {
                 MapError(state.error)
-                Text(stringResource(R.string.mind_map_move_hint))
-                OutlinedTextField(
-                    x,
-                    {
-                        x = it.take(32)
-                    },
-                    label = {
-                        Text(stringResource(R.string.mind_map_dx))
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Ascii
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.busy
-                )
-                OutlinedTextField(
-                    y,
-                    {
-                        y = it.take(32)
-                    },
-                    label = {
-                        Text(stringResource(R.string.mind_map_dy))
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Ascii
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !state.busy
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        x,
+                        { x = it.take(32) },
+                        label = { Text(stringResource(R.string.mind_map_dx)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                        modifier = Modifier.weight(1f),
+                        enabled = !state.busy,
+                        isError = dx == null
+                    )
+                    OutlinedTextField(
+                        y,
+                        { y = it.take(32) },
+                        label = { Text(stringResource(R.string.mind_map_dy)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                        modifier = Modifier.weight(1f),
+                        enabled = !state.busy,
+                        isError = dy == null
+                    )
+                }
             }
         },
-        confirmButton = { closeKeyboard ->
+        actions = { closeKeyboard ->
+            TextButton(onClick = {
+                closeKeyboard()
+                dismiss()
+            }, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.cancel)) }
             TextButton(
                 onClick = {
                     closeKeyboard()
                     submit(Point(checkNotNull(dx), checkNotNull(dy)))
                 },
-                enabled =
-                !state.busy && dx != null && dy != null && (dx != 0f || dy != 0f)
+                enabled = !state.busy && dx != null && dy != null && (dx != 0f || dy != 0f),
+                modifier = Modifier.weight(1f, fill = false)
             ) { Text(stringResource(R.string.confirm)) }
         },
-        dismissButton = { closeKeyboard ->
-            TextButton(onClick = {
-                closeKeyboard()
-                dismiss()
-            }) { Text(stringResource(R.string.cancel)) }
-        }
+        body = { Text(stringResource(R.string.mind_map_move_hint)) }
     )
+}
+
+/** The input and actions retain their parents when IME changes the available height. */
+@Composable
+private fun MindMapFormDialog(
+    title: Int,
+    dismiss: () -> Unit,
+    input: @Composable (closeKeyboard: () -> Unit, compact: Boolean) -> Unit,
+    actions: @Composable RowScope.(closeKeyboard: () -> Unit) -> Unit,
+    body: @Composable () -> Unit
+) {
+    InputDialog(dismiss) { closeKeyboard ->
+        BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
+            val compact = maxHeight < 240.dp
+            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
+                Column(Modifier.padding(if (compact) 8.dp else 24.dp)) {
+                    if (!compact) {
+                        Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    AdaptiveDialogContent(
+                        compact = compact,
+                        input = { input(closeKeyboard, compact) },
+                        actions = { actions(closeKeyboard) },
+                        body = {
+                            if (!compact) Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) { body() }
+                        }
+                    )
+                }
+            }
+        }
+    }
 }
