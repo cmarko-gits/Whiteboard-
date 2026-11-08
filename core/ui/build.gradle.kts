@@ -21,4 +21,5 @@ dependencies {
     implementation(libs.compose.icons)
     implementation(libs.activity.compose)
     implementation(libs.appcompat)
+    implementation(libs.androidx.core)
 }

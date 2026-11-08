@@ -155,8 +155,10 @@ internal fun MindMapDialog(
                 }
             }
         }
-        MapPanel.MOVE -> if (row != null) key(request.id) {
-            MindMapMoveDialog(state, back, requestActive) { apply(MindMapAction.Move(row.node.id, it)) }
+        MapPanel.MOVE -> if (row != null) {
+            key(request.id) {
+                MindMapMoveDialog(state, back, requestActive) { apply(MindMapAction.Move(row.node.id, it)) }
+            }
         }
     }
 }

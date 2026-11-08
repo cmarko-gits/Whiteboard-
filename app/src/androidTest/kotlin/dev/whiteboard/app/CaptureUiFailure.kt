@@ -23,5 +23,8 @@ class CaptureUiFailure : TestWatcher() {
         directory.mkdirs()
         runCatching { device.dumpWindowHierarchy(File(directory, "$name.xml")) }
         runCatching { device.takeScreenshot(File(directory, "$name.png")) }
+        runCatching {
+            File(directory, "$name-input-method.txt").writeText(device.executeShellCommand("dumpsys input_method").take(200_000))
+        }
     }
 }

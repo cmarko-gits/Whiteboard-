@@ -1,6 +1,5 @@
 package dev.whiteboard.ui
 
-import android.view.inputmethod.InputMethodManager
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -9,6 +8,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.view.SoftwareKeyboardControllerCompat
 
 private class DialogInputCloser {
     var close: () -> Unit = {}
@@ -20,13 +20,14 @@ fun rememberInputCloser(): () -> Unit {
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val view = LocalView.current
-    return remember(focus, keyboard, view) {
+    val platformKeyboard = remember(view) { SoftwareKeyboardControllerCompat(view) }
+    return remember(focus, keyboard, platformKeyboard) {
         {
             focus.clearFocus(force = true)
             keyboard?.hide()
-            view.windowToken?.let { token ->
-                view.context.getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(token, 0)
-            }
+            // Android 11+ owns IME visibility through this window's insets controller;
+            // AndroidX also handles legacy windows and unavailable insets control.
+            platformKeyboard.hide()
             Unit
         }
     }
