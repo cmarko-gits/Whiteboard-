@@ -42,3 +42,12 @@ Konačni API 36 full prolaz dodatno proverava binarnu nadogradnju 0.7.2 → kand
 
 
 Ciljani API 33 vizuelni pregled: obojeni koren PNG 4091BF2631D18A91142BE3440252599E453C6F0419494CD0B2C263F0CDCBFA46 pokazuje plavu belešku sa belim naslovom i zatvorenu tastaturu; saved-map PNG 7584444E45E80CD973FC5F5F5506A0870F547EFBEDEFDC7707A57658E2E2795C pokazuje svih 13 izabranih vidljivih objekata i donji čvor iznad zoom kontrola. Tačan bitmap pixel, model i Undo/Redo/save/reopen asercije prolaze. Ovo su source-specific snimci, ne opšta ručna TalkBack/tema kvalifikacija.
+
+
+## Nalaz vizuelnog pregleda — granica native platna
+
+Pregledan API 36 R8 child-input PNG izvora 699288b, SHA-256 6FA9E0C8D7497AB2D31B416CEC293405FE10EB2F2C3DF4033F1EC3CDD19F685D, pokazuje plavi crtež izvan lokalnog platna, preko zaglavlja/statusne oblasti posle resize-a. WhiteboardView je ograničavao izbor objekata prema vidljivom okviru, ali nije eksplicitno klipovao native Canvas; veliki/presečeni objekti i privremeni potezi mogli su iscrtavati van View-a kada roditelj ostavi širi clip.
+
+onDraw sada čuva roditeljsko stanje, postavlja lokalni 0..width/height clip pre kamere i zatvara ga tek posle accessibility focus prikaza. finally vraća roditeljski clip/matricu/save count. drawViewport zadržava postojeću geometriju, history i eksport renderer. Nova dva native slučaja proveravaju stvarne bitmap margine izvan malog prevedenog View-a, velike objekte, selekciju, dve kamere, live potez koji izlazi iz View-a i očuvan pun dokumentni krajnji položaj. Testovi nisu bili izvršeni na starom source-u; snimak i pregled koda su dokaz početnog nalaza, a novi device prolaz mora potvrditi ispravku.
+
+Lokalna kompilacija i arhitektura prolaze u release-step-05-viewport-compile.log. Očekivani konačni inventar sada je **519 JVM + 138 app + 13 data po profilu**; ukupno 670 jedinstvenih slučajeva, bez sabiranja OS ponavljanja. C89c596/CI 42520415145 je superseded ovim konkretnim vizuelnim ispravkama; njegov delimičan prolaz nije konačna kvalifikacija. Pre-superseding stanje je sačuvano. Nova matrica mora obuhvatiti rollback/import, binary upgrade i release runtime dijagnostiku uz nove clipping regresije.

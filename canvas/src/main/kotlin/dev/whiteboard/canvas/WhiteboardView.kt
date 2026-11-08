@@ -431,6 +431,19 @@ class WhiteboardView(context: Context, assets: AssetProvider? = null) : View(con
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (width <= 0 || height <= 0) return
+        val parentState = canvas.save()
+        try {
+            // A Compose AndroidView host can provide a clip larger than this native View.
+            // Clip all document, preview and accessibility drawing before applying the camera.
+            canvas.clipRect(0, 0, width, height)
+            drawViewport(canvas)
+        } finally {
+            canvas.restoreToCount(parentState)
+        }
+    }
+
+    private fun drawViewport(canvas: Canvas) {
         val visible = Bounds.between(viewport.toDocument(Point(0f, 0f)), viewport.toDocument(Point(width.toFloat(), height.toFloat())))
         canvas.save()
         canvas.translate(viewport.offset.x, viewport.offset.y)
