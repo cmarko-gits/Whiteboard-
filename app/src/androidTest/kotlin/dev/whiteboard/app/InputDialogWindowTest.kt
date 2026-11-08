@@ -9,6 +9,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -86,6 +87,9 @@ class InputDialogWindowTest {
             compose.onNodeWithTag("dialog-input").assertIsFocused()
             compose.onNodeWithText("Apply dialog").performClick()
             compose.onNodeWithTag("dialog-input").assertDoesNotExist()
+            compose.waitUntil(10_000) {
+                !compose.onNodeWithTag("owner-input").fetchSemanticsNode().config[SemanticsProperties.Focused]
+            }
             compose.onNodeWithTag("owner-input").assertIsNotFocused()
             awaitTestKeyboardHidden(device)
         } catch (error: Throwable) {

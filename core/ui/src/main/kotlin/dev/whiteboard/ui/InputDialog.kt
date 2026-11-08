@@ -1,5 +1,7 @@
 package dev.whiteboard.ui
 
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,6 +14,53 @@ import androidx.core.view.SoftwareKeyboardControllerCompat
 
 private class DialogInputCloser {
     var close: () -> Unit = {}
+}
+
+/** One-shot cleanup after Android restores the owner's focus, owned by its attached View. */
+private class OwnerInputReturn(private val view: View, private val closeInput: () -> Unit) :
+    ViewTreeObserver.OnWindowFocusChangeListener,
+    View.OnAttachStateChangeListener {
+    private var observer: ViewTreeObserver? = null
+    private val finish = Runnable {
+        view.removeOnAttachStateChangeListener(this)
+        if (view.isAttachedToWindow && view.hasWindowFocus()) closeInput()
+    }
+
+    fun close() {
+        closeInput()
+        if (!view.isAttachedToWindow || view.hasWindowFocus() || observer != null) return
+        observer = view.viewTreeObserver.also { it.addOnWindowFocusChangeListener(this) }
+        view.addOnAttachStateChangeListener(this)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        if (!hasFocus) return
+        observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
+        observer = null
+        // The platform restores its focused editor during window focus dispatch. Release
+        // it after that dispatch, rather than clearing only the outgoing dialog's state.
+        view.postOnAnimation(finish)
+    }
+
+    private fun detach() {
+        observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
+        observer = null
+        view.removeOnAttachStateChangeListener(this)
+    }
+
+    override fun onViewAttachedToWindow(view: View) = Unit
+    override fun onViewDetachedFromWindow(view: View) {
+        detach()
+        view.removeCallbacks(finish)
+    }
+}
+
+@Composable
+private fun rememberOwnerInputCloser(): () -> Unit {
+    val view = LocalView.current
+    val currentClose by rememberUpdatedState(rememberInputCloser())
+    val relay = remember(view) { OwnerInputReturn(view) { currentClose() } }
+    return remember(relay) { { relay.close() } }
 }
 
 /** Call from the window that owns the input, including an AlertDialog content/button slot. */
@@ -48,7 +97,7 @@ private fun rememberDialogInputCloser(ownerClose: () -> Unit): () -> Unit {
 @Composable
 fun InputDialog(dismiss: () -> Unit, content: @Composable (closeKeyboard: () -> Unit) -> Unit) {
     val input = remember { DialogInputCloser() }
-    val ownerClose = rememberInputCloser()
+    val ownerClose = rememberOwnerInputCloser()
     Dialog(
         onDismissRequest = {
             input.close()
@@ -80,7 +129,7 @@ fun InputAlertDialog(
     properties: DialogProperties = DialogProperties()
 ) {
     val input = remember { DialogInputCloser() }
-    val ownerClose = rememberInputCloser()
+    val ownerClose = rememberOwnerInputCloser()
     AlertDialog(
         onDismissRequest = {
             input.close()
