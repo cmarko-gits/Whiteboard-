@@ -2,10 +2,17 @@ param(
     [Parameter(Mandatory = $true)] [string] $AdbPath,
     [string] $DeviceSerial = 'emulator-5554',
     [string] $Package = 'dev.whiteboard.app',
-    [string] $VersionName = '0.4.0'
+    [string] $VersionName = '0.4.0',
+    [string] $ArtifactsDirectory = ''
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -DeviceSerial $DeviceSerial -Package $Package -LoadHelpersOnly
+if($ArtifactsDirectory){
+    $taskArtifacts=[IO.Path]::GetFullPath($ArtifactsDirectory)
+    New-Item -ItemType Directory -Path $taskArtifacts -Force|Out-Null
+    $taskUiPath=Join-Path $taskArtifacts 'adaptive-ui.xml'
+}
+$taskObservedApi=[int](((Invoke-Adb shell getprop ro.build.version.sdk) -join '').Trim())
 $taskOriginalSize = (Invoke-Adb shell wm size) -join "`n"
 $taskOriginalDensity = (Invoke-Adb shell wm density) -join "`n"
 $taskRestoreSize = if ($taskOriginalSize -match 'Override size: (\d+x\d+)') { $Matches[1] } else { 'reset' }
@@ -75,6 +82,6 @@ try {
     Invoke-Adb shell wm density $taskRestoreDensity | Out-Null
     if ($taskOriginalFont -eq 'null') { Invoke-Adb shell settings delete system font_scale | Out-Null }
     else { Invoke-Adb shell settings put system font_scale $taskOriginalFont | Out-Null }
-    [ordered]@{ checkedAtUtc=[DateTime]::UtcNow.ToString('o'); package=$Package; device=$DeviceSerial; coverage='Resized emulator windows and font scaling; semantic access and screenshots, not TalkBack or physical foldable qualification.'; cases=@($taskResults.ToArray()) } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $taskArtifacts 'local-adaptive-results.json') -Encoding utf8
+    [ordered]@{ schema=1; source=$env:GITHUB_SHA; api=$taskObservedApi; versionName=$VersionName; checkedAtUtc=[DateTime]::UtcNow.ToString('o'); package=$Package; device=$DeviceSerial; coverage='Resized emulator windows and font scaling; semantic access and screenshots, not TalkBack or physical foldable qualification.'; cases=@($taskResults.ToArray()) } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $taskArtifacts 'local-adaptive-results.json') -Encoding utf8
 }
 Write-Output 'PASS: compact/wide window, font 150/200%, theme controls, scrollable settings/version/licenses and editor canvas.'

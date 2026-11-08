@@ -88,8 +88,18 @@ run_release_smoke() {
   if [[ "$api" == 26 ]]; then smoke_options+=(-SkipAdaptiveResize); fi
   pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app -ApkPath "$signed" "${smoke_options[@]}" 2>&1 | tee artifacts/device-release/smoke.log || return $?
+  if [[ "$api" == 36 ]]; then
+    pwsh -NoProfile -File ./tools/Test-WindowModes.ps1 -AdbPath "$(command -v adb)" \
+      -Package dev.whiteboard.app -ArtifactsDirectory artifacts/device-release \
+      2>&1 | tee artifacts/device-release/window-modes.log || return $?
+  fi
   pwsh -NoProfile -File ./tools/Measure-ReleaseRuntime.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/runtime-profile.log || return $?
+  if [[ "$api" == 36 ]]; then
+    pwsh -NoProfile -File ./tools/Test-Adaptive.ps1 -AdbPath "$(command -v adb)" \
+      -Package dev.whiteboard.app -VersionName 0.8.0 -ArtifactsDirectory artifacts/device-release \
+      2>&1 | tee artifacts/device-release/adaptive.log || return $?
+  fi
   pwsh -NoProfile -File ./tools/Test-AppLanguage.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/app-language.log
 }
@@ -104,7 +114,7 @@ run_native_tests() {
     bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" || return $?
   else
     bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" \
-      -Pandroid.testInstrumentationRunnerArguments.class=dev.whiteboard.app.MindMapEditorFlowTest,dev.whiteboard.app.DialogActionTest || return $?
+      -Pandroid.testInstrumentationRunnerArguments.class=dev.whiteboard.app.MindMapEditorFlowTest,dev.whiteboard.app.DialogActionTest,dev.whiteboard.app.InputDialogWindowTest || return $?
   fi
   bash tools/Assert-CiDeviceHealth.sh after-native
 }
@@ -122,6 +132,14 @@ if ((test_exit == 0)); then
   elif [[ "$scope" == full && ( "$api" == 26 || "$api" == 36 ) ]]; then
     if run_release_smoke && bash tools/Assert-CiDeviceHealth.sh after-release; then
       echo "Optimized release smoke passed on API $api."
+      if [[ "$api" == 36 ]]; then
+        if bash tools/Run-CiDiagnostics.sh 2>&1 | tee artifacts/device-release/diagnostic.log &&
+            bash tools/Assert-CiDeviceHealth.sh after-diagnostic; then
+          echo 'Diagnostic memory/frame qualification passed on API 36.'
+        else
+          test_exit=$?
+        fi
+      fi
     else
       test_exit=$?
     fi

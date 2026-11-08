@@ -1,10 +1,17 @@
 param(
     [Parameter(Mandatory=$true)] [string] $AdbPath,
     [string] $DeviceSerial='emulator-5554',
-    [string] $Package='dev.whiteboard.app'
+    [string] $Package='dev.whiteboard.app',
+    [string] $ArtifactsDirectory=''
 )
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -DeviceSerial $DeviceSerial -Package $Package -LoadHelpersOnly
+if($ArtifactsDirectory){
+    $taskArtifacts=[IO.Path]::GetFullPath($ArtifactsDirectory)
+    New-Item -ItemType Directory -Path $taskArtifacts -Force|Out-Null
+    $taskUiPath=Join-Path $taskArtifacts 'window-modes-ui.xml'
+}
+$taskObservedApi=[int](((Invoke-Adb shell getprop ro.build.version.sdk) -join '').Trim())
 $taskSize=(Invoke-Adb shell wm size) -join "`n"
 $taskRestoreSize=if($taskSize -match 'Override size: (\d+x\d+)') { $Matches[1] } else { 'reset' }
 $taskPhysical=if($taskSize -match '(?:Override|Physical) size: (\d+)x(\d+)') { @([int]$Matches[1],[int]$Matches[2]) } else { throw 'Cannot read display size.' }
@@ -86,7 +93,7 @@ try {
         Invoke-Adb -Arguments @('shell','dumpsys','activity','service','com.android.systemui/.SystemUIService','WMShell','splitscreen','exitSplitScreen',"$taskAppTask") | Out-Null
     }
     Invoke-Adb shell wm size $taskRestoreSize | Out-Null
-    [ordered]@{ checkedAtUtc=[DateTime]::UtcNow.ToString('o'); package=$Package; device=$DeviceSerial; cases=@($taskResults.ToArray()); scope='Real WindowManager split-screen, position switch, orientation change, visible saved stroke after Fit; not a physical foldable/desktop certification.' } | ConvertTo-Json -Depth 7 | Set-Content (Join-Path $taskArtifacts 'qualification-window-results.json') -Encoding utf8
+    [ordered]@{ schema=1; source=$env:GITHUB_SHA; api=$taskObservedApi; checkedAtUtc=[DateTime]::UtcNow.ToString('o'); package=$Package; device=$DeviceSerial; cases=@($taskResults.ToArray()); scope='Real WindowManager split-screen, position switch, orientation change, visible saved stroke after Fit; not a physical foldable/desktop certification.' } | ConvertTo-Json -Depth 7 | Set-Content (Join-Path $taskArtifacts 'qualification-window-results.json') -Encoding utf8
 }
 Window-Configuration 'fullscreen' | Out-Null
 Find-Ui -Description 'Drawing canvas' | Out-Null

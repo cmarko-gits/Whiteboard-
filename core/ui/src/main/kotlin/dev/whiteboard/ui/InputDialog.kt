@@ -28,7 +28,18 @@ fun rememberInputCloser(): () -> Unit {
             // Android 11+ owns IME visibility through this window's insets controller;
             // AndroidX also handles legacy windows and unavailable insets control.
             platformKeyboard.hide()
-            Unit
+        }
+    }
+}
+
+/** Clear both windows' requested IME state before focus returns to the owner. */
+@Composable
+private fun rememberDialogInputCloser(ownerClose: () -> Unit): () -> Unit {
+    val dialogClose = rememberInputCloser()
+    return remember(dialogClose, ownerClose) {
+        {
+            dialogClose()
+            ownerClose()
         }
     }
 }
@@ -37,6 +48,7 @@ fun rememberInputCloser(): () -> Unit {
 @Composable
 fun InputDialog(dismiss: () -> Unit, content: @Composable (closeKeyboard: () -> Unit) -> Unit) {
     val input = remember { DialogInputCloser() }
+    val ownerClose = rememberInputCloser()
     Dialog(
         onDismissRequest = {
             input.close()
@@ -44,9 +56,14 @@ fun InputDialog(dismiss: () -> Unit, content: @Composable (closeKeyboard: () -> 
         },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
-        val closeKeyboard = rememberInputCloser()
+        val closeKeyboard = rememberDialogInputCloser(ownerClose)
         SideEffect { input.close = closeKeyboard }
-        DisposableEffect(input) { onDispose { input.close = {} } }
+        DisposableEffect(input, ownerClose) {
+            onDispose {
+                ownerClose()
+                input.close = {}
+            }
+        }
         content(closeKeyboard)
     }
 }
@@ -63,6 +80,7 @@ fun InputAlertDialog(
     properties: DialogProperties = DialogProperties()
 ) {
     val input = remember { DialogInputCloser() }
+    val ownerClose = rememberInputCloser()
     AlertDialog(
         onDismissRequest = {
             input.close()
@@ -72,12 +90,17 @@ fun InputAlertDialog(
         properties = properties,
         title = title,
         text = {
-            val closeKeyboard = rememberInputCloser()
+            val closeKeyboard = rememberDialogInputCloser(ownerClose)
             SideEffect { input.close = closeKeyboard }
-            DisposableEffect(input) { onDispose { input.close = {} } }
+            DisposableEffect(input, ownerClose) {
+                onDispose {
+                    ownerClose()
+                    input.close = {}
+                }
+            }
             text(closeKeyboard)
         },
-        confirmButton = { confirmButton(rememberInputCloser()) },
-        dismissButton = { dismissButton(rememberInputCloser()) }
+        confirmButton = { confirmButton(rememberDialogInputCloser(ownerClose)) },
+        dismissButton = { dismissButton(rememberDialogInputCloser(ownerClose)) }
     )
 }
