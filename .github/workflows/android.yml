@@ -85,7 +85,7 @@ jobs:
     strategy:
       fail-fast: false
       # Focus fixes first; the identical commit on a candidate branch runs all five profiles.
-      matrix: ${{ fromJSON(startsWith(github.ref, 'refs/heads/codex/release-readiness') && '{"include":[{"api":33,"profile":"pixel_2"},{"api":36,"profile":"pixel_2"}]}' || '{"include":[{"api":26,"profile":"pixel_2"},{"api":30,"profile":"pixel_2"},{"api":33,"profile":"pixel_2"},{"api":36,"profile":"pixel_2"},{"api":26,"profile":"pixel_c"}]}') }}
+      matrix: ${{ fromJSON(startsWith(github.ref, 'refs/heads/codex/release-readiness') && '{"include":[{"api":26,"profile":"pixel_2"},{"api":30,"profile":"pixel_2"}]}' || '{"include":[{"api":26,"profile":"pixel_2"},{"api":30,"profile":"pixel_2"},{"api":33,"profile":"pixel_2"},{"api":36,"profile":"pixel_2"},{"api":26,"profile":"pixel_c"}]}') }}
     env:
       WHITEBOARD_CI_PROFILE: ${{ matrix.profile }}
       WHITEBOARD_CI_TEST_SCOPE: ${{ startsWith(github.ref, 'refs/heads/codex/release-readiness') && 'mind-map' || 'full' }}

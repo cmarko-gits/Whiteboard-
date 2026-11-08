@@ -56,6 +56,7 @@ internal fun MindMapDialog(
         if (viewModel.mindMaps.state.value.request?.id == request.id) viewModel.mindMaps.dismiss()
     }
     val apply: (MindMapAction) -> Job = { viewModel.mindMaps.apply(it, request.id) }
+    val requestActive = { viewModel.mindMaps.state.value.request?.id == request.id }
     val back = { panel = if (row == null) MapPanel.BROWSE else MapPanel.NODE }
     when (panel) {
         MapPanel.BROWSE, MapPanel.PARENT -> {
@@ -133,7 +134,7 @@ internal fun MindMapDialog(
                 MapPanel.SIBLING -> R.string.mind_map_sibling
                 else -> R.string.mind_map_edit
             }
-            key(panel, nodeId) {
+            key(request.id, panel, nodeId) {
                 MindMapTitleDialog(
                     label,
                     if (panel == MapPanel.EDIT) row?.note?.text.orEmpty() else "",
@@ -141,7 +142,8 @@ internal fun MindMapDialog(
                     state,
                     favoriteColors,
                     viewModel::favoriteColors,
-                    back
+                    back,
+                    requestActive
                 ) { title, color ->
                     val action = when (panel) {
                         MapPanel.CREATE -> MindMapAction.Create(title, color)
@@ -153,7 +155,9 @@ internal fun MindMapDialog(
                 }
             }
         }
-        MapPanel.MOVE -> if (row != null) MindMapMoveDialog(state, back) { apply(MindMapAction.Move(row.node.id, it)) }
+        MapPanel.MOVE -> if (row != null) key(request.id) {
+            MindMapMoveDialog(state, back, requestActive) { apply(MindMapAction.Move(row.node.id, it)) }
+        }
     }
 }
 
@@ -310,20 +314,21 @@ private fun MindMapTitleDialog(
     favorites: List<Int>,
     saveFavorites: (List<Int>) -> Unit,
     dismiss: () -> Unit,
+    requestActive: () -> Boolean,
     submit: (String, Int) -> Job
 ) {
     var title by rememberSaveable { mutableStateOf(initial.take(20_000)) }
     var color by rememberSaveable { mutableIntStateOf(initialColor) }
     var tooLong by rememberSaveable { mutableStateOf(false) }
     val oversized = initial.length > 20_000
-    val commit = rememberMapCommit()
+    val commit = rememberMapCommit(requestActive)
     val processing = state.busy || commit.pending
     val focus = remember { FocusRequester() }
     var placed by remember { mutableStateOf(false) }
     LaunchedEffect(placed) {
         if (placed && !oversized) {
             withFrameNanos { }
-            focus.requestFocus()
+            if (!commit.pending && !state.busy) focus.requestFocus()
         }
     }
     val message = if (oversized || tooLong) stringResource(R.string.mind_map_title_limit) else state.error?.let { stringResource(it) }
@@ -385,11 +390,11 @@ private fun MindMapTitleDialog(
 }
 
 @Composable
-private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, submit: (Point) -> Job) {
+private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, requestActive: () -> Boolean, submit: (Point) -> Job) {
     var x by rememberSaveable { mutableStateOf("240") }
     var y by rememberSaveable { mutableStateOf("0") }
     fun coordinate(value: String): Float? = value.toFloatOrNull()?.takeIf { it.isFinite() && it in -1_000_000_000f..1_000_000_000f }
-    val commit = rememberMapCommit()
+    val commit = rememberMapCommit(requestActive)
     val processing = state.busy || commit.pending
     val dx = coordinate(x)
     val dy = coordinate(y)
@@ -476,7 +481,7 @@ private fun MindMapFormDialog(
 }
 
 /** Commit after the dialog has released its own IME session, while its token is attached. */
-private class MapCommit(private val scope: CoroutineScope) {
+private class MapCommit(private val scope: CoroutineScope, private val requestActive: () -> Boolean) {
     var pending by mutableStateOf(false)
         private set
     fun submit(closeKeyboard: () -> Unit, action: () -> Job) {
@@ -487,16 +492,20 @@ private class MapCommit(private val scope: CoroutineScope) {
                 releaseMapInput(closeKeyboard)
                 action().join()
             } finally {
-                pending = false
+                // A successful action removes its request before this Job completes. Keep
+                // its field disabled until the dialog is disposed; re-enabling it here can
+                // restart the old input connection during asynchronous window removal.
+                if (requestActive()) pending = false
             }
         }
     }
 }
 
 @Composable
-private fun rememberMapCommit(): MapCommit {
+private fun rememberMapCommit(requestActive: () -> Boolean): MapCommit {
     val scope = rememberCoroutineScope()
-    return remember(scope) { MapCommit(scope) }
+    val currentRequestActive by rememberUpdatedState(requestActive)
+    return remember(scope) { MapCommit(scope) { currentRequestActive() } }
 }
 
 private suspend fun releaseMapInput(closeKeyboard: () -> Unit) {

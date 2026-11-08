@@ -3,6 +3,7 @@ package dev.whiteboard.app
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -10,6 +11,8 @@ import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /** Synchronizes fixture navigation with the visible library, including legacy tablet IMEs. */
 internal fun launchTestLibrary(device: UiDevice) {
@@ -54,9 +57,44 @@ internal fun testBoardCard(device: UiDevice, name: String) =
     checkNotNull(device.wait(Until.findObject(By.text(name).clazz("android.widget.TextView")), 10_000)) { "Missing board card: $name" }
 
 /** Match the dialog's labeled input; a library search field may still exist underneath it. */
-internal fun testDialogField(device: UiDevice, label: String) = checkNotNull(
-    device.wait(Until.findObject(By.clazz("android.widget.EditText").hasDescendant(By.text(label))), 10_000)
-) { "Missing labeled dialog input: $label" }
+internal fun testDialogField(device: UiDevice, label: String): UiObject2 {
+    val selector = By.clazz("android.widget.EditText").hasDescendant(By.text(label))
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (SystemClock.uptimeMillis() < deadline) {
+        refreshTestInputHierarchy()
+        try {
+            device.findObject(selector)?.let { return it }
+        } catch (_: StaleObjectException) {
+            // The connected field can be replaced while a rotated dialog is being laid out.
+        }
+        SystemClock.sleep(50)
+    }
+    error("Missing labeled dialog input: $label")
+}
+
+/** API 26 can retain pre-rotation label descendants even after the visible window settles. */
+@Suppress("DEPRECATION")
+private fun refreshTestInputHierarchy() {
+    val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return
+    val owned = Collections.newSetFromMap(IdentityHashMap<AccessibilityNodeInfo, Boolean>())
+    val queue = ArrayDeque<AccessibilityNodeInfo>()
+    owned.add(root)
+    queue.add(root)
+    var remaining = 2000
+    try {
+        while (queue.isNotEmpty() && remaining-- > 0) {
+            val node = queue.removeFirst()
+            if (!node.refresh()) continue
+            repeat(node.childCount) {
+                node.getChild(it)?.let { child ->
+                    if (owned.add(child)) queue.add(child)
+                }
+            }
+        }
+    } finally {
+        owned.forEach { it.recycle() }
+    }
+}
 
 /** Observe only; do not press Back and hide an application's input-session regression. */
 internal fun awaitTestKeyboardHidden(device: UiDevice) {
