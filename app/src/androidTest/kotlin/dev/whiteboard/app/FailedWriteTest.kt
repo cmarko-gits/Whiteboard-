@@ -1,6 +1,7 @@
 package dev.whiteboard.app
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteFullException
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -80,5 +81,46 @@ class FailedWriteTest {
         } catch (_: CancellationException) { }
         assertEquals(saved, repository.load(saved.id))
         assertEquals(listOf(saved), repository.savedBoards())
+    }
+
+    @Test fun aLaterImportWriteFailureRollsBackEarlierCopiesAndTheirSearchIndex(): Unit = runBlocking {
+        val saved = Board(name = "Preserve saved original")
+        val draft = saved.copy(name = "Preserve independent recovery")
+        repository.save(saved)
+        repository.saveDraft(draft)
+        // Prepare the index before fault injection, so a later search cannot hide an orphan.
+        assertEquals(setOf(saved.id), repository.search("saved original"))
+        val first = Board(name = "Rollback sentinel")
+        val blocked = Board(name = "Reject second copy")
+        val sqlite = database.openHelper.writableDatabase
+        sqlite.execSQL(
+            "CREATE TRIGGER reject_import_fixture BEFORE INSERT ON boards " +
+                "WHEN NEW.name = 'Reject second copy (imported)' " +
+                "BEGIN SELECT RAISE(ABORT, 'fixture second import write failed'); END"
+        )
+        try {
+            try {
+                repository.importBoards(listOf(first, blocked))
+                fail("The second write must fail after the first copy was inserted")
+            } catch (_: SQLiteConstraintException) { }
+            assertEquals(listOf(saved), repository.savedBoards())
+            assertEquals(saved, repository.load(saved.id))
+            assertEquals(draft, repository.draft(saved.id))
+            assertTrue(repository.search("Rollback sentinel").isEmpty())
+            assertTrue(repository.search("Reject second copy").isEmpty())
+            assertEquals(setOf(saved.id), repository.search("saved original"))
+            sqlite.query("SELECT COUNT(*) FROM document_chunks WHERE boardId != ?", arrayOf(saved.id)).use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        } finally {
+            sqlite.execSQL("DROP TRIGGER reject_import_fixture")
+        }
+        repository.importBoards(listOf(first, blocked))
+        assertEquals(3, repository.savedBoards().size)
+        assertEquals(1, repository.search("Rollback sentinel").size)
+        assertEquals(1, repository.search("Reject second copy").size)
+        assertEquals(saved, repository.load(saved.id))
+        assertEquals(draft, repository.draft(saved.id))
     }
 }

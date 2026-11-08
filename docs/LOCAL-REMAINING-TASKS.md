@@ -1,5 +1,7 @@
 # Whiteboard — potpuni preostali rad posle 0.4.0
 
+> Za prvu javnu lokalnu verziju merodavan je [aktivni plan od devet celina](RELEASE-READINESS.md). Ovaj širi backlog sadrži i buduće opcije; svih 47 stavki nisu uslov prve objave.
+
 Datum: 1. novembar 2026. Spisak je izveden iz LOCAL-REBUILD-PLAN.md, LOCAL-STATUS.md, LOCAL-QUALIFICATION.md, izvorne WHITEBOARD-VISION.md i pregleda aktivnog koda. Ne predstavlja potvrdu da su sve stavke iz šire vizije uključene u obim 0.4.0.
 
 Lokalni plan 0.4 ima otvoren L40. Njegov checkbox nije inventar svih budućih funkcija proizvoda. Postojeće lokalne funkcije, njihovi prolazni testovi i ograničenja ostaju opisani u LOCAL-STATUS.md. Fizički uređaji su odloženi po izboru korisnika. AI, backend, cloud, nalozi, saradnja i Play objava nisu vraćeni u aktivni obim.

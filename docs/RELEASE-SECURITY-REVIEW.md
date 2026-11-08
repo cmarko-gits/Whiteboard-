@@ -1,0 +1,26 @@
+# Pregled granica prvog lokalnog izdanja
+
+8. novembar 2026. Obim: promene F06 od poslednjeg kvalifikovanog 0.7.2 paketa i završne CI/test/diagnostic izmene. F07 kod nije u kandidatu. Ovo je pregled koda i automatizovanih zaštita, ne nezavisan pentest ili potvrda odsustva svih ranjivosti.
+
+| Granica | Provereno ponašanje / preostali dokaz |
+|---|---|
+| Mape uma iz datoteke | Document 6 i delta 2 eksplicitno čuvaju topologiju. Verzija mora biti integer token; nepoznata semantika pod starim header-om se odbija. ID-jevi, jedan koren, roditelji, veze, ciklusi i Note-only vlasništvo proveravaju se pre prihvatanja stranice. JSON preflight i model limiti ostaju aktivni. |
+| Duboka/velika stabla | Iterativno ograničeno validiranje i obilazak, bez rekurzije prema dubini korisničkog stabla. Najviše 50.000 čvorova po mapi; page/object/format i history budžeti dodatno ograničavaju celinu. Ne postoji obećanje interaktivnog rada na najvećem dozvoljenom dokumentu na svakom hardveru. |
+| Odložene UI akcije | Worker rezultat mora pripadati istom vlasniku, generaciji, sceni i request ID-ju. Nova tabla, zatvaranje i nova priprema otkazuju staru. VM regresije uključuju staru potvrdu i stari zahtev za Cut/Delete; ne menjaju novi dijalog ili dokument. |
+| Korisnički unos | Novi editor naslova ograničava unos na 20.000 znakova, ne prihvata prazan naslov i ne potvrđuje tiho odsečen postojeći predugačak naslov. Pomeraji moraju biti konačni i unutar geometrijskih granica. UI pending stanje blokira višestruko potvrđivanje; domen ponovo proverava komandu. |
+| Skriven sadržaj i brisanje | Collapse menja vidljivu projekciju; sadržaj ostaje u dokumentu/recovery/private clipboard/ZIP-u. Destruktivne branch akcije navode stvarni broj kanonskih čvorova i objekata. Potvrda je jedna budžetirana Undo promena. Raster/PDF izvozi vidljivu projekciju, editable backup ceo sadržaj. |
+| Upis i oporavak | Save/recovery su serijalizovani; upis uhvaćene revizije ne označava kasniju izmenu sačuvanom. Room upisi/import su transakcioni; nema destructive migration fallback-a. Real SQLite-full i cancellation regresije postoje; nova druga-import-ABORT regresija proverava rollback dokumenta/chunk-ova/indeksa i očuvanje draft-a. Native izvršenje novog slučaja ostaje gate. |
+| Fajlovi i prilozi | Aktivni DocumentTransfers prihvata korisnički odabrane content URI-je; privatni media ID, ZIP resursni limiti, scoped FileProvider i read-only privremeno deljenje ostaju. Pregledani LocalMediaStore, DocumentFiles i renderer/export putevi nisu prošireni novim mrežnim ili izvršivim formatom. Postojeći native decoder/OS rizici i fizički OEM provider-i nisu proglašeni provereno bezbednim. |
+| Dozvole i mreža | Manifest nema traženu INTERNET/storage/camera dozvolu, backup/transfer su isključeni, cleartext je isključen. Konačni manifest/DEX gate proverava spojeni APK, ne samo izvorni manifest. 699288b APK policy prolazi; novi konačni source mora dobiti svoj hash i gate. |
+| CI i dijagnostika | Read-only repository permissions, zakucani action commit-i, ephemeral CI signer. Actions-read služi čitanju samo pinned 0.7.2 artefakta za upgrade: ceo archive digest i tačan APK digest/dužina se proveravaju pre korišćenja; nema latest fallback-a. Health checkpoint ne briše ANR/fatal logove niti zatvara sistemski dijalog. Runtime harness snima samo generisano CI test okruženje i označava ograničenja merenja. Fokusirana četiri testa nisu puna kvalifikacija. |
+| Vlasnički upload ključ | Van Git repozitorijuma, zaseban privatni direktorijum sa samo Windows korisnikom/SYSTEM, lozinka pod DPAPI. Procesu za potpisivanje predaje se kroz kratkotrajnu environment vrednost, bez literalne lozinke u komandnoj liniji, dokumentu ili izveštaju. Javni sertifikat nije tajna. Istoimeni postojeći ključ se ne prepisuje. Prenosiva nezavisna rezervna kopija ostaje zadatak vlasnika. |
+
+## Izvršeni rezultati i konačni uslov
+
+699288b / CI 42518487169 verify: 519 JVM, style/architecture/lint, 155 runtime Maven komponenti bez prijavljenih poznatih OSV nalaza i 441 source fajl bez prijavljenih tajni. APK policy hash: B02DCF6DA35ED12D658A61BB63693998F93AF58CB2F06DD4ADDF3DE1D15FBA68. Svi ovi rezultati pripadaju tom izvoru.
+
+Lokalni Gitleaks history scan uključuje svih 128 dostupnih commit-a kroz sve refs, bez prijavljenih tajni; poseban tools scan prolazi. Dokazi su `artifacts/security/release-step-07-*`. Source scan lokalno nije pravio novu kopiju celog projekta. CI ephemeral source scan ostaje puna provera neignorisanog kandidata.
+
+Vlasnički potpis proveravan je na maloj sintetičkoj JAR datoteci: strict verification prema istom upload sertifikatu prolazi; promena potpisanog sadržaja daje digest error i izlaz 1. `artifacts/release-signing-probe/result.json` nije kvalifikacija aplikacionog AAB-a. Skripta za AAB prvo zahteva uspešan kvalifikacioni report i originalni hash, zatim strict potpis/javni sertifikat i byte-for-byte hash svakog originalnog payload unosa. Konačni aplikacioni AAB još nije potpisan.
+
+Pre zatvaranja bezbednosne celine ponoviti automated gates za tačan finalni commit i paket. Ne tvrditi proveru svih build/JDK/OS/OEM ili neobjavljenih ranjivosti, per-board enkripciju ili zaštitu kompromitovanog/otključanog sistema. Ne tvrdimo da lokalna funkcionalnost i razvojni APK predstavljaju Play odobrenje.

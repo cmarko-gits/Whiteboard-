@@ -1,6 +1,6 @@
 # Prva javna lokalna verzija — završni rad
 
-Presek 8. novembra 2026. Ovo je aktivni plan od devet celina za pripremu izdanja, uz širi istorijski backlog od 47 stavki. Brojevi ta dva plana nisu isti inventar. Objavljivanje, pristup Play nalogu i ocena Google review-a nisu izvršeni ovim dokumentom.
+Presek 8. novembra 2026. Završene su 2 od 9 celina (1 — početni neuspešni testovi; 3 — opseg); 7 ostaje otvoreno ili u proveri. Ovo je aktivni plan od devet celina za pripremu izdanja, uz širi istorijski backlog od 47 stavki. Brojevi ta dva plana nisu isti inventar. Objavljivanje, pristup Play nalogu i ocena Google review-a nisu izvršeni ovim dokumentom.
 
 ## Opseg
 
@@ -10,9 +10,9 @@ Prvo izdanje ostaje offline Kotlin Android: postojeće crtanje/bojenje, objekti,
 
 | Broj | Rad | Status i dokaz potreban za završetak |
 |---|---|---|
-| 1 | Android 13/16 neuspešni testovi | U toku. Razdvojiti fixture/layout problem i dokazani System UI startup ANR; ciljano izvršavanje mora proći bez ignorisanja grešaka. |
+| 1 | Android 13/16 neuspešni testovi | Završeno: 699288b / CI 42518487169, sva tri posla prolaze. Po četiri ciljana native slučaja na API 33/36, plus API 36 R8/jezički tok i clean health checkpoint-i. To ne zamenjuje završnu punu matricu. |
 | 2 | Mape uma | Otvoreno. Native i optimizovani create/edit/color/search/rotate/reparent/move/collapse/Undo/save/reopen, svih pet konačnih profila. |
-| 3 | Zamrznut opseg prve verzije | Kandidat izdvojen od F07 razvoja; potvrditi build/source i korisničko uputstvo bez nedovršenih novih opcija. |
+| 3 | Zamrznut opseg prve verzije | Završeno za kandidat 699288b: izdvojena grana bez F07 koda, 0.8.0/code 17 i format 6. Budući paketi moraju ostati na ovom opsegu; konkretne korisničke funkcije opisuje postojeće MIND-MAP-EDITOR.md/uputstvo. |
 | 4 | Pouzdanost podataka | Otvoreno za tačan kandidat. Room migracije, recovery, save race/cancellation, stari dokumenti, backup/restore, oštećeni ulazi i bezbedna greška pri nedostatku prostora. |
 | 5 | Prilagodljivost i pristupačnost | Automatizovani dokazi postoje za prethodne izvore; ponoviti pogođene tokove i završiti ručni vizuelni/govorni pregled. Fizički uređaji i slušni TalkBack nisu zamenjeni testnom semantikom. |
 | 6 | Performanse i memorija | Otvoreno. Proveriti konačni release i reprezentativne scene, čuvanje/izvoz, velike priloge i granice; popraviti merljive probleme. Ne tvrditi univerzalnih 60 Hz ili fizički GPU profil iz emulatora. |
@@ -27,3 +27,18 @@ Popravke prvo koriste lokalne pogođene testove i dva udaljena profila (33/36) n
 System UI startup nalaz izvora 1b83faa je potvrđen: prvi API 36 failure PNG BC6852DE0814FB463480BC0227EE935653F295C34FBE801F3FB6113820001F3D i XML 73C4BA2DC7A6AFFEFDEF4CBBEB3BC366172A8534414E95FDE112BBF557A2A815 prikazuju sistemski ANR dijalog. Digest-verified originalni log beleži `ANR in com.android.systemui` / `failed to complete startup` u 04:34:44 UTC, pre launcher-ready 04:34:57 i prvog app testa 04:35:30. I početni i finalni lastanr izlaz tvrde da ANR nije bilo. Novi checkpoint čita i filtrirane logcat ANR/fatal zapise; ne zatvara dijalog niti briše logove. Build daemon se zaustavlja pre emulator boot-a da oslobodi memoriju. To je infrastrukturna dijagnoza, a ne prolaz API 36 aplikacije.
 
 Dokazi: `artifacts/task-16-1b83faa-evidence.json`, `task-16-1b83faa-36-pixel_2-diagnostics.json`, `release-step-01-fixture-compile.log` i novi imenovani CI rezultati. Dodatni disk limit ostaje 3.400.000.000 bajtova; nema novih lokalnih SDK/system-image preuzimanja. Automatske provere ne predstavljaju nezavisan pentest ili potvrdu odsustva svih nepoznatih grešaka.
+
+
+## Izvršeno u ovom prolazu
+
+- 699288b / CI 42518487169: verify potvrđuje 519 JVM (358 core + 77 format + 5 data + 79 app), stil/arhitekturu/lint i build. OSV 155 nema prijavljenih poznatih nalaza; 441 neignorisan source fajl prolazi secret scan. APK policy je vezan za B02DCF6DA35ED12D658A61BB63693998F93AF58CB2F06DD4ADDF3DE1D15FBA68. Oba API 33/36 profila prolaze četiri ciljana slučaja; API 36 prolazi i ceo R8 mind-map/resize/save/reopen i oba jezička process-restart toka uz vraćen jezik. Svi checkpoint-i su čisti. Konačni digest-verified dokaz je release-focus-699288b-evidence.json; nema retry-ja.
+- Novi FailedWriteTest proverava stvarni SQLite abort drugog uvoza, rollback prvog dokumenta/chunk-ova/indeksa, očuvan saved/draft i uspešan kasniji retry. Lokalni 519 JVM, kompilacija 136 native slučajeva i arhitektura prolaze u release-step-04-local-validation.log; novi native slučaj još treba izvršiti na uređaju.
+- Novi release runtime harness zadržava sirove startup/meminfo/framestats zapise i ne pretvara nedostajuće vrednosti u nulu. Host negativne kontrole parsera prolaze. Merenje na CI uređaju tek sledi i nije dokaz fizičkih performansi.
+- Lokalni Gitleaks pregled svih refs obuhvata 128 revizija bez prijavljenih tajni; zasebno prolaze novi tools fajlovi. Nije nezavisan pentest.
+- Zaseban RSA-3072 upload ključ je napravljen van repozitorijuma, u privatnom direktorijumu pod Windows ACL/DPAPI zaštitom. Ponovno otvaranje ključa i poklapanje javnog sertifikata provereni su dva puta. Prvobitni public-only PEM reader/newline proceduralni neuspehi su ispravljeni uz isti ključ, bez regenerisanja ili izlaganja lozinke. Prenosiva nezavisna rezervna kopija i potpisani konačni AAB još nisu urađeni. AAB upload potpis i Play app-signing identitet su različite uloge; razvojni APK ne zamenjuje taj postupak.
+
+
+Konačni API 36 full prolaz dodatno proverava binarnu nadogradnju 0.7.2 → kandidat: prethodni originalni APK potiče iz immutable artefakta 13446823155, sa zasebno proverenim archive/APK hash-om, i oba paketa koriste isti ephemeral CI potpis. Stara verzija pravi i snima stvarni crtež, nova se instalira isključivo sa install -r, a postojeća tabla i okvir poteza moraju biti očuvani. Nema uninstall/clear data. Ovo ne zamenjuje fizičku nadogradnju ili sve OEM slučajeve. Prethodni artefakt je vremenski ograničena CI baseline zavisnost; za buduća izdanja mora se izabrati i proveriti tada odgovarajuća prethodna verzija.
+
+
+Ciljani API 33 vizuelni pregled: obojeni koren PNG 4091BF2631D18A91142BE3440252599E453C6F0419494CD0B2C263F0CDCBFA46 pokazuje plavu belešku sa belim naslovom i zatvorenu tastaturu; saved-map PNG 7584444E45E80CD973FC5F5F5506A0870F547EFBEDEFDC7707A57658E2E2795C pokazuje svih 13 izabranih vidljivih objekata i donji čvor iznad zoom kontrola. Tačan bitmap pixel, model i Undo/Redo/save/reopen asercije prolaze. Ovo su source-specific snimci, ne opšta ručna TalkBack/tema kvalifikacija.

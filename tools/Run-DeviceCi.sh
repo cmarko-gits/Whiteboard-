@@ -69,12 +69,27 @@ run_release_smoke() {
     --out "$signed" "$unsigned" || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
   sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
+  if [[ "$api" == 36 && "$scope" == full ]]; then
+    pwsh -NoProfile -File ./tools/Get-UpgradeBaseline.ps1 || return $?
+    local baseline=artifacts/device-release/baseline-0.7.2-ci-signed.apk
+    "${ANDROID_HOME}/build-tools/36.0.0/apksigner" sign \
+      --ks "$key_directory/ci.jks" --ks-pass pass:android --key-pass pass:android \
+      --out "$baseline" artifacts/device-release/baseline-0.7.2-unsigned.apk || return $?
+    pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
+      -Package dev.whiteboard.app -ApkPath "$baseline" -SkipAdaptiveResize \
+      2>&1 | tee artifacts/device-release/upgrade-baseline-smoke.log || return $?
+    pwsh -NoProfile -File ./tools/Test-ReleaseUpgrade.ps1 -AdbPath "$(command -v adb)" \
+      -NewApkPath "$signed" 2>&1 | tee artifacts/device-release/release-upgrade.log || return $?
+    bash tools/Assert-CiDeviceHealth.sh after-upgrade || return $?
+  fi
   local -a smoke_options=(-CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps)
   # API 26 touch injection after a runtime density override is unreliable. Its tablet
   # coverage uses a separate real AVD profile; modern API 36 retains all resize cases.
   if [[ "$api" == 26 ]]; then smoke_options+=(-SkipAdaptiveResize); fi
   pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app -ApkPath "$signed" "${smoke_options[@]}" 2>&1 | tee artifacts/device-release/smoke.log || return $?
+  pwsh -NoProfile -File ./tools/Measure-ReleaseRuntime.ps1 -AdbPath "$(command -v adb)" \
+    -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/runtime-profile.log || return $?
   pwsh -NoProfile -File ./tools/Test-AppLanguage.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/app-language.log
 }
