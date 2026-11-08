@@ -205,7 +205,7 @@ class MindMapEditorFlowTest {
         assertTrue(repository.load(board.id).activePage.mindMaps.isEmpty())
         click("New mind map")
         testDialogField(device, "Node title").text = "Native map"
-        control("Color picker").click()
+        clickTestDialogDescription("Color picker")
         testDialogField(device, "HEX color").text = "336699"
         click("Apply")
         click("Confirm")

@@ -3,6 +3,9 @@
 set -uo pipefail
 
 mkdir -p artifacts
+scope=${WHITEBOARD_CI_TEST_SCOPE:-full}
+case "$scope" in full|mind-map) ;; *) echo 'Unsupported CI test scope.' >&2; exit 2 ;; esac
+printf '%s\n' "$scope" > artifacts/ci-test-scope.txt
 # A recorded System UI startup timeout arrived ~47s after emulator launch, after the
 # runner had already reported boot completed. Let early boot services settle before
 # launching Gradle/install/input work; this is not a retry or dismissal of an ANR.
@@ -76,9 +79,22 @@ run_release_smoke() {
     -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/app-language.log
 }
 
-if bash ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest \
-  -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process \
-  --max-workers=2 --no-parallel --console=plain; then
+run_native_tests() {
+  local -a options=(-Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process
+    --max-workers=1 --no-parallel --console=plain)
+  bash tools/Assert-CiDeviceHealth.sh native-start || return $?
+  if [[ "$scope" == full ]]; then
+    bash ./gradlew :data:connectedDebugAndroidTest "${options[@]}" || return $?
+    bash tools/Assert-CiDeviceHealth.sh after-data || return $?
+    bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" || return $?
+  else
+    bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" \
+      -Pandroid.testInstrumentationRunnerArguments.class=dev.whiteboard.app.MindMapEditorFlowTest,dev.whiteboard.app.DialogActionTest || return $?
+  fi
+  bash tools/Assert-CiDeviceHealth.sh after-native
+}
+
+if run_native_tests; then
   test_exit=0
 else
   test_exit=$?
@@ -89,7 +105,7 @@ if ((test_exit == 0)); then
     echo "Cannot establish device API for optimized package qualification." >&2
     test_exit=1
   elif [[ "$api" == 26 || "$api" == 36 ]]; then
-    if run_release_smoke; then
+    if run_release_smoke && bash tools/Assert-CiDeviceHealth.sh after-release; then
       echo "Optimized release smoke passed on API $api."
     else
       test_exit=$?

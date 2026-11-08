@@ -63,3 +63,26 @@ if [[ "$configured" != "$expected" ]]; then echo 'Unexpected CI AVD configuratio
 again=$(printf '%s\n' "$configured" | awk -f tools/Configure-CiAvd.awk)
 if [[ "$again" != "$configured" ]]; then echo 'CI AVD configuration is not idempotent.' >&2; exit 1; fi
 echo 'PASS: launcher readiness, local SDK/AVD guard and bounded/idempotent CI device configuration.'
+
+check_health() {
+  expected=$1
+  actual=0
+  awk -f tools/Check-CiHealthLog.awk || actual=$?
+  if [[ "$actual" != "$expected" ]]; then echo "Health check returned $actual; expected $expected." >&2; exit 1; fi
+}
+check_health 0 <<'LOG'
+--------- beginning of system
+E/ActivityManager( 643): Some unrelated informational error
+LOG
+# The actual failure was recorded before launcher readiness, while lastanr remained clean.
+check_health 1 <<'LOG'
+E/ActivityManager( 643): ANR in com.android.systemui
+E/ActivityManager( 643): Reason: Process failed to complete startup
+LOG
+check_health 1 <<'LOG'
+I/am_anr  ( 643): [0,976,com.android.systemui,0,failed to complete startup]
+LOG
+check_health 1 <<'LOG'
+E/AndroidRuntime( 123): FATAL EXCEPTION: main
+LOG
+echo 'PASS: System UI startup ANR, event-buffer ANR and fatal runtime errors block qualification.'

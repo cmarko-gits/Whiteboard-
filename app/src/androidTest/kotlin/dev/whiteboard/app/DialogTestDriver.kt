@@ -84,6 +84,17 @@ private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, 
 }
 
 internal fun clickTestDialogText(device: UiDevice, label: String) = reachDialogText(device, label, true, false)
+
+/** Activate the connected semantic owner while IME/layout changes invalidate screen coordinates. */
+internal fun clickTestDialogDescription(label: String) {
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (SystemClock.uptimeMillis() < deadline) {
+        if (inspectDialogControl(label, activate = true, byDescription = true).found) return
+        SystemClock.sleep(50)
+    }
+    error("Dialog description did not become available for activation: $label")
+}
+
 internal fun revealTestDialogText(device: UiDevice, label: String, towardTop: Boolean = false) =
     reachDialogText(device, label, false, towardTop)
 internal fun testDialogChoiceSelected(label: String): Boolean = inspectDialogControl(label, false).selected

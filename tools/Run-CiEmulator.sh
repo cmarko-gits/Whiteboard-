@@ -18,6 +18,8 @@ export ANDROID_AVD_HOME="$RUNNER_TEMP/whiteboard-avd"
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 mkdir -p artifacts "$ANDROID_AVD_HOME"
 emulator_pid=''
+# The build is already prepared. Release its up-to-3 GiB daemon before software-GPU boot.
+bash ./gradlew --stop
 
 cleanup() {
   result=$?
@@ -111,5 +113,6 @@ for setting in window_animation_scale transition_animation_scale animator_durati
   adb shell settings put global "$setting" 0.0
 done
 adb exec-out screencap -p > artifacts/ci-launcher-ready.png
+bash tools/Assert-CiDeviceHealth.sh before-tests
 # The existing runner rechecks clean boot after the WindowManager/configuration operations.
 bash tools/Run-DeviceCi.sh

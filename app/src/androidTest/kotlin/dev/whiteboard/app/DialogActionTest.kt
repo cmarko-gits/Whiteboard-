@@ -18,7 +18,11 @@ import org.junit.runner.RunWith
 class DialogActionTest {
     @get:Rule val capture = CaptureUiFailure()
 
-    @Test fun aVisibleDisabledControlIsConfirmedExactlyOnceAfterItsPendingStateBecomesEnabled() {
+    @Test fun aVisibleDisabledControlIsConfirmedExactlyOnceAfterItsPendingStateBecomesEnabled() = assertOneActivation(false)
+
+    @Test fun aDescribedDisabledControlIsActivatedExactlyOnceThroughItsConnectedOwner() = assertOneActivation(true)
+
+    private fun assertOneActivation(byDescription: Boolean) {
         val instrument = InstrumentationRegistry.getInstrumentation()
         val device = UiDevice.getInstance(instrument)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -29,6 +33,7 @@ class DialogActionTest {
                 button = Button(activity).apply {
                     setAllCaps(false)
                     text = "Apply"
+                    contentDescription = "Color picker"
                     isEnabled = false
                     setOnClickListener { confirmations++ }
                 }
@@ -37,15 +42,16 @@ class DialogActionTest {
             instrument.waitForIdleSync()
             try {
                 assertFalse(checkNotNull(device.wait(Until.findObject(By.text("Apply")), 5_000)).isEnabled)
-                assertFalse(testDialogActionEnabled("Apply"))
+                val label = if (byDescription) "Color picker" else "Apply"
+                assertFalse(testDialogActionEnabled(label, byDescription))
                 scenario.onActivity {
                     button.postDelayed({
                         confirmationsBeforeEnabled = confirmations
                         button.isEnabled = true
                     }, 350)
                 }
-                clickTestDialogText(device, "Apply")
-                assertTrue(testDialogActionEnabled("Apply"))
+                if (byDescription) clickTestDialogDescription(label) else clickTestDialogText(device, label)
+                assertTrue(testDialogActionEnabled(label, byDescription))
                 scenario.onActivity {
                     assertEquals(0, confirmationsBeforeEnabled)
                     assertEquals(1, confirmations)
