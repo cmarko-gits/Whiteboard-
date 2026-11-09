@@ -19,11 +19,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -361,7 +363,7 @@ private fun MindMapTitleDialog(
                         null
                     },
                     enabled = !processing && !oversized,
-                    modifier = Modifier.weight(1f).focusRequester(focus).onGloballyPositioned {
+                    modifier = Modifier.weight(1f).testTag("mind_map_node_title").focusRequester(focus).onGloballyPositioned {
                         placed = it.isAttached && it.size.width > 0 && it.size.height > 0
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -459,7 +461,10 @@ private fun MindMapFormDialog(
     body: @Composable (closeKeyboard: () -> Unit) -> Unit
 ) {
     InputDialog(dismiss) { closeKeyboard ->
-        BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
+        BoxWithConstraints(
+            Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)
+                .semantics { testTagsAsResourceId = true }
+        ) {
             val compact = maxHeight < 240.dp
             val inline = compact && WindowInsets.ime.getBottom(LocalDensity.current) > 0
             Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {

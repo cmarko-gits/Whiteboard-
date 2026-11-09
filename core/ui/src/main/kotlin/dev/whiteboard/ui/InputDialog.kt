@@ -1,5 +1,6 @@
 package dev.whiteboard.ui
 
+import android.os.Build
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.material3.AlertDialog
@@ -11,47 +12,87 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.SoftwareKeyboardControllerCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 private class DialogInputCloser {
     var close: () -> Unit = {}
 }
 
-/** One-shot cleanup after Android restores the owner's focus, owned by its attached View. */
-private class OwnerInputReturn(private val view: View, private val closeInput: () -> Unit) :
+/** Own the window-focus and IME-control handoffs until cleanup or owner detachment. */
+@Suppress("DEPRECATION") // The owner can be another Dialog; its View identifies the correct controller.
+private class OwnerInputReturn(private val view: View, private val closeInput: () -> Unit, private val hideReturnedInput: () -> Unit) :
     ViewTreeObserver.OnWindowFocusChangeListener,
-    View.OnAttachStateChangeListener {
+    View.OnAttachStateChangeListener,
+    WindowInsetsControllerCompat.OnControllableInsetsChangedListener {
     private var observer: ViewTreeObserver? = null
+    private var controller: WindowInsetsControllerCompat? = null
+    private var returned = false
+    private var controlReceived = false
     private val finish = Runnable {
-        view.removeOnAttachStateChangeListener(this)
-        if (view.isAttachedToWindow && view.hasWindowFocus()) closeInput()
+        if (!view.isAttachedToWindow || !view.hasWindowFocus() || view.rootView.findFocus()?.onCheckIsTextEditor() == true) {
+            detach()
+        } else {
+            // Do not clear fresh focus or enqueue another Compose input command here.
+            hideReturnedInput()
+            if (Build.VERSION.SDK_INT >= 30 && !controlReceived) {
+                if (controller == null) {
+                    controller = ViewCompat.getWindowInsetsController(view)
+                    controller?.addOnControllableInsetsChangedListener(this) ?: detach()
+                }
+            } else {
+                detach()
+            }
+        }
     }
 
     fun close() {
         closeInput()
         if (!view.isAttachedToWindow || view.hasWindowFocus() || observer != null) return
+        returned = false
+        controlReceived = false
         observer = view.viewTreeObserver.also { it.addOnWindowFocusChangeListener(this) }
         view.addOnAttachStateChangeListener(this)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
-        if (!hasFocus) return
-        observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
-        observer = null
+        if (!hasFocus) {
+            if (returned) detach()
+            return
+        }
+        returned = true
         // The platform restores its focused editor during window focus dispatch. Release
         // it after that dispatch, rather than clearing only the outgoing dialog's state.
         view.postOnAnimation(finish)
     }
 
+    override fun onControllableInsetsChanged(controller: WindowInsetsControllerCompat, typeMask: Int) {
+        if (this.controller == null || (typeMask and WindowInsetsCompat.Type.ime()) == 0) return
+        controlReceived = true
+        clearController()
+        // Run after this control transaction is applied. API 30 can otherwise restore
+        // an old requested-visible state after the preceding window-focus hide.
+        view.post(finish)
+    }
+
+    private fun clearController() {
+        val previous = controller
+        controller = null
+        previous?.removeOnControllableInsetsChangedListener(this)
+    }
+
     private fun detach() {
         observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
         observer = null
+        clearController()
         view.removeOnAttachStateChangeListener(this)
+        view.removeCallbacks(finish)
     }
 
     override fun onViewAttachedToWindow(view: View) = Unit
     override fun onViewDetachedFromWindow(view: View) {
         detach()
-        view.removeCallbacks(finish)
     }
 }
 
@@ -59,7 +100,8 @@ private class OwnerInputReturn(private val view: View, private val closeInput: (
 private fun rememberOwnerInputCloser(): () -> Unit {
     val view = LocalView.current
     val currentClose by rememberUpdatedState(rememberInputCloser())
-    val relay = remember(view) { OwnerInputReturn(view) { currentClose() } }
+    val keyboard = remember(view) { SoftwareKeyboardControllerCompat(view) }
+    val relay = remember(view, keyboard) { OwnerInputReturn(view, { currentClose() }, keyboard::hide) }
     return remember(relay) { { relay.close() } }
 }
 

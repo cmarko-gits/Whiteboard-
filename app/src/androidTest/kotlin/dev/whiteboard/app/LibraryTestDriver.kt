@@ -58,8 +58,12 @@ internal fun testBoardCard(device: UiDevice, name: String) =
     checkNotNull(device.wait(Until.findObject(By.text(name).clazz("android.widget.TextView")), 10_000)) { "Missing board card: $name" }
 
 /** Match the dialog's labeled input; a library search field may still exist underneath it. */
-internal fun testDialogField(device: UiDevice, label: String): UiObject2 {
-    val selector = By.clazz("android.widget.EditText").hasDescendant(By.text(label))
+internal fun testDialogField(device: UiDevice, label: String, resourceId: String? = null): UiObject2 {
+    val selector = if (resourceId == null) {
+        By.clazz("android.widget.EditText").hasDescendant(By.text(label))
+    } else {
+        By.res(resourceId).clazz("android.widget.EditText")
+    }
     val deadline = SystemClock.uptimeMillis() + 10_000
     while (SystemClock.uptimeMillis() < deadline) {
         refreshTestInputHierarchy()

@@ -25,6 +25,20 @@ $taskCases = @(
     @{ Name='wide-1600'; Size='1600x1000'; Density=160; Font='1.0' }
 )
 $taskResults = [Collections.Generic.List[object]]::new()
+function Find-AdaptiveSettingsText([string] $Text) {
+    for ($taskScroll = 0; $taskScroll -lt 12; $taskScroll++) {
+        $taskNodes = @(Get-Ui)
+        $taskMatch = @($taskNodes | Where-Object text -eq $Text)
+        if ($taskMatch.Count) { return $taskMatch[-1] }
+        $taskScrollable = @($taskNodes | Where-Object scrollable -eq 'true')
+        if (-not $taskScrollable.Count) { break }
+        $taskArea = Get-Rect $taskScrollable[-1]
+        $taskX = [int](($taskArea[0] + $taskArea[2]) / 2)
+        $taskHeight = $taskArea[3] - $taskArea[1]
+        Invoke-Adb shell input swipe $taskX ([int]($taskArea[3] - $taskHeight * 0.15)) $taskX ([int]($taskArea[1] + $taskHeight * 0.15)) 350 | Out-Null
+    }
+    throw "Settings text could not be reached by scrolling: $Text"
+}
 try {
     # Only opens the test board created by Smoke-Test; never modifies personal documents.
     $taskBack = @(Get-Ui | Where-Object { $_.'content-desc' -eq 'Back to boards' })
@@ -44,7 +58,9 @@ try {
         if (-not $taskSettings.Count) { throw 'Settings action is inaccessible.' }
         Tap-Ui $taskSettings[-1]
         foreach ($taskTheme in @('System','Light','Dark')) {
-            $taskBounds = Get-Rect (Find-Ui -Text $taskTheme)
+            # At large fonts FlowRow wraps Dark below the initial viewport. A
+            # scrollable setting is accessible when it can actually be reached.
+            $taskBounds = Get-Rect (Find-AdaptiveSettingsText $taskTheme)
             if ($taskBounds[2] -le $taskBounds[0] -or $taskBounds[3] -le $taskBounds[1]) { throw "Theme label is clipped: $taskTheme" }
         }
         Capture ("adaptive-"+$taskCase.Name+'-settings')

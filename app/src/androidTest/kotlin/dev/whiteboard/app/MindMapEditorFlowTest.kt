@@ -31,6 +31,7 @@ class MindMapEditorFlowTest {
     private var completed = false
     private fun text(value: String) = checkNotNull(device.wait(Until.findObject(By.text(value)), 10_000)) { value }
     private fun control(value: String) = checkNotNull(device.wait(Until.findObject(By.desc(value).enabled(true)), 10_000)) { value }
+    private fun titleInput() = testDialogField(device, "Node title", "mind_map_node_title")
     private fun node(value: String) = checkNotNull(
         device.wait(Until.findObject(By.textContains(value).clazz("android.widget.TextView").pkg(context.packageName)), 10_000)
     ) { value }
@@ -49,7 +50,7 @@ class MindMapEditorFlowTest {
         while (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) delay(50)
     }
     private fun submitTitle(value: String) {
-        val field = testDialogField(device, "Node title")
+        val field = titleInput()
         field.text = value
         click("Confirm")
         control("More actions")
@@ -121,10 +122,10 @@ class MindMapEditorFlowTest {
         val sibling = withSibling.elements.filterIsInstance<Note>().single { it.text == "Native sibling" }
         mapActions()
         click("Edit node")
-        testDialogField(device, "Node title").text = "Edited sibling"
+        titleInput().text = "Edited sibling"
         device.setOrientationLeft()
         device.waitForIdle()
-        assertEquals("Edited sibling", testDialogField(device, "Node title").text)
+        assertEquals("Edited sibling", titleInput().text)
         click("Confirm")
         control("More actions")
         awaitTestKeyboardHidden(device)
@@ -200,11 +201,11 @@ class MindMapEditorFlowTest {
         openTestBoard(device, board.name)
         mapActions()
         click("New mind map")
-        testDialogField(device, "Node title").text = "Cancelled"
+        titleInput().text = "Cancelled"
         click("Cancel")
         assertTrue(repository.load(board.id).activePage.mindMaps.isEmpty())
         click("New mind map")
-        testDialogField(device, "Node title").text = "Native map"
+        titleInput().text = "Native map"
         clickTestDialogDescription("Color picker")
         testDialogField(device, "HEX color").text = "336699"
         click("Apply")
