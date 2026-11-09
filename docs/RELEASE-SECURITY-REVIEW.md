@@ -1,5 +1,13 @@
 # Pregled granica prvog lokalnog izdanja
 
+Aktuelni presek, 9. novembar 2026: pregled kandidata b5c70547cc84c0c62543339270bc7d997aabe726 je završen u opsegu koda i automatizovanih zaštita. CI 42575513957 prolazi 519 JVM, stil/arhitekturu/lint, 155 release runtime komponenti bez prijavljenih OSV nalaza, svih 155 licenci/notices, 450 source fajlova bez prijavljenih tajni i APK manifest/DEX politiku. Lokalni Gitleaks pregled svih refs obuhvata 137 commit-a bez prijavljenih tajni. To nije nezavisan pentest.
+
+Unsigned APK SHA-256 je 4DD5F026859103BEE5085F6F3ABE520EA3EAF85AA14CE90E6B1F40673AA781BF; VCS, 0.8.0/code 17, min 26/target 36, osam native biblioteka, četiri ELF64 i ZIP-P16 prolaze u release-focus-b5c7054-build-inspection.json. Isti CI AAB SHA-256 9B83B469B2E3F14D8A2902929BE22D31AA6DF7D9EC9322DF904D8DFD94CD4BD7 prolazi zasebno ograničeno parsiranje BundleConfig.pb zvaničnim keširanim AGP bundletool 1.18.3 protobuf klasama: uncompressed native libraries + PAGE_ALIGNMENT_16K. Negativna sintetička 4 KB konfiguracija je odbijena; originalni AAB nije menjan. Ovo nije puna bundletool runtime validacija ili objava.
+
+Novi jednokratni owner-window cleanup koristi attached View lifecycle: čekanje stvarnog povratka window fokusa, uklanjanje listener-a i otkazivanje callback-a pri detach-u. Šest ciljanih native slučajeva prolazi na API 26/30, uključujući skrivanje i eksplicitni nastavak unosa. Svi originalni neuspešni pokušaji i korekcije pogrešnih fixture pretpostavki ostaju u RELEASE-READINESS.md i odgovarajućim digest-verified artefaktima. Import rollback i 13 data/18 app storage slučajeva već prolaze na pet profila izvora 20dc050; nova puna matrica ponavlja ih na b5c7054.
+
+Host kontrole potpisivanja odbijaju nedostajući content comparison, drugi source, različit payload i drugi upgrade APK pre čitanja paketa/ključa. QA failure-retention kontrola čuva izvorni exit 42 i ceo instrumentation sentinel bez stvarnog build/device izvršavanja. Potpisani aplikacioni AAB još nije napravljen: koraci 8/9 zahtevaju celu novu matricu, poređenje tri R8 APK-a i finalni paket/potpis. Stari kontekst ispod zadržan je radi sledljivosti.
+
 8. novembar 2026. Obim: promene F06 od poslednjeg kvalifikovanog 0.7.2 paketa i završne CI/test/diagnostic izmene. F07 kod nije u kandidatu. Ovo je pregled koda i automatizovanih zaštita, ne nezavisan pentest ili potvrda odsustva svih ranjivosti.
 
 | Granica | Provereno ponašanje / preostali dokaz |

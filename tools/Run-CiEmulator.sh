@@ -56,7 +56,11 @@ printf 'no\n' | avdmanager create avd --force --name "$avd" --package "system-im
 config="$ANDROID_AVD_HOME/$avd.avd/config.ini"
 # Some inherited profiles request 10 GiB userdata (12 GiB with emulator safety overhead).
 # Use the upstream minimum of 6 GiB for this fresh, disposable test device.
-awk -f tools/Configure-CiAvd.awk "$config" > "$config.tmp"
+avd_options=()
+# API 36 System UI can miss its startup deadline in the inherited 2 GiB profile.
+# Keep older/minimum-device profiles intact; qualify this modern OS with 3 GiB.
+if [[ "$api" == 36 ]]; then avd_options=(-v guest_ram=3072); fi
+awk "${avd_options[@]}" -f tools/Configure-CiAvd.awk "$config" > "$config.tmp"
 mv "$config.tmp" "$config"
 cp "$config" artifacts/ci-avd-config.txt
 df -Pk "$ANDROID_AVD_HOME" > artifacts/ci-host-disk.txt
@@ -97,6 +101,7 @@ if ! grep -qi 'no ANR has occurred since boot' artifacts/ci-startup-anr.txt; the
   echo 'Startup ANR or unknown health output; no application tests ran.' >&2
   exit 1
 fi
+bash tools/Assert-CiDeviceHealth.sh after-boot
 
 # Use WindowManager's supported binder command, not an input event awaiting window focus.
 adb shell wm dismiss-keyguard

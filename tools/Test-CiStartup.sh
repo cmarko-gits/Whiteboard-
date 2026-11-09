@@ -62,6 +62,24 @@ expected=$'hw.device.name=pixel_2\nhw.lcd.width=1080\nhw.cpu.ncore=2\nhw.keyboar
 if [[ "$configured" != "$expected" ]]; then echo 'Unexpected CI AVD configuration.' >&2; exit 1; fi
 again=$(printf '%s\n' "$configured" | awk -f tools/Configure-CiAvd.awk)
 if [[ "$again" != "$configured" ]]; then echo 'CI AVD configuration is not idempotent.' >&2; exit 1; fi
+
+modern=$(awk -v guest_ram=3072 -f tools/Configure-CiAvd.awk <<'CONFIG'
+hw.ramSize=2G
+hw.ramSize = 1536
+hw.device.name=pixel_2
+CONFIG
+)
+if [[ $(printf '%s\n' "$modern" | grep -c '^hw.ramSize=3072$') != 1 ]] ||
+    [[ $(printf '%s\n' "$modern" | grep -c '^hw.ramSize') != 1 ]]; then
+  echo 'Modern CI guest RAM was not normalized exactly once.' >&2; exit 1
+fi
+again=$(printf '%s\n' "$modern" | awk -v guest_ram=3072 -f tools/Configure-CiAvd.awk)
+if [[ "$again" != "$modern" ]]; then echo 'Modern RAM configuration is not idempotent.' >&2; exit 1; fi
+legacy=$(printf 'hw.ramSize=2G\n' | awk -f tools/Configure-CiAvd.awk)
+if [[ "$legacy" != hw.ramSize=2G$'\n'* ]]; then echo 'Legacy device RAM was unexpectedly changed.' >&2; exit 1; fi
+status=0
+awk -v guest_ram=8192 -f tools/Configure-CiAvd.awk </dev/null >/dev/null 2>&1 || status=$?
+if ((status != 2)); then echo 'Unbounded guest RAM override was accepted.' >&2; exit 1; fi
 echo 'PASS: launcher readiness, local SDK/AVD guard and bounded/idempotent CI device configuration.'
 
 check_health() {

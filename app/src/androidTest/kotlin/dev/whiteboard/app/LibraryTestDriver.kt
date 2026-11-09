@@ -2,6 +2,7 @@ package dev.whiteboard.app
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ApplicationProvider
@@ -75,7 +76,14 @@ internal fun testDialogField(device: UiDevice, label: String): UiObject2 {
 /** API 26 can retain pre-rotation label descendants even after the visible window settles. */
 @Suppress("DEPRECATION")
 private fun refreshTestInputHierarchy() {
-    val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return
+    val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+    if (Build.VERSION.SDK_INT <= 28) {
+        // Reapplying the same public service info invalidates the framework's whole
+        // node cache, including nonactive dialog roots after a legacy rotation.
+        // Preserve all existing flags; refreshing only the IME root is insufficient.
+        automation.serviceInfo = checkNotNull(automation.serviceInfo)
+    }
+    val root = automation.rootInActiveWindow ?: return
     val owned = Collections.newSetFromMap(IdentityHashMap<AccessibilityNodeInfo, Boolean>())
     val queue = ArrayDeque<AccessibilityNodeInfo>()
     owned.add(root)
