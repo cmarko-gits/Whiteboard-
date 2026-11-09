@@ -114,7 +114,7 @@ run_native_tests() {
     bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" || return $?
   else
     bash ./gradlew :app:connectedDebugAndroidTest "${options[@]}" \
-      -Pandroid.testInstrumentationRunnerArguments.class=dev.whiteboard.app.MindMapEditorFlowTest,dev.whiteboard.app.DialogActionTest,dev.whiteboard.app.InputDialogWindowTest || return $?
+      -Pandroid.testInstrumentationRunnerArguments.class=dev.whiteboard.app.AlignmentFlowTest,dev.whiteboard.app.MindMapEditorFlowTest,dev.whiteboard.app.DialogActionTest,dev.whiteboard.app.InputDialogWindowTest || return $?
   fi
   bash tools/Assert-CiDeviceHealth.sh after-native
 }

@@ -52,7 +52,7 @@ Od 0.6.1 Rotate selection otvara relativni ugao; prihvata decimalnu tačku ili z
 
 Od 0.6.2 Selection actions → Bring forward one layer / Send backward one layer pomera izbor preko jednog susednog neizabranog objekta. Uzastopni izabrani objekti ostaju blok; njihov međusobni redosled se ne menja. Na granici je stavka isključena. Bring to front / Send to back pomera na kraj/početak slojeva. Undo/Redo vraća jednu celu akciju.
 
-U 0.6.3 izaberi najmanje dva objekta, zatim Selection actions → Alignment. Šest dugmadi poravnava ivice ili horizontalne/vertikalne centre prema zajedničkom okviru. Veličina i rotacija se čuvaju; grupa se pomera kao celina. Cancel ne menja tablu. Jedna akcija se vraća jednim Undo; zatim možeš Redo i Save. Pametni konektori još nisu gotov alat; postojeće Arrow linije su nezavisne.
+Izaberi najmanje dva objekta, zatim Selection actions → Alignment. Šest dugmadi poravnava ivice ili horizontalne/vertikalne centre prema zajedničkom okviru. Veličina i rotacija se čuvaju; grupa se pomera kao celina. Cancel ne menja tablu. Jedna akcija se vraća jednim Undo; zatim možeš Redo i Save. Connection je pametna veza opisana iznad; obična Arrow linija ostaje nezavisna od pomeranja drugih objekata.
 
 ## Čuvanje, oporavak i backup
 

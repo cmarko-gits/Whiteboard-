@@ -1,8 +1,22 @@
-# Lokalna arhitektura — kvalifikovana 0.6.5 i razvoj F05
+# Lokalna arhitektura — kandidat 0.8.0
 
 Odluka od 31. oktobra 2026. zamenjuje online arhitekturu za trenutni obim rada. Istorijske odluke ostaju u ARCHITECTURE.md. Korisnikov prilog se primenjuje na lokalnu aplikaciju; mrežni primeri ne dodaju mrežne zavisnosti.
 
-## Aktuelne dopune, 4. novembar 2026.
+## Aktuelni presek, 9. novembar 2026.
+
+Aplikacioni izvor e598cff / code 17 ima osam uključenih Gradle modula. `app` spaja Hilt adaptere, Activity, lokalnu navigaciju, LibraryViewModel i WorkspaceViewModel; `feature:workspace` poseduje korisničke tokove i njihove kontrolere; `core` immutable modele, use-case-ove, validaciju i komande/istoriju; `format` ograničeno kodiranje i editable backup; `data` Room i lokalna podešavanja; `canvas` native prikaz/dodir/pristupačne objekte; `core:ui` deljene Compose komponente; `platform` Android medije i prenos dokumenata. Domen nema Android/Compose/Room/Hilt zavisnosti. `checkArchitecture` proverava dozvoljene ivice modula i import granice. Stariji online moduli nisu u aktivnom settings grafu ili release APK-u.
+
+PageContent i PageGeometry daju zajednički immutable izvor za prikaz, picking, pristupačnost, izvoz i konektore. Connector je aktivan Element od 0.7.0; vezani krajevi prate isti resolver i geometriju ciljeva. Warm preview deli nepromenjenu geometriju i računa promenjene ciljeve/incidentne veze; hladni i strukturni slučajevi zadržavaju kanonsku putanju. Granice optimizacije i merenja navode SMART-CONNECTORS-INTEGRATION.md i CONNECTION-PREVIEW-OPTIMIZATION.md. Raniji tekst o izolovanom F05 jezgru ispod je istorijski presek, ne stanje sadašnjeg koda.
+
+Mape uma su kanonska topologija iz Document 6 / delta 2, uz Room 4 i čitanje prethodnih formata. Vidljiva projekcija, collapse, upravljane veze, branch clipboard i atomske komande koriste isti model. MindMapEditorController priprema immutable zahteve/planove na computation dispatcher-u; pre objave ponovo proverava vlasnika, sesiju, scenu, generation i request ID. Stari ili otkazani worker ne može editovati novu tablu. MIND-MAP-EDITOR.md opisuje svaki tok i domenske granice. F07 je zasebna nespojena grana, bez implicitnog proširenja formata ovog kandidata.
+
+Compose dijalozi upravljaju sopstvenim unosom. InputDialog/InputAlertDialog zatvaraju stvarnu input sesiju odlaznog prozora, a jednokratni OwnerInputReturn prati povratak owner window fokusa i API 30+ IME kontrole. Listener i callback pripadaju attached View lifecycle-u; native završetak ne briše nov izričit korisnički unos. Uklanjanje controllable listener-a je odloženo van platformskog obilaska. RELEASE-READINESS.md čuva otkriveni pad, ispravku i ciljani prolaz; aktuelna puna matrica ostaje uslov kvalifikacije.
+
+WhiteboardView klipuje native Canvas na sopstveni viewport pre kamere i iscrtavanja, uključujući live ink i pristupačni fokus. Dokument i izvozni sadržaj se time ne odsecaju. Novi bitmap regresioni slučajevi proveravaju da crtež ne prelazi u roditeljsko zaglavlje/margine. Room upis i višedokumentni import ostaju transakcioni; real SQLite-full, cancellation i drugi-import-ABORT testovi proveravaju prethodno saved/draft stanje i odsustvo delimičnog uvoza.
+
+Kandidat je offline: bez naloga, mrežnih dozvola, AI-a, cloud-a ili backend-a. Skeniranje zavisnosti/izvora, APK politika i 16 KB pregled imaju tačan source/hash; nisu dokaz fizičkog GPU-a, izgovora TalkBack-a ili odsustva svih ranjivosti. Završne rezultate i granice navode RELEASE-READINESS.md, RELEASE-SECURITY-REVIEW.md i RELEASE-HANDOFF.md.
+
+## Istorijske dopune, 4. novembar 2026.
 
 Provereni izvor je 0.6.4/9589e12: LOCAL-0.6.4-CANDIDATE.md. AppCompatActivity i AppCompatDelegate pripadaju composition root-u; domen ima samo AppLanguage vrednosti bez Android Context-a. Jedan framework mehanizam čuva izabrani jezik, uz AppCompat auto-storage pre API 33 i sistemsko čuvanje od API 33. Nema paralelnog DataStore jezičkog ključa.
 

@@ -79,11 +79,11 @@ internal fun testDialogField(device: UiDevice, label: String, resourceId: String
 
 /** API 26 can retain pre-rotation label descendants even after the visible window settles. */
 @Suppress("DEPRECATION")
-private fun refreshTestInputHierarchy() {
+private fun refreshTestInputHierarchy(invalidateCache: Boolean = false) {
     val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-    if (Build.VERSION.SDK_INT <= 28) {
+    if (invalidateCache || Build.VERSION.SDK_INT <= 28) {
         // Reapplying the same public service info invalidates the framework's whole
-        // node cache, including nonactive dialog roots after a legacy rotation.
+        // node cache, including nonactive windows or an unchanged search-result card.
         // Preserve all existing flags; refreshing only the IME root is insufficient.
         automation.serviceInfo = checkNotNull(automation.serviceInfo)
     }
@@ -120,9 +120,24 @@ internal fun awaitTestKeyboardHidden(device: UiDevice) {
 
 internal fun searchTestLibrary(device: UiDevice, query: String) {
     val search = checkNotNull(device.wait(Until.findObject(By.clazz("android.widget.EditText")), 5_000))
+    search.click()
+    check(device.wait(Until.hasObject(By.clazz("android.widget.EditText").focused(true)), 5_000)) { "Search input did not receive focus" }
     search.text = query
-    check(device.wait(Until.hasObject(By.desc("Search results")), 10_000)) { "Search did not finish" }
-    hideTestKeyboard(device)
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (SystemClock.uptimeMillis() < deadline) {
+        refreshTestInputHierarchy(invalidateCache = true)
+        try {
+            val retained = device.findObject(By.clazz("android.widget.EditText"))?.text == query
+            if (retained && device.hasObject(By.desc("Search results"))) {
+                hideTestKeyboard(device)
+                return
+            }
+        } catch (_: StaleObjectException) {
+            // Search changes the list semantics even when its single card stays identical.
+        }
+        SystemClock.sleep(50)
+    }
+    error("Search did not finish with the requested query")
 }
 
 private fun hideTestKeyboard(device: UiDevice) {
