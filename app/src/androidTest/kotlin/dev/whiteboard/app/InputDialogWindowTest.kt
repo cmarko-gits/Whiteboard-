@@ -87,7 +87,8 @@ class InputDialogWindowTest {
             awaitTestKeyboardHidden(device)
             compose.onNodeWithTag("owner-input").performClick()
             awaitKeyboardShown(device)
-            compose.onNodeWithTag("owner-input").performTextInput(" resumed").assertTextContains("Owner resumed")
+            compose.onNodeWithTag("owner-input").performTextInput(" resumed")
+            compose.onNodeWithTag("owner-input").assertTextContains("Owner resumed")
         } catch (error: Throwable) {
             CaptureUiFailure().snapshot("input-window-${if (alert) "alert" else "plain"}")
             throw error
