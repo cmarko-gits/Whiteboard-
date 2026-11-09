@@ -94,9 +94,12 @@ class InputDialogWindowTest {
             compose.onNodeWithTag("dialog-input").assertIsFocused()
             repeat(4) {
                 compose.onNodeWithText("Replace dialog").performClick()
-                val title = if (alert xor replaced) "Alert input window" else "Plain input window"
+                // UiAutomator does not advance the Compose rule's controlled clock.
+                compose.waitForIdle()
+                val title = if (alert xor (it % 2 == 0)) "Alert input window" else "Plain input window"
                 check(device.wait(Until.hasObject(By.text(title)), 10_000)) { "Replacement window did not open" }
                 checkNotNull(device.wait(Until.findObject(By.text("Child").clazz("android.widget.EditText")), 10_000)).click()
+                compose.waitForIdle()
                 awaitKeyboardShown(device)
                 compose.onNodeWithTag("dialog-input").assertIsFocused().assertTextContains("Child")
             }
