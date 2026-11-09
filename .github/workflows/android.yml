@@ -23,6 +23,9 @@ jobs:
       - name: Check connection smoke synchronization without a device
         shell: pwsh
         run: ./tools/Test-ConnectionSmoke.ps1
+      - name: Check mind-map smoke targeting without a device
+        shell: pwsh
+        run: ./tools/Test-MindMapSmoke.ps1
       - name: Check release diagnostic parsing without a device
         shell: pwsh
         run: ./tools/Test-ReleaseRuntimeParsing.ps1
@@ -84,7 +87,8 @@ jobs:
       actions: read # Read the pinned, previously qualified binary for install -r upgrade tests.
     strategy:
       fail-fast: false
-      # Readiness uses focused cases/diagnostics; the identical candidate runs full suites/R8.
+      # Readiness uses focused native cases, API 26 R8 smoke and API 36 diagnostics.
+      # The identical candidate runs full native/data suites and all release flows.
       matrix:
         include:
           - {api: 26, profile: pixel_2}

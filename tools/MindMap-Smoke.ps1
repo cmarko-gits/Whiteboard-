@@ -1,4 +1,34 @@
 # Loaded by Smoke-Test.ps1 after its installed-package persistence/connection checks.
+function Tap-MindMapAction {
+    param([Parameter(Mandatory = $true)][string] $Text)
+    $taskUntil = [DateTime]::UtcNow.AddSeconds(15)
+    $taskPrevious = $null
+    do {
+        $taskLabels = @(Get-Ui | Where-Object {
+            $_.text -ceq $Text -and $_.SelectNodes('ancestor-or-self::node[@enabled="false"]').Count -eq 0
+        })
+        if ($taskLabels.Count -gt 1) { throw "Ambiguous mind-map action: $Text" }
+        if ($taskLabels.Count -eq 1) {
+            $taskLabel = $taskLabels[0]
+            $taskOwner = $taskLabel.SelectSingleNode('ancestor-or-self::node[@clickable="true"][1]')
+            if ($null -ne $taskOwner) {
+                $taskRect = Get-Rect $taskOwner
+                if ($taskRect[2] -gt $taskRect[0] -and $taskRect[3] -gt $taskRect[1]) {
+                    $taskPosition = $taskLabel.bounds + ':' + $taskOwner.bounds
+                    if ($taskPosition -ceq $taskPrevious) {
+                        # Exactly one click, using the connected owner's latest settled bounds.
+                        Tap-Ui $taskOwner
+                        return
+                    }
+                    $taskPrevious = $taskPosition
+                } else { $taskPrevious = $null }
+            } else { $taskPrevious = $null }
+        } else { $taskPrevious = $null }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $taskUntil)
+    throw "Mind-map action did not settle: $Text"
+}
+
 function Invoke-MindMapSmoke {
     param([Parameter(Mandatory = $true)][string] $BoardName, [Parameter(Mandatory = $true)][string] $PreviousSize)
     $taskStamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
@@ -11,8 +41,16 @@ function Invoke-MindMapSmoke {
         Tap-Ui (Find-Ui -Text 'Mind maps')
     }
     function Enter-Title([string] $Caption, [bool] $CheckConfiguration = $false) {
-        Tap-Ui (Find-Ui -Class 'android.widget.EditText')
+        $taskField = Find-Ui -Class 'android.widget.EditText'
+        if ($taskField.'resource-id' -cne 'mind_map_node_title' -or $taskField.text -cne '') {
+            throw 'Expected an empty create/child/sibling title field; refusing to append to an existing node.'
+        }
+        Tap-Ui $taskField
         Wait-Keyboard
+        $taskField = Find-Ui -Class 'android.widget.EditText'
+        if ($taskField.'resource-id' -cne 'mind_map_node_title' -or $taskField.focused -cne 'true' -or $taskField.text -cne '') {
+            throw 'The empty mind-map title field did not retain input focus.'
+        }
         Invoke-Adb shell input text $Caption | Out-Null
         Find-Ui -Text $Caption -Class 'android.widget.EditText' | Out-Null
         if ($CheckConfiguration) {
@@ -48,37 +86,38 @@ function Invoke-MindMapSmoke {
     }
     Write-Output 'Checking editable mind maps in the optimized installed package.'
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'New mind map')
+    Tap-MindMapAction 'New mind map'
     Enter-Title $taskRootCaption
     Save-Map
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'Add child')
+    Tap-MindMapAction 'Add child'
+    Capture 'release-mind-map-child-panel'
     Enter-Title $taskChildCaption $true
     Save-Map
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'Add sibling')
+    Tap-MindMapAction 'Add sibling'
     Enter-Title $taskPeerCaption
     Save-Map
     # Select the original child and explicitly make its sibling the new parent.
     Open-Actions
     Tap-Ui (Find-Ui -Text 'Mind maps')
     Tap-Ui (Find-Ui -TextPrefix $taskChildCaption)
-    Tap-Ui (Find-Ui -Text 'Change parent')
+    Tap-MindMapAction 'Change parent'
     Tap-Ui (Find-Ui -TextPrefix $taskPeerCaption)
     Save-Map
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'Select map')
+    Tap-MindMapAction 'Select map'
     Assert-ExpandedNotes
     Capture 'release-mind-map-expanded'
     # Multiple selected objects open the browser; choose the parent to collapse.
     Open-Actions
     Tap-Ui (Find-Ui -TextPrefix $taskPeerCaption)
-    Tap-Ui (Find-Ui -Text 'Collapse branch')
+    Tap-MindMapAction 'Collapse branch'
     Find-Ui -Text 'Unsaved changes' | Out-Null
     Tap-Ui (Find-Ui -Description 'Undo')
     Find-Ui -Text 'Saved on this device' | Out-Null
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'Select map')
+    Tap-MindMapAction 'Select map'
     Assert-ExpandedNotes
     $taskExpandedFrames = Get-MapFrames
     # Keep exactly this expanded viewport for Redo, so absence cannot be caused by refitting.
@@ -107,10 +146,10 @@ function Invoke-MindMapSmoke {
         throw "Reopened parent/child topology or collapsed state was lost: $taskLabels"
     }
     Tap-Ui (Find-Ui -TextPrefix $taskPeerCaption)
-    Tap-Ui (Find-Ui -Text 'Expand branch')
+    Tap-MindMapAction 'Expand branch'
     Find-Ui -Text 'Unsaved changes' | Out-Null
     Open-Actions
-    Tap-Ui (Find-Ui -Text 'Select map')
+    Tap-MindMapAction 'Select map'
     Assert-ExpandedNotes
     Save-Map
     Capture 'release-mind-map-reopened'

@@ -18,6 +18,7 @@ Automatizovani native/semantički testovi i screenshots imaju svoj source i doka
 - Izmeriti stvarne Window/GPU frejmove i p50/p95/p99, crtanje/pomeranje/zoom i odziv unosa na dogovorenim scenama. Emulator/tracing rezultat ne proglašavati fizičkim FPS prolazom.
 - Ponoviti male i velike dokumente, slike/PDF, čuvanje/izvoz i dužu sesiju; posmatrati peak/retained memoriju, low-RAM ponašanje, zagrevanje i potrošnju baterije.
 - Proveriti olovku/prst/dlan i stvarne OS providere, IME i promenu prozora. Za instalaciju/nadogradnju čuvati postojeće podatke i prethodno napraviti proverenu editable rezervnu kopiju.
+- Zasebno proveriti podržane 16 KB runtime uređaje/okruženje i stvarnu in-place OS nadogradnju. ELF/ZIP/BundleConfig provere potvrđuju strukturu paketa; postojeća API 26/30/33/36 matrica sama ne dokazuje te runtime slučajeve. API 36.1 i dodatne OEM varijante nisu deo ove matrice; novi lokalni image-i nisu preuzimani u ograničenju prostora.
 
 Korisnik je prethodno izabrao nastavak bez fizičkog telefona. Ne treba prikazivati nedostupan hardver kao testiran. CI dijagnostički paket sa LeakCanary/Shark ima zasebne hash-eve i svrhu od optimizovanog release paketa.
 

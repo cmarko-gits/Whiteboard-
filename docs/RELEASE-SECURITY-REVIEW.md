@@ -1,6 +1,6 @@
 # Bezbednosni pregled kandidata 0.8.0
 
-Presek 9. novembra 2026, pregledani aplikacioni izvor **8a4b8e41f3ba0cba96a2fb42beba2cd1baa74a5b**, code 17. Pregled koda i automatizovane zaštite su završeni u opisanom opsegu. Puna matrica [42669070894](https://github.com/cmarko-gits/Whiteboard-/actions/runs/42669070894) završava neuspešno: verify i četiri telefonska profila prolaze sve svoje tokove, API 26 tablet ima 139/140 app uz 13/13 data. Fokusirano polje pomeraja na tabletu nema stvarnu IME sesiju; novi single-window editor zahteva ponavljanje svih gates za novi source. Ciljani [42667755595](https://github.com/cmarko-gits/Whiteboard-/actions/runs/42667755595) prolazi verify, po sedam native slučajeva na API 26/30/33 i odvojene 2/2 memorijske/frame dijagnostike na API 36. To nije nezavisan pentest ili potvrda konačne spremnosti za Play.
+Presek 9. novembra 2026, pregledani aplikacioni izvor **9c52b9b6b8e9bb261909457dafa5df84b54c7565**, code 17. Pregled koda i automatizovane zaštite su završeni u opisanom opsegu. Ciljani [42674959657](https://github.com/cmarko-gits/Whiteboard-/actions/runs/42674959657) prolazi svih šest poslova: 519 JVM/lint/build/security, po sedam native slučajeva na API 26 telefon/tablet, 30 i 33, plus 2/2 API 36 dijagnostike. Single-window editor mape uklanja unutrašnju zamenu Android prozora iz prethodnog tablet nalaza. Verify pune matrice [42676617494](https://github.com/cmarko-gits/Whiteboard-/actions/runs/42676617494) takođe prolazi; API 36 prvi boot staje na System UI startup ANR-u pre aplikacionih testova, API 26 tablet prolazi native ali pada u R8 child target driveru, dok telefon/30/33 završavaju uspešno. Prva puna matrica je zato neuspešna, bez retry-ja i bez distribucije. To nije nezavisan pentest ili potvrda konačne spremnosti za Play.
 
 ## Proverene granice
 
@@ -21,12 +21,12 @@ Presek 9. novembra 2026, pregledani aplikacioni izvor **8a4b8e41f3ba0cba96a2fb42
 
 - 519 JVM, stil/arhitektura, debug/release lint i build prolaze.
 - OSV proverava 155 resolved release runtime Maven komponenti bez prijavljenih poznatih nalaza; licence/notices svih 155 prolaze. Inventar ne obuhvata OS/JDK/build-tool ili neobjavljene ranjivosti.
-- 451 neignorisan source fajl prolazi Gitleaks 8.30.1. Odvojeni lokalni pregled svih refs prijavljuje 144 skenirane revizije među 152 dostupne, bez prijavljenih tajni. Izveštaj: artifacts/security/release-8a4b8e4-history-summary.json.
-- Unsigned APK SHA-256: **80D03385E9D62C16C7C951210F2D05C0A63BBC44A10D17BAED76C8D16D6FC7C2**. VCS/source, 0.8.0/code 17, min 26/target 36, osam native biblioteka/četiri ABI-ja, četiri ELF64 LOAD/RELRO i ZIP-P16 prolaze.
-- Unsigned AAB SHA-256: **DC745E72A9EF9DCBAC3971A21837DC316EBF70B9B750C276F4F4CC2ACC97944E**. BundleConfig.pb potvrđuje uncompressed native libraries / PAGE_ALIGNMENT_16K.
+- 451 neignorisan source fajl prolazi Gitleaks 8.30.1. Odvojeni lokalni pregled svih refs prijavljuje 145 skeniranih revizija među 153 dostupne, bez prijavljenih tajni. Izveštaj: artifacts/security/release-9c52b9b-history-summary.json.
+- Unsigned APK SHA-256: **9B628B46A3614982806E6D6BE6FBAB10CBBCE89CD7B98C5D2F8345B55704CA6E**. VCS/source, 0.8.0/code 17, min 26/target 36, osam native biblioteka/četiri ABI-ja, četiri ELF64 LOAD/RELRO i ZIP-P16 prolaze.
+- Unsigned AAB SHA-256: **E27E333BE72AC0DF7366F068DBC7C19A1EEB67313F9527F75F69509EC4671A8D**. BundleConfig.pb potvrđuje uncompressed native libraries / PAGE_ALIGNMENT_16K.
 - Zvanični bundletool 1.18.3 validate proverava strukturu istog AAB-a: exit 0, modul base. Korišćen je postojeći resolved AGP classpath, bez novih preuzimanja. Njegov JAR SHA-256 je CCAD18514FD97DB010856B2BBED40F481F8BA9349368C97AE54D72E3567D0171. Sopstveni neispravan 415-byte config-only ZIP je odbijen; originalni AAB nije menjan.
 
-Dokazi: artifacts/release-rc-8a4b8e4-{evidence,build-inspection,bundle-config-inspection,bundle-structural-inspection}.json, artifacts/bundle-structural-negative-result.json i ciljani release-focus-8a4b8e4-evidence.json. Puni evidence sadrži konačan status svih šest poslova, uključujući tablet neuspeh; 8a4b8e4 nije kvalifikovan za distribuciju ili potpisivanje.
+Dokazi: artifacts/release-focus-9c52b9b-{evidence,build-inspection,bundle-config-inspection,bundle-structural-inspection,package-boundary,visual-review}.json i artifacts/bundle-structural-negative-result.json. Ciljani evidence je potpun, ali ne zamenjuje punu regresiju. Stvarni zeleni ciljani izveštaj sa šest poslova odbijen je na 140/13 paket gate-u, bez kreiranja preview-a. Lokalni ACL/javni sertifikat pregled je artifacts/security/release-9c52b9b-key-storage.json; privatni sadržaj nije čitan ili kopiran tim pregledom. Prvi API 36 boot original čuva release-rc-9c52b9b-attempt1-evidence.json. Prethodni release-rc-8a4b8e4-evidence.json sadrži konačan status svih šest poslova, uključujući tablet neuspeh; taj prethodni izvor nije kvalifikovan za distribuciju ili potpisivanje.
 
 ## Završni uslovi i granice
 

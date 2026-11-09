@@ -1,6 +1,12 @@
 # Performance and device qualification
 
-## Fresh diagnostic observation — 9 November 2026
+## Current diagnostic observation — 9 November 2026
+
+Source `9c52b9b6b8e9bb261909457dafa5df84b54c7565`, focused CI 42674959657 / API 36: both diagnostic cases passed. Six actual media/editor/recreate/close cycles watched 12 editor Views; LeakCanary passed and Shark found **0 WhiteboardView instances** in the final 51,345,386-byte heap. Per-cycle PSS was 214514/204860/205784/208449/200884/201280 KB, after GC 238833 KB. These observations are not peak memory or a guarantee for all workloads.
+
+The same 1000-stroke / 100000-point workload recorded 89 Window frames: p50/p95/p99 **366.848/403.108/750.173 ms**. This remains high software-GPU emulator latency under debug/tracing and does not pass a physical 60 Hz target. The recorded trace SHA-256 is `2FF781F6A644DF8382978C1EB2C6741DC25BB4143333E814A7C095D771649D5E`. Its 8077 reconstructed main-thread events have 0 nonmonotonic records, with approximate attributed CPU/wall time 500.395/11554.304 ms. HardwareRenderer.nSyncAndDrawFrame accounts for 10457.957 ms wall (about 90.5%) and 58.226 ms main CPU; this again suggests emulator render-pipeline waiting, without native RenderThread/GPU evidence establishing the cause. Evidence: `artifacts/release-focus-9c52b9b-{evidence,trace-provenance,cpu-analysis}.json` and `release-focus-9c52b9b-diag-proof-diagnostic-qualification.json`, SHA-256 `860C77A618489F26509007D13132C080277395209855B92B38FBAB1FE3311BA7`. The final full matrix must repeat these diagnostics on this source after its release flows.
+
+## Earlier diagnostic observation — 9 November 2026
 
 Source `5c4f4af8462daf39df3eafac595311b2fa585032`, focused CI 42591085249, API 36 / 3 GiB software-GPU emulator: both separate diagnostic cases passed. Six actual media/editor/recreate/close cycles watched 12 editor Views; LeakCanary assertion passed and the final Shark heap contained **0 WhiteboardView instances**. The temporary 51,344,249-byte heap was removed by the fixture. Per-cycle PSS was 214985/205007/204694/205366/207142/207718 KB; post-GC PSS was 245268 KB. These snapshots are not a measured peak or a universal leak guarantee.
 

@@ -1,6 +1,6 @@
 # F06 — editor čvorova i semantički šablon
 
-> Prva puna editor matrica 7f0fe83/CI 42330852735 nije prošla: API 33 je zelen, ostali profili imaju fixture prelaz ili stvarni tablet focus pad. [Pregled i ispravke](MIND-MAP-EDITOR-CI-REVIEW.md) čuva izvor, sve rezultate, SHA-256 snimaka i dodatni vizuelni nalaz. Novi fix mora ponovo proći punu matricu; F06 ostaje otvoren.
+> Aktuelni source 9c52b9b prolazi ciljani CI 42674959657: 519 JVM, po sedam native slučajeva na API 26 telefon/tablet, 30 i 33, plus 2/2 dijagnostike na API 36. Puna matrica 42676617494 ima četiri uspešna native profila, tablet R8 target neuspeh i API 36 startup ANR; F06 ostaje otvoren do nove pune i paket kvalifikacije. Prvi neuspešni 7f0fe83 i kasniji IME/fixture nalazi ostaju u [pregledu](MIND-MAP-EDITOR-CI-REVIEW.md) i RELEASE-READINESS.md.
 
 Razvojna 0.8.0/code 17; F06 ostaje otvoren do nove Android/R8 i paket kvalifikacije. Najnoviji distribuirani razvojni paket ostaje 0.7.2/source 1176e59. Ovaj kod ne uključuje cloud, AI, naloge ili mrežne dozvole.
 
@@ -18,7 +18,7 @@ Novi Mind map šablon ima stvarni petočvorni model i četiri upravljana Connect
 
 ## Arhitektura i zaštita stanja
 
-Svi paneli jednog editor zahteva dele jedan `InputDialog` i njegov window token: pregled, akcije čvora, naslov/boja, izbor roditelja i pomeranje. Promena panela ne uklanja stari i ne otvara novi Android prozor. `MapCommit` pripada request scope-u i sprečava paralelnu potvrdu; Back/otkazivanje formulara je blokirano dok traje potvrda. Panel zadržava postojeći adaptive raspored, a `paneTitle` izlaže aktuelni naslov pristupačnosti. Birač boje ostaje zaseban ugnježdeni dijalog. Ova korekcija još zahteva novu ciljanu i punu Android matricu, uključujući API 26 tablet.
+Svi paneli jednog editor zahteva dele jedan `InputDialog` i njegov window token: pregled, akcije čvora, naslov/boja, izbor roditelja i pomeranje. Promena panela ne uklanja stari i ne otvara novi Android prozor. `MapCommit` pripada request scope-u i sprečava paralelnu potvrdu; Back/otkazivanje formulara je blokirano dok traje potvrda. Panel zadržava postojeći adaptive raspored, a `paneTitle` izlaže aktuelni naslov pristupačnosti. Birač boje ostaje zaseban ugnježdeni dijalog. Ciljani prolaz potvrđuje korekciju i na API 26 tabletu; puna regresija i optimizovani tokovi još su obavezni.
 
 MindMapEditorController odvojen je od glavnog ViewModel-a. MindMapEditorRequest sadrži immutable Page snapshot i iterativno pripremljene redove. Teška priprema komandi radi na injektovanom computation dispatcher-u; objavljivanje ponovo proverava sesiju, semantičku scenu, request ID i generation. Promena table, dismiss ili cancellation ne može naknadno editovati novu scenu. Promena kamere je dozvoljena. Ponovljeni Apply tokom rada ne prepisuje referencu aktivnog worker-a i ne može zaobići cancellation.
 

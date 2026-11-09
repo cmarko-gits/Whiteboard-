@@ -144,7 +144,7 @@ if ((test_exit == 0)) && [[ "$scope" != diagnostic ]]; then
   if ! api=$(adb shell getprop ro.build.version.sdk | tr -d '\r') || [[ ! "$api" =~ ^[0-9]+$ ]]; then
     echo "Cannot establish device API for optimized package qualification." >&2
     test_exit=1
-  elif [[ "$scope" == full && ( "$api" == 26 || "$api" == 36 ) ]]; then
+  elif [[ ( "$api" == 26 && ( "$scope" == full || "$scope" == mind-map ) ) || ( "$api" == 36 && "$scope" == full ) ]]; then
     if run_release_smoke && bash tools/Assert-CiDeviceHealth.sh after-release; then
       echo "Optimized release smoke passed on API $api."
       if [[ "$api" == 36 ]]; then
