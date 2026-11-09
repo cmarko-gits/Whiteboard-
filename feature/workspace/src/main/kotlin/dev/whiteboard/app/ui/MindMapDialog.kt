@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.ImeAction
@@ -60,106 +61,131 @@ internal fun MindMapDialog(
     val apply: (MindMapAction) -> Job = { viewModel.mindMaps.apply(it, request.id) }
     val requestActive = { viewModel.mindMaps.state.value.request?.id == request.id }
     val back = { panel = if (row == null) MapPanel.BROWSE else MapPanel.NODE }
-    when (panel) {
-        MapPanel.BROWSE, MapPanel.PARENT -> {
-            val candidates = if (panel == MapPanel.PARENT &&
-                row != null
-            ) {
-                request.rows.filter { it.mapId == row.mapId && it.node.id != row.node.id }
-            } else {
-                request.rows
+    key(request.id) {
+        val commit = rememberMapCommit(requestActive)
+        // Panels share the same modal window and IME owner for the whole request.
+        InputDialog(dismiss = {
+            when (panel) {
+                MapPanel.BROWSE, MapPanel.NODE -> dismiss()
+                MapPanel.PARENT -> back()
+                else -> if (!state.busy && !commit.pending) back()
             }
-            MindMapNodeList(
-                candidates,
-                if (panel == MapPanel.PARENT) R.string.mind_map_reparent else R.string.mind_maps,
-                state.busy,
-                state.error,
-                dismiss = { if (panel == MapPanel.PARENT) back() else dismiss() },
-                create = if (panel == MapPanel.BROWSE) ({ panel = MapPanel.CREATE }) else null
-            ) { selected ->
-                if (panel == MapPanel.PARENT && row != null) {
-                    apply(MindMapAction.Reparent(row.node.id, selected.node.id))
-                } else {
-                    nodeId = selected.node.id
-                    panel = MapPanel.NODE
+        }) { closeInput ->
+            when (panel) {
+                MapPanel.BROWSE, MapPanel.PARENT -> {
+                    val candidates = if (panel == MapPanel.PARENT &&
+                        row != null
+                    ) {
+                        request.rows.filter { it.mapId == row.mapId && it.node.id != row.node.id }
+                    } else {
+                        request.rows
+                    }
+                    MindMapNodeList(
+                        candidates,
+                        if (panel == MapPanel.PARENT) R.string.mind_map_reparent else R.string.mind_maps,
+                        state.busy,
+                        state.error,
+                        closeInput,
+                        dismiss = { if (panel == MapPanel.PARENT) back() else dismiss() },
+                        create = if (panel == MapPanel.BROWSE) ({ panel = MapPanel.CREATE }) else null
+                    ) { selected ->
+                        if (panel == MapPanel.PARENT && row != null) {
+                            apply(MindMapAction.Reparent(row.node.id, selected.node.id))
+                        } else {
+                            nodeId = selected.node.id
+                            panel = MapPanel.NODE
+                        }
+                    }
                 }
-            }
-        }
-        MapPanel.NODE -> if (row != null) {
-            InputAlertDialog(
-                onDismissRequest = { dismiss() },
-                title = { Text(row.note.text.take(120), maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                text = { closeKeyboard ->
-                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                        MapError(state.error)
-                        if (!row.visible) Text(stringResource(R.string.mind_map_hidden))
-                        @Composable fun action(label: Int, enabled: Boolean = true, click: () -> Unit) {
+                MapPanel.NODE -> if (row != null) {
+                    MindMapPanel(
+                        row.note.text.take(120),
+                        closeInput,
+                        input = { _, _ ->
+                            Column {
+                                MapError(state.error)
+                                if (!row.visible) Text(stringResource(R.string.mind_map_hidden))
+                            }
+                        },
+                        actions = { closeKeyboard ->
                             TextButton(onClick = {
                                 closeKeyboard()
-                                click()
-                            }, enabled = enabled && !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                                Text(stringResource(label))
+                                panel = MapPanel.BROWSE
+                            }, enabled = !state.busy, modifier = Modifier.weight(1f, fill = false)) {
+                                Text(stringResource(R.string.mind_maps))
+                            }
+                            TextButton(onClick = {
+                                closeKeyboard()
+                                dismiss()
+                            }, modifier = Modifier.weight(1f, fill = false)) { Text(stringResource(R.string.done)) }
+                        },
+                        body = { closeKeyboard ->
+                            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                                @Composable fun action(label: Int, enabled: Boolean = true, click: () -> Unit) {
+                                    TextButton(
+                                        onClick = {
+                                            closeKeyboard()
+                                            click()
+                                        },
+                                        enabled = enabled && !state.busy,
+                                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                    ) {
+                                        Text(stringResource(label))
+                                    }
+                                }
+                                action(R.string.mind_map_edit) { panel = MapPanel.EDIT }
+                                action(R.string.mind_map_child) { panel = MapPanel.CHILD }
+                                action(R.string.mind_map_sibling, row.node.parentId != null) { panel = MapPanel.SIBLING }
+                                action(
+                                    if (row.node.collapsed) R.string.mind_map_expand else R.string.mind_map_collapse,
+                                    row.childCount > 0
+                                ) {
+                                    apply(MindMapAction.Collapse(row.node.id, !row.node.collapsed))
+                                }
+                                action(R.string.mind_map_select) { apply(MindMapAction.Focus(row.node.id)) }
+                                action(R.string.mind_map_select_all) { apply(MindMapAction.SelectMap(row.node.id)) }
+                                action(R.string.mind_map_reparent, row.node.parentId != null) { panel = MapPanel.PARENT }
+                                action(R.string.mind_map_move) { panel = MapPanel.MOVE }
+                                action(R.string.branch_cut) { viewModel.removeMindMapBranch(request, row.node.id, cut = true) }
+                                action(R.string.branch_delete) { viewModel.removeMindMapBranch(request, row.node.id) }
                             }
                         }
-                        action(R.string.mind_map_edit) { panel = MapPanel.EDIT }
-                        action(R.string.mind_map_child) { panel = MapPanel.CHILD }
-                        action(R.string.mind_map_sibling, row.node.parentId != null) { panel = MapPanel.SIBLING }
-                        action(if (row.node.collapsed) R.string.mind_map_expand else R.string.mind_map_collapse, row.childCount > 0) {
-                            apply(MindMapAction.Collapse(row.node.id, !row.node.collapsed))
+                    )
+                }
+                MapPanel.CREATE, MapPanel.CHILD, MapPanel.SIBLING, MapPanel.EDIT -> {
+                    val label = when (panel) {
+                        MapPanel.CREATE -> R.string.mind_map_new
+                        MapPanel.CHILD -> R.string.mind_map_child
+                        MapPanel.SIBLING -> R.string.mind_map_sibling
+                        else -> R.string.mind_map_edit
+                    }
+                    key(request.id, panel, nodeId) {
+                        MindMapTitlePanel(
+                            label,
+                            if (panel == MapPanel.EDIT) row?.note?.text.orEmpty() else "",
+                            row?.note?.color ?: 0xFFD5E7CF.toInt(),
+                            state,
+                            favoriteColors,
+                            viewModel::favoriteColors,
+                            back,
+                            commit,
+                            closeInput
+                        ) { title, color ->
+                            val action = when (panel) {
+                                MapPanel.CREATE -> MindMapAction.Create(title, color)
+                                MapPanel.CHILD -> MindMapAction.Child(checkNotNull(row).node.id, title, color)
+                                MapPanel.SIBLING -> MindMapAction.Sibling(checkNotNull(row).node.id, title, color)
+                                else -> MindMapAction.Edit(checkNotNull(row).node.id, title, color)
+                            }
+                            apply(action)
                         }
-                        action(R.string.mind_map_select) { apply(MindMapAction.Focus(row.node.id)) }
-                        action(R.string.mind_map_select_all) { apply(MindMapAction.SelectMap(row.node.id)) }
-                        action(R.string.mind_map_reparent, row.node.parentId != null) { panel = MapPanel.PARENT }
-                        action(R.string.mind_map_move) { panel = MapPanel.MOVE }
-                        action(R.string.branch_cut) { viewModel.removeMindMapBranch(request, row.node.id, cut = true) }
-                        action(R.string.branch_delete) { viewModel.removeMindMapBranch(request, row.node.id) }
                     }
-                },
-                confirmButton = { closeKeyboard ->
-                    TextButton(onClick = {
-                        closeKeyboard()
-                        dismiss()
-                    }) { Text(stringResource(R.string.done)) }
-                },
-                dismissButton = { closeKeyboard ->
-                    TextButton(onClick = {
-                        closeKeyboard()
-                        panel = MapPanel.BROWSE
-                    }, enabled = !state.busy) { Text(stringResource(R.string.mind_maps)) }
                 }
-            )
-        }
-        MapPanel.CREATE, MapPanel.CHILD, MapPanel.SIBLING, MapPanel.EDIT -> {
-            val label = when (panel) {
-                MapPanel.CREATE -> R.string.mind_map_new
-                MapPanel.CHILD -> R.string.mind_map_child
-                MapPanel.SIBLING -> R.string.mind_map_sibling
-                else -> R.string.mind_map_edit
-            }
-            key(request.id, panel, nodeId) {
-                MindMapTitleDialog(
-                    label,
-                    if (panel == MapPanel.EDIT) row?.note?.text.orEmpty() else "",
-                    row?.note?.color ?: 0xFFD5E7CF.toInt(),
-                    state,
-                    favoriteColors,
-                    viewModel::favoriteColors,
-                    back,
-                    requestActive
-                ) { title, color ->
-                    val action = when (panel) {
-                        MapPanel.CREATE -> MindMapAction.Create(title, color)
-                        MapPanel.CHILD -> MindMapAction.Child(checkNotNull(row).node.id, title, color)
-                        MapPanel.SIBLING -> MindMapAction.Sibling(checkNotNull(row).node.id, title, color)
-                        else -> MindMapAction.Edit(checkNotNull(row).node.id, title, color)
+                MapPanel.MOVE -> if (row != null) {
+                    key(request.id) {
+                        MindMapMovePanel(state, back, commit, closeInput) { apply(MindMapAction.Move(row.node.id, it)) }
                     }
-                    apply(action)
                 }
-            }
-        }
-        MapPanel.MOVE -> if (row != null) {
-            key(request.id) {
-                MindMapMoveDialog(state, back, requestActive) { apply(MindMapAction.Move(row.node.id, it)) }
             }
         }
     }
@@ -187,6 +213,7 @@ private fun MindMapNodeList(
     title: Int,
     busy: Boolean,
     error: Int?,
+    closeKeyboard: () -> Unit,
     dismiss: () -> Unit,
     create: (() -> Unit)?,
     select: (MindMapRow) -> Unit
@@ -226,9 +253,9 @@ private fun MindMapNodeList(
             }
         }
     }
-    MindMapFormDialog(
-        title,
-        dismiss,
+    MindMapPanel(
+        stringResource(title),
+        closeKeyboard,
         input = { closeKeyboard, _ ->
             Column(Modifier.fillMaxWidth()) {
                 MapError(error)
@@ -310,7 +337,7 @@ private fun MindMapNodeList(
 }
 
 @Composable
-private fun MindMapTitleDialog(
+private fun MindMapTitlePanel(
     titleLabel: Int,
     initial: String,
     initialColor: Int,
@@ -318,14 +345,14 @@ private fun MindMapTitleDialog(
     favorites: List<Int>,
     saveFavorites: (List<Int>) -> Unit,
     dismiss: () -> Unit,
-    requestActive: () -> Boolean,
+    commit: MapCommit,
+    closeKeyboard: () -> Unit,
     submit: (String, Int) -> Job
 ) {
     var title by rememberSaveable { mutableStateOf(initial.take(20_000)) }
     var color by rememberSaveable { mutableIntStateOf(initialColor) }
     var tooLong by rememberSaveable { mutableStateOf(false) }
     val oversized = initial.length > 20_000
-    val commit = rememberMapCommit(requestActive)
     val processing = state.busy || commit.pending
     val focus = remember { FocusRequester() }
     var placed by remember { mutableStateOf(false) }
@@ -336,9 +363,9 @@ private fun MindMapTitleDialog(
         }
     }
     val message = if (oversized || tooLong) stringResource(R.string.mind_map_title_limit) else state.error?.let { stringResource(it) }
-    MindMapFormDialog(
-        titleLabel,
-        { if (!processing) dismiss() },
+    MindMapPanel(
+        stringResource(titleLabel),
+        closeKeyboard,
         input = { closeKeyboard, compact ->
             Row(
                 Modifier.fillMaxWidth(),
@@ -394,17 +421,22 @@ private fun MindMapTitleDialog(
 }
 
 @Composable
-private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, requestActive: () -> Boolean, submit: (Point) -> Job) {
+private fun MindMapMovePanel(
+    state: MindMapEditorUi,
+    dismiss: () -> Unit,
+    commit: MapCommit,
+    closeKeyboard: () -> Unit,
+    submit: (Point) -> Job
+) {
     var x by rememberSaveable { mutableStateOf("240") }
     var y by rememberSaveable { mutableStateOf("0") }
     fun coordinate(value: String): Float? = value.toFloatOrNull()?.takeIf { it.isFinite() && it in -1_000_000_000f..1_000_000_000f }
-    val commit = rememberMapCommit(requestActive)
     val processing = state.busy || commit.pending
     val dx = coordinate(x)
     val dy = coordinate(y)
-    MindMapFormDialog(
-        R.string.mind_map_move,
-        { if (!processing) dismiss() },
+    MindMapPanel(
+        stringResource(R.string.mind_map_move),
+        closeKeyboard,
         input = { _, _ ->
             Column(Modifier.fillMaxWidth()) {
                 MapError(state.error)
@@ -453,35 +485,41 @@ private fun MindMapMoveDialog(state: MindMapEditorUi, dismiss: () -> Unit, reque
 
 /** The input and actions retain their parents when IME changes the available height. */
 @Composable
-private fun MindMapFormDialog(
-    title: Int,
-    dismiss: () -> Unit,
+private fun MindMapPanel(
+    title: String,
+    closeKeyboard: () -> Unit,
     input: @Composable (closeKeyboard: () -> Unit, compact: Boolean) -> Unit,
     actions: @Composable RowScope.(closeKeyboard: () -> Unit) -> Unit,
     body: @Composable (closeKeyboard: () -> Unit) -> Unit
 ) {
-    InputDialog(dismiss) { closeKeyboard ->
-        BoxWithConstraints(
-            Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)
-                .semantics { testTagsAsResourceId = true }
+    BoxWithConstraints(
+        Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)
+            .semantics { testTagsAsResourceId = true }
+    ) {
+        val compact = maxHeight < 240.dp
+        val inline = compact && WindowInsets.ime.getBottom(LocalDensity.current) > 0
+        Surface(
+            Modifier.widthIn(max = 560.dp).fillMaxWidth().semantics { paneTitle = title },
+            shape = MaterialTheme.shapes.extraLarge
         ) {
-            val compact = maxHeight < 240.dp
-            val inline = compact && WindowInsets.ime.getBottom(LocalDensity.current) > 0
-            Surface(Modifier.widthIn(max = 560.dp).fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge) {
-                Column(Modifier.padding(if (compact) 8.dp else 24.dp)) {
-                    if (!compact) {
-                        Text(stringResource(title), style = MaterialTheme.typography.headlineSmall)
-                        Spacer(Modifier.height(12.dp))
-                    }
-                    AdaptiveDialogContent(
-                        compact = inline,
-                        input = { input(closeKeyboard, compact) },
-                        actions = { actions(closeKeyboard) },
-                        body = {
-                            if (!inline) body(closeKeyboard)
-                        }
+            Column(Modifier.padding(if (compact) 8.dp else 24.dp)) {
+                if (!compact) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(Modifier.height(12.dp))
                 }
+                AdaptiveDialogContent(
+                    compact = inline,
+                    input = { input(closeKeyboard, compact) },
+                    actions = { actions(closeKeyboard) },
+                    body = {
+                        if (!inline) body(closeKeyboard)
+                    }
+                )
             }
         }
     }

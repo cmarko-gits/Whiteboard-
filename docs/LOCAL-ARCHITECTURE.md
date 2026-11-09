@@ -16,6 +16,8 @@ WhiteboardView klipuje native Canvas na sopstveni viewport pre kamere i iscrtava
 
 Kandidat je offline: bez naloga, mrežnih dozvola, AI-a, cloud-a ili backend-a. Skeniranje zavisnosti/izvora, APK politika i 16 KB pregled imaju tačan source/hash; nisu dokaz fizičkog GPU-a, izgovora TalkBack-a ili odsustva svih ranjivosti. Završne rezultate i granice navode RELEASE-READINESS.md, RELEASE-SECURITY-REVIEW.md i RELEASE-HANDOFF.md.
 
+Editor mapa sada drži sve pod-panele jednog `MindMapEditorRequest` u jednom `InputDialog` prozoru. Prelazak lista/čvor/naslov/roditelj/pomeranje menja Compose sadržaj uz isti window token i IME vlasnika. `MapCommit` živi u request scope-u, dok su vrednosti polja zasebno saveable; novi request dobija nov scope. Svaki panel izlaže aktuelni `paneTitle`; birač boje ostaje ugnježden dijalog. Ovo uklanja zamenu prozora iz unutrašnjih map prelaza; stvarna IME regresija mora se ponovo izvršiti na telefonu i tabletu, bez uklanjanja keyboard-shown asercija.
+
 ## Istorijske dopune, 4. novembar 2026.
 
 Provereni izvor je 0.6.4/9589e12: LOCAL-0.6.4-CANDIDATE.md. AppCompatActivity i AppCompatDelegate pripadaju composition root-u; domen ima samo AppLanguage vrednosti bez Android Context-a. Jedan framework mehanizam čuva izabrani jezik, uz AppCompat auto-storage pre API 33 i sistemsko čuvanje od API 33. Nema paralelnog DataStore jezičkog ključa.

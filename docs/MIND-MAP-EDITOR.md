@@ -18,6 +18,8 @@ Novi Mind map šablon ima stvarni petočvorni model i četiri upravljana Connect
 
 ## Arhitektura i zaštita stanja
 
+Svi paneli jednog editor zahteva dele jedan `InputDialog` i njegov window token: pregled, akcije čvora, naslov/boja, izbor roditelja i pomeranje. Promena panela ne uklanja stari i ne otvara novi Android prozor. `MapCommit` pripada request scope-u i sprečava paralelnu potvrdu; Back/otkazivanje formulara je blokirano dok traje potvrda. Panel zadržava postojeći adaptive raspored, a `paneTitle` izlaže aktuelni naslov pristupačnosti. Birač boje ostaje zaseban ugnježdeni dijalog. Ova korekcija još zahteva novu ciljanu i punu Android matricu, uključujući API 26 tablet.
+
 MindMapEditorController odvojen je od glavnog ViewModel-a. MindMapEditorRequest sadrži immutable Page snapshot i iterativno pripremljene redove. Teška priprema komandi radi na injektovanom computation dispatcher-u; objavljivanje ponovo proverava sesiju, semantičku scenu, request ID i generation. Promena table, dismiss ili cancellation ne može naknadno editovati novu scenu. Promena kamere je dozvoljena. Ponovljeni Apply tokom rada ne prepisuje referencu aktivnog worker-a i ne može zaobići cancellation.
 
 Čisti MindMapEdits planovi ostaju autoritet za reference, granice, budžet i atomski Undo. UI ne menja stablo direktno. Fokus se primenjuje posle layout frame-a uz proveru table/stranice; Select map koristi zbirni vidljivi okvir. Semantički čvorovi, touch i izvoz koriste istu postojeću Page projekciju. Govorni TalkBack pregled i stvarna hardverska latencija ovim nisu potvrđeni.
