@@ -21,6 +21,11 @@ internal fun launchTestLibrary(device: UiDevice) {
     InstrumentationRegistry.getInstrumentation().startActivitySync(
         Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
     )
+    awaitTestLibrary(device)
+}
+
+/** Settle the library/onboarding in the caller's ActivityScenario without replacing its Activity. */
+internal fun awaitTestLibrary(device: UiDevice) {
     val deadline = SystemClock.uptimeMillis() + 10_000
     while (!device.hasObject(By.desc("New board")) && SystemClock.uptimeMillis() < deadline) {
         device.findObject(By.text("Start creating"))?.click()

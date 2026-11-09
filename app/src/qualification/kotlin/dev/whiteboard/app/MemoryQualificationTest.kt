@@ -71,11 +71,8 @@ class MemoryQualificationTest {
             repository.save(board)
             repeat(6) {
                 ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-                    checkNotNull(device.wait(Until.findObject(By.desc("New board")), 10_000))
-                    checkNotNull(device.findObject(By.clazz("android.widget.EditText"))).text = board.name.substringAfter("Memory ")
-                    checkNotNull(device.wait(Until.findObject(By.desc("Search results")), 10_000))
-                    device.waitForIdle()
-                    checkNotNull(device.wait(Until.findObject(By.text(board.name)), 10_000)).click()
+                    awaitTestLibrary(device)
+                    openTestBoard(device, board.name)
                     checkNotNull(device.wait(Until.findObject(By.descContains("Drawing canvas")), 10_000))
                     instrumentation.waitForIdleSync()
                     scenario.onActivity(::watchEditor)
@@ -102,6 +99,9 @@ class MemoryQualificationTest {
                 File(context.getExternalFilesDir(null), "qualification-memory.json").writeText(report.toString(2))
                 assertEquals("Closed editor Views remain in the heap", 0, remaining)
             }
+        } catch (failure: Throwable) {
+            CaptureUiFailure().snapshot("memory-before-cleanup")
+            throw failure
         } finally {
             heap.delete()
             repository.deletePermanently(board.id)

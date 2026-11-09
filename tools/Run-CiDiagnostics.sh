@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Diagnostic-only builds: their heap/frame observations are not release-binary or hardware guarantees.
 set -euo pipefail
-if [[ "${GITHUB_ACTIONS:-}" != true || "$(uname -s)" != Linux || "${WHITEBOARD_CI_TEST_SCOPE:-full}" != full ]]; then
-  echo 'Diagnostic qualification is restricted to the full Linux CI emulator run.' >&2
+scope=${WHITEBOARD_CI_TEST_SCOPE:-full}
+if [[ "${GITHUB_ACTIONS:-}" != true || "$(uname -s)" != Linux || ( "$scope" != full && "$scope" != diagnostic ) ]]; then
+  echo 'Diagnostic qualification is restricted to the full or diagnostic-only Linux CI emulator run.' >&2
   exit 2
 fi
 output=artifacts/device-release

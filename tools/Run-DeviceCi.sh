@@ -4,7 +4,7 @@ set -uo pipefail
 
 mkdir -p artifacts
 scope=${WHITEBOARD_CI_TEST_SCOPE:-full}
-case "$scope" in full|mind-map) ;; *) echo 'Unsupported CI test scope.' >&2; exit 2 ;; esac
+case "$scope" in full|mind-map|diagnostic) ;; *) echo 'Unsupported CI test scope.' >&2; exit 2 ;; esac
 printf '%s\n' "$scope" > artifacts/ci-test-scope.txt
 # A recorded System UI startup timeout arrived ~47s after emulator launch, after the
 # runner had already reported boot completed. Let early boot services settle before
@@ -119,13 +119,28 @@ run_native_tests() {
   bash tools/Assert-CiDeviceHealth.sh after-native
 }
 
-if run_native_tests; then
+if [[ "$scope" == diagnostic ]]; then
+  api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+  if [[ "$api" != 36 ]]; then
+    echo 'Diagnostic-only qualification requires the API 36 profile.' >&2
+    test_exit=2
+  else
+    mkdir -p artifacts/device-release
+    if bash tools/Assert-CiDeviceHealth.sh native-start &&
+        bash tools/Run-CiDiagnostics.sh 2>&1 | tee artifacts/device-release/diagnostic.log &&
+        bash tools/Assert-CiDeviceHealth.sh after-diagnostic; then
+      test_exit=0
+    else
+      test_exit=$?
+    fi
+  fi
+elif run_native_tests; then
   test_exit=0
 else
   test_exit=$?
 fi
 
-if ((test_exit == 0)); then
+if ((test_exit == 0)) && [[ "$scope" != diagnostic ]]; then
   if ! api=$(adb shell getprop ro.build.version.sdk | tr -d '\r') || [[ ! "$api" =~ ^[0-9]+$ ]]; then
     echo "Cannot establish device API for optimized package qualification." >&2
     test_exit=1
