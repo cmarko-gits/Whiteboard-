@@ -14,7 +14,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import dev.whiteboard.core.model.ThemeMode
 import dev.whiteboard.ui.InputAlertDialog
 import dev.whiteboard.ui.InputDialog
@@ -35,6 +37,7 @@ class InputDialogWindowTest {
     private fun assertWindowRelease(alert: Boolean) {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         var visible by mutableStateOf(false)
+        var replaced by mutableStateOf(false)
         compose.setContent {
             WhiteboardTheme(ThemeMode.LIGHT) {
                 var owner by remember { mutableStateOf("Owner") }
@@ -44,19 +47,27 @@ class InputDialogWindowTest {
                     TextButton(onClick = { visible = true }) { Text("Open dialog") }
                 }
                 if (visible) {
+                    val currentAlert = alert xor replaced
+                    val title = if (currentAlert) "Alert input window" else "Plain input window"
                     val input: @Composable () -> Unit = {
                         OutlinedTextField(child, { child = it }, modifier = Modifier.testTag("dialog-input"))
                     }
                     val confirm: @Composable (() -> Unit) -> Unit = { close ->
-                        TextButton(onClick = {
-                            close()
-                            visible = false
-                        }) { Text("Apply dialog") }
+                        Column {
+                            TextButton(onClick = {
+                                close()
+                                replaced = !replaced
+                            }) { Text("Replace dialog") }
+                            TextButton(onClick = {
+                                close()
+                                visible = false
+                            }) { Text("Apply dialog") }
+                        }
                     }
-                    if (alert) {
+                    if (currentAlert) {
                         InputAlertDialog(
                             onDismissRequest = { visible = false },
-                            title = { Text("Input window") },
+                            title = { Text(title) },
                             text = { input() },
                             confirmButton = { confirm(it) },
                             dismissButton = {}
@@ -65,6 +76,7 @@ class InputDialogWindowTest {
                         InputDialog({ visible = false }) { close ->
                             Surface {
                                 Column {
+                                    Text(title)
                                     input()
                                     confirm(close)
                                 }
@@ -80,6 +92,14 @@ class InputDialogWindowTest {
             compose.onNodeWithText("Open dialog").performClick()
             compose.onNodeWithTag("dialog-input").performClick().performTextInput("Child")
             compose.onNodeWithTag("dialog-input").assertIsFocused()
+            repeat(4) {
+                compose.onNodeWithText("Replace dialog").performClick()
+                val title = if (alert xor replaced) "Alert input window" else "Plain input window"
+                check(device.wait(Until.hasObject(By.text(title)), 10_000)) { "Replacement window did not open" }
+                checkNotNull(device.wait(Until.findObject(By.text("Child").clazz("android.widget.EditText")), 10_000)).click()
+                awaitKeyboardShown(device)
+                compose.onNodeWithTag("dialog-input").assertIsFocused().assertTextContains("Child")
+            }
             compose.onNodeWithText("Apply dialog").performClick()
             compose.onNodeWithTag("dialog-input").assertDoesNotExist()
             // Legacy View focus restoration can legitimately retain this field's focus;

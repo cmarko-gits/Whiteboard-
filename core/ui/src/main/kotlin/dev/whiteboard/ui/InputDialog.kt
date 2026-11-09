@@ -28,6 +28,7 @@ private class OwnerInputReturn(private val view: View, private val closeInput: (
     WindowInsetsControllerCompat.OnControllableInsetsChangedListener {
     private var observer: ViewTreeObserver? = null
     private var controller: WindowInsetsControllerCompat? = null
+    private var closeRequested = false
     private var returned = false
     private var controlReceived = false
     private val finish = Runnable {
@@ -48,8 +49,12 @@ private class OwnerInputReturn(private val view: View, private val closeInput: (
     }
 
     fun close() {
+        // The same window closes input before its action and again during disposal.
+        // Releasing the owner twice can replace a successor dialog's input session.
+        if (closeRequested) return
+        closeRequested = true
         closeInput()
-        if (!view.isAttachedToWindow || view.hasWindowFocus() || observer != null) return
+        if (!view.isAttachedToWindow || view.hasWindowFocus()) return
         returned = false
         controlReceived = false
         observer = view.viewTreeObserver.also { it.addOnWindowFocusChangeListener(this) }

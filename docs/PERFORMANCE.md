@@ -1,5 +1,15 @@
 # Performance and device qualification
 
+## Fresh diagnostic observation — 9 November 2026
+
+Source `5c4f4af8462daf39df3eafac595311b2fa585032`, focused CI 42591085249, API 36 / 3 GiB software-GPU emulator: both separate diagnostic cases passed. Six actual media/editor/recreate/close cycles watched 12 editor Views; LeakCanary assertion passed and the final Shark heap contained **0 WhiteboardView instances**. The temporary 51,344,249-byte heap was removed by the fixture. Per-cycle PSS was 214985/205007/204694/205366/207142/207718 KB; post-GC PSS was 245268 KB. These snapshots are not a measured peak or a universal leak guarantee.
+
+The 1000-stroke / 100000-point Window workload recorded 89 frames: TOTAL_DURATION p50/p95/p99 **450.146/500.191/996.957 ms** with debug diagnostics and sampling enabled. This is high emulator latency and does not pass a physical 60 Hz target. The optimized release binary and its hardware render pipeline were not measured by this diagnostic APK.
+
+The source-bound ART v3 dual-clock trace SHA-256 is `A92BDF4AA20C5D808D8D1E0383E7709E05E0A126D4A24F5176C5C253A11729C0`. The existing bounded parser reconstructed 9325 main-thread events with 0 nonmonotonic records. Approximate attributed main CPU/wall time was 623.123/13953.613 ms. HardwareRenderer.nSyncAndDrawFrame accounted for 12630.738 ms wall (about 90.5%) and 49.852 ms main CPU time. This **suggests render-pipeline waiting in this emulator**; native RenderThread/GPU stacks are absent, so the trace does not establish a GPU cause or a justified domain/index optimization. Physical release profiling remains required.
+
+Evidence: `artifacts/release-focus-5c4f4af-{evidence,trace-provenance,cpu-analysis}.json`, `release-focus-5c4f4af-diag-proof-diagnostic-qualification.json` and the retained 176331-byte trace. The focused run has three seven-case native profiles and a separate API 36 diagnostic profile; it is not the complete release matrix. Full-source repetition remains a release gate. The earlier failed memory fixture and its confirmed cold-install/onboarding cause are preserved in RELEASE-READINESS.md.
+
 ## Reproducible workload
 
 `LargeDocumentTest` creates 1000 independent strokes with 100 points each and 200 Unicode notes. It saves a file-backed Room document, loads and compares every object/property, and renders the normal PNG export. It records JSON size, save/load/export elapsed time and process/native memory in the `WhiteboardBenchmark` instrumentation log. The database is removed afterward.
