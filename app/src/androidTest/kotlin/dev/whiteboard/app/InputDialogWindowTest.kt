@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -87,6 +88,7 @@ class InputDialogWindowTest {
             awaitTestKeyboardHidden(device)
             compose.onNodeWithTag("owner-input").performClick()
             awaitKeyboardShown(device)
+            compose.onNodeWithTag("owner-input").performTextInputSelection(TextRange("Owner".length))
             compose.onNodeWithTag("owner-input").performTextInput(" resumed")
             compose.onNodeWithTag("owner-input").assertTextContains("Owner resumed")
         } catch (error: Throwable) {
