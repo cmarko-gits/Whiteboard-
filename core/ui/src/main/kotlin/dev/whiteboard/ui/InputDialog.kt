@@ -68,11 +68,12 @@ private class OwnerInputReturn(private val view: View, private val closeInput: (
     }
 
     override fun onControllableInsetsChanged(controller: WindowInsetsControllerCompat, typeMask: Int) {
-        if (this.controller == null || (typeMask and WindowInsetsCompat.Type.ime()) == 0) return
+        if (controlReceived || this.controller == null || (typeMask and WindowInsetsCompat.Type.ime()) == 0) return
         controlReceived = true
-        clearController()
         // Run after this control transaction is applied. API 30 can otherwise restore
         // an old requested-visible state after the preceding window-focus hide.
+        // Remove the listener in finish/detach too: API 30 iterates a fixed list size
+        // here, so removing it during dispatch can crash InsetsController itself.
         view.post(finish)
     }
 
