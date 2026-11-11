@@ -1,12 +1,10 @@
 # Whiteboard — lokalno korišćenje
 
-Najnoviji lokalni razvojni kandidat je 0.7.2: [rezultati, otvoreni nalazi i ograničenja](LOCAL-0.7.2-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
+Najnoviji lokalni kandidat je 0.8.0: [rezultati, paketi i ograničenja](LOCAL-0.8.0-CANDIDATE.md). Settings → Language bira sistemski jezik, English ili Srpski (latinica). Izbor se pamti posle ponovnog pokretanja; otvorena tabla i nesnimljene izmene ostaju dostupne pri promeni jezika. Nazivi komandi ispod odgovaraju engleskom interfejsu.
 
 Dokument sa previše objekata ili predugim tekstom može prekoračiti bezbednosni limit obrade. Aplikacija tada traži manje objekata ili kraći tekst. Neuspešno čuvanje zadržava prethodno sačuvanu reviziju i nesnimljene izmene; smanji sadržaj i ponovi Save. Recovery nije nezavisan backup.
 
-## Mape uma — razvojna 0.8.0
-
-Ovaj deo opisuje novi kod koji još čeka punu Android/R8 i paket kvalifikaciju; navedeni 0.7.2 paket nema ovaj editor.
+## Mape uma
 
 More actions → Mind maps → New mind map otvara naslov i birač boje korena. Confirm dodaje mapu jednim Undo korakom. Novi Mind map šablon već sadrži centralni čvor i četiri povezane ideje; ranije sačuvani obični crteži ostaju obični crteži.
 

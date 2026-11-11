@@ -1,5 +1,15 @@
 # Izvršavanje preostalih zadataka
 
+## Konačni 0.8.0 kandidat — 11. novembar 2026.
+
+Aplikacioni izvor **36cd15a6415d66eff7be10c97802ddc61f522f59**, [CI 43008205011](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43008205011): svih šest poslova prolazi u prvom pokušaju, bez retry-ja. Prolazi 519 JVM, pet profila po 140 app + 13 data, tri R8/jezička/runtime toka i dve odvojene dijagnostike. Stvarna 0.7.2 binarna nadogradnja, tri WindowManager i četiri adaptive/font slučaja su vezani za isti source. Tablet testna forma dobija imePadding; produkcioni model jednog prozora po editor zahtevu ostaje isti. Opt-in eksterni standardni JUnit klijent proverava stvarne accessibility akcije nad R8 aplikacijom, bez produkcionog instrumentation unosa ili domenskog backdoor-a.
+
+Digest-verified puna evidencija, strict package gate i 381-entry poređenje tri CI R8 APK-a prolaze. Preview SHA-256 CF5F6D5E58E7EB5D09887EE0CA09B296A84F6FE8326ED91E70994906D32C61D6; vlasnički potpisani AAB 77054F7DC2B0AC14CA8D75631D1445DE7ECE2AC59CC43447A317505D79FDAD97. Strict owner sertifikat, 390 nepromenjenih AAB stavki, odgovarajući DEX/native payload i zvanični bundletool validate pre/posle potpisa prolaze. [LOCAL-0.8.0-CANDIDATE.md](LOCAL-0.8.0-CANDIDATE.md) navodi pakete, tačne dokaze i ograničenja.
+
+OSV/licence/notices svih 155 komponenti, source scan 453 fajla i history scan 149 skeniranih/157 dostupnih revizija nemaju prijavljenih nalaza/tajni. Konačna debug dijagnostika ima 0 preostalih WhiteboardView posle šest stvarnih media/editor ciklusa; emulator frame p95 316.896 ms nije fizički 60 Hz prolaz. Četiri odabrana konačna snimka su vizuelno pregledana; kompletan TalkBack/kontrast ostaje otvoren.
+
+**Glavni plan: 6/9 završeno; 3 otvoreno (5, 6, 9). Širi backlog: 14/47 završeno, 33 otvoreno; zatvoren je F06.** Bez telefona se nastavlja po ranijoj odluci korisnika; nezavisna prenosiva kopija upload ključa nema određeno bezbedno odredište. Play upload nije izvršen. Dokumentacioni commit posle kvalifikacije ne menja kvalifikovani aplikacioni izvor. Slede raniji istorijski preseci, uključujući sve neuspešne pokušaje.
+
 ## F06 editor — CI pregled i ispravke, 7. novembar 2026.
 
 7f0fe83/CI 42330852735 potvrđuje verify/518 JVM, OSV 155, source scan 435 i API 33 po 134 app + 13 data. Ostali profili imaju native neuspehe: readiness fixture Add sibling/Move whole branch/New mind map ili stvarni tablet BringIntoViewRequester pad pre postavljanja roditelja (tablet app regresija je nepotpuna). Puna matrica je neuspešna, bez retry-ja, bez novih R8/paket dokaza i bez distribucije.

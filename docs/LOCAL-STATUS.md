@@ -1,8 +1,8 @@
-# Whiteboard 0.4.0 — lokalni status i QA
+# Whiteboard — lokalni status i QA
 
-> Aktuelni rad: [devet celina pripreme izdanja](RELEASE-READINESS.md). Kandidat 0.8.0 je izdvojen od F07 razvoja; konačni paket još nije kvalifikovan. Stariji nalazi u nastavku su istorijski, vezani za svoje izvore.
+> Presek 11. novembra 2026: [devet celina pripreme izdanja](RELEASE-READINESS.md), **6/9 završeno, 3 otvoreno**. Kandidat 0.8.0/source 36cd15a je softverski kvalifikovan i izdvojen od F07 razvoja. Ručni/hardverski rad i nezavisna kopija ključa ostaju otvoreni.
 
-Najnoviji kvalifikovani paket ostaje [0.7.2/source 1176e59](LOCAL-0.7.2-CANDIDATE.md). **13/47 završeno, 34 otvoreno**. F06 source 23463e6/CI 42269898794 potvrđuje 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka. Novi [editor čvorova i semantički šablon](MIND-MAP-EDITOR.md) lokalno prolaze 518 JVM, stil/arhitekturu i Android kompilaciju; puna nova CI/paket kvalifikacija još sledi. F06 nije zatvoren niti je 0.8.0 distribuiran. Ostatak dokumenta je istorijska 0.4.0 kohorta; aktuelni rad navode EXECUTION-PROGRESS.md i LOCAL-REMAINING-TASKS.md.
+Najnoviji kvalifikovani paket je [0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md), CI 43008205011: svih šest poslova bez retry-ja, 519 JVM, pet profila po 140 app + 13 data i dve odvojene dijagnostike. Tri R8/jezička/runtime toka, stvarna 0.7.2 nadogradnja, adaptive/split-screen, security gates i poređenje tri originalna APK-a prolaze. Preview APK i vlasnički potpisani AAB su provereni; F06 je zatvoren u lokalnom emulatorskom opsegu. **14/47 završeno, 33 otvoreno** u širem backlog-u. Ostatak dokumenta je istorijska 0.4.0 kohorta; aktuelni rad navode EXECUTION-PROGRESS.md i LOCAL-REMAINING-TASKS.md.
 
 Istorijski izveštaj za 0.4.0. Novi izvor/kandidat 0.4.1 i kasniji OS/CI/storage nalazi opisani su u [LOCAL-0.4.1-CANDIDATE.md](LOCAL-0.4.1-CANDIDATE.md) i [EXECUTION-PROGRESS.md](EXECUTION-PROGRESS.md). Promenljivi build izlazi i noviji security report fajlovi mogu sada pripadati novom kandidatu; stare rezultate proveravati uz njihove zabeležene hash-eve i imenovane qualification artefakte.
 

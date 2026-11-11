@@ -1,8 +1,8 @@
-# Whiteboard za Android — lokalni kandidat 0.7.2
+# Whiteboard za Android — lokalni kandidat 0.8.0
 
-> Aktivna priprema prve javne lokalne verzije prati [devet završnih celina](docs/RELEASE-READINESS.md). Opseg kandidata je 0.8.0/code 17, bez nedovršenog F07 razvoja. Ciljani 33/36 prolaz i konačna petoprofilna kvalifikacija imaju zasebne dokaze; razvojni rezultat nije potvrda spremnosti za Play.
+> [Devet završnih celina](docs/RELEASE-READINESS.md): **6/9 završeno, 3 otvoreno**. Opseg je offline 0.8.0/code 17, bez F07 razvoja. Ručni TalkBack/kontrast, fizičko profilisanje i nezavisna kopija ključa ostaju otvoreni; Play objava nije izvršena.
 
-Kvalifikovani lokalni paket ostaje [0.7.2/source 1176e59](docs/LOCAL-0.7.2-CANDIDATE.md), sa 535 jedinstvenih testova, pet Android profila i tri release toka. **13/47 završeno, 34 otvoreno**; Z08 i ostale stavke ostaju u planu. Razvojna 0.8.0/code 17 sada ima [mind-map model](docs/MIND-MAP-DESIGN.md), vidljivu projekciju, privatni branch clipboard i potvrde grana: source 23463e6/CI 42269898794 prolazi 500 JVM i pet profila po 132 app + 13 data, uz tri R8/jezička toka. Novi [editor čvorova i semantički šablon](docs/MIND-MAP-EDITOR.md) imaju 519 lokalnih JVM testova, stil/arhitekturu i Android kompilaciju; nova puna CI/paket kvalifikacija još sledi. F06 ostaje otvoren; 0.8.0 nije distribuiran. Prethodni paketi i neuspešni pokušaji ostaju sačuvani.
+Kvalifikovani lokalni paket je [0.8.0/source 36cd15a](docs/LOCAL-0.8.0-CANDIDATE.md). [CI 43008205011](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43008205011) prolazi svih šest poslova bez retry-ja: 519 JVM, pet profila po 140 app + 13 data, dve odvojene dijagnostike, tri R8/jezička/runtime toka, stvarna binarna nadogradnja i adaptive/split-screen. Preview APK i vlasnički potpisani AAB su sačuvani i provereni. [F06 editor čvorova i semantički šablon](docs/MIND-MAP-EDITOR.md) je zatvoren u softverskom/emulatorskom opsegu. Širi backlog: **14/47 završeno, 33 otvoreno**; Z08, hardverski rad i buduće opcije ostaju u planu. Prethodni paketi i neuspešni pokušaji ostaju sačuvani.
 
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. Priprema se stabilno lokalno izdanje za kasniju Play predaju; objava nije izvršena. AI, backend, nalozi i cloud ostaju van opsega. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 
@@ -25,7 +25,7 @@ $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 
 Device skripta podrazumeva emulator-5554. Za drugi ciljni uređaj eksplicitno zadati DeviceSerial. U okruženju sa ograničenim resursima build i emulator rade naizmenično. Ne preuzimati novi emulator image bez potrebe; ograničenje dodatnog prostora je 3,4 GB.
 
-`tools/Smoke-Test.ps1` proverava optimizovani paket, recovery i rasporede. Zatim `tools/Test-WindowModes.ps1` proverava stvarni split-screen preko WindowManager-a, `tools/Test-Adaptive.ps1 -VersionName 0.4.1` font/prozore, a `tools/Test-Locales.ps1` sr-Latn i stvarnu RTL konfiguraciju. Te skripte koriste engleski početni interfejs, otvaraju sopstvenu Recovery_check test tablu i vraćaju izmenjenu konfiguraciju. Izabrani emulator nije fizička kvalifikacija svih uređaja.
+`tools/Smoke-Test.ps1` proverava optimizovani paket, recovery i rasporede. Zatim `tools/Test-WindowModes.ps1` proverava stvarni split-screen preko WindowManager-a, `tools/Test-Adaptive.ps1 -VersionName 0.8.0` font/prozore, a `tools/Test-Locales.ps1` sr-Latn i stvarnu RTL konfiguraciju. Te skripte koriste engleski početni interfejs, otvaraju sopstvenu Recovery_check test tablu i vraćaju izmenjenu konfiguraciju. CI za R8 UI komande zasebno gradi opt-in androidTest klijent sa `-Pwhiteboard.releaseUiClient=true`, uz isključene qualification/leakDetection opcije; taj jedan pomoćni metod nije regularnih 140 app testova. Izabrani emulator nije fizička kvalifikacija svih uređaja.
 
 Verzija 0.4 dodaje pristupačne objekte platna, kompletan Objects navigator i alternative gestovima. Za zasebne testove sa LeakCanary/Shark i stvarnim TalkBack servisom koristiti uputstvo u [kvalifikacionom izveštaju](docs/LOCAL-QUALIFICATION.md). Redovni CI testovi ostaju bez tih eksplicitnih dijagnostičkih klasa.
 
@@ -54,6 +54,6 @@ Manual Save čuva uhvaćenu reviziju. Izmene tokom upisa ostaju dirty; recovery 
 - [Pristupačnost, memorija i profili](docs/LOCAL-QUALIFICATION.md)
 - [Arhivirani online kod](legacy/README.md)
 
-Optimizovani APK i AAB služe lokalnoj proveri i pripremi. Preview koristi razvojni potpis; vlasnički upload ključ i Play Console objava nisu uključeni. Podrška svim fizičkim telefonima, stylus uređajima i foldable konfiguracijama nije proglašena na osnovu emulatora.
+Optimizovani APK i AAB služe lokalnoj proveri i pripremi. Preview koristi razvojni potpis; zaseban AAB ima provereni vlasnički upload potpis. Nezavisna prenosiva kopija ključa i Play Console objava nisu završeni. Podrška svim fizičkim telefonima, stylus uređajima i foldable konfiguracijama nije proglašena na osnovu emulatora.
 
 Repozitorijum: [cmarko-gits/Whiteboard-](https://github.com/cmarko-gits/Whiteboard-).

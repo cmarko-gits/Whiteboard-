@@ -1,6 +1,6 @@
 # Završni ručni rad za prvo lokalno izdanje
 
-Presek 9. novembra 2026. Merodavan status svih devet celina je u [RELEASE-READINESS.md](RELEASE-READINESS.md). Ovaj spisak ne proglašava kandidata kvalifikovanim dok njegove završne provere nisu završene. AI, backend, cloud i F07 ostaju van prvog izdanja.
+Presek 11. novembra 2026. Merodavan status svih devet celina je u [RELEASE-READINESS.md](RELEASE-READINESS.md): **6/9 završeno, 3 otvoreno (5, 6, 9)**. [Kandidat 0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md) prolazi svih šest punih CI poslova bez retry-ja, strict package/payload gates i vlasnički AAB potpis/bundletool proveru. Slede preostali ručni/hardverski koraci; nije izvršena Play predaja. AI, backend, cloud i F07 ostaju van prvog izdanja.
 
 ## Pristupačnost i vizuelni pregled — celina 5
 
@@ -25,6 +25,7 @@ Korisnik je prethodno izabrao nastavak bez fizičkog telefona. Ne treba prikaziv
 ## Nezavisna kopija upload ključa — celina 9
 
 - Lokalni vlasnički ključ je izvan Git-a, u privatnom Windows direktorijumu pod ACL/DPAPI zaštitom. Privatni ključ i lozinka ne pripadaju repozitorijumu, CI artefaktima ili razgovoru.
+- AAB 0.8.0 već je potpisan i strict owner/bundletool proveren; potpisni deo ove celine je završen. Javni upload sertifikat SHA-256 je 67158377779CBECE20CBED2E46F0D44EB337128E547F2B980FE648D720A3A522. To nije Google Play App Signing sertifikat.
 - Potrebno je konkretno bezbedno odredište izvan C: diska. Druga kopija na istom disku ne štiti od njegovog kvara; odredište je zatraženo, ali još nije navedeno.
 - Kopija mora omogućiti oporavak i ključa i njegove lozinke nezavisno od ovog Windows profila. Sam DPAPI password fajl nije prenosiv način oporavka.
 - Proveriti otvaranje rezervne kopije i isti javni SHA-256 sertifikata. Dok to nije urađeno, nezavisna kopija nije završena.
