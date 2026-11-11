@@ -6,7 +6,9 @@ plugins {
 }
 val qualificationTests = providers.gradleProperty("whiteboard.qualificationTests").orNull == "true"
 val leakDetection = providers.gradleProperty("whiteboard.leakDetection").orNull?.toBooleanStrictOrNull() != false
+val releaseUiClient = providers.gradleProperty("whiteboard.releaseUiClient").orNull == "true"
 check(!qualificationTests || leakDetection) { "Qualification tests require -Pwhiteboard.leakDetection=true" }
+check(!releaseUiClient || !qualificationTests && !leakDetection) { "Release UI client requires a separate build without leak detection" }
 android {
     namespace = "dev.whiteboard.app"
     compileSdk = 36
@@ -38,6 +40,7 @@ android {
     }
     lint { abortOnError = true }
     if (qualificationTests) sourceSets.getByName("androidTest").kotlin.srcDir("src/qualification/kotlin")
+    if (releaseUiClient) sourceSets.getByName("androidTest").kotlin.srcDir("src/releaseClient/kotlin")
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {

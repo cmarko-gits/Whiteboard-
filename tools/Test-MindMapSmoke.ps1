@@ -3,25 +3,27 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'MindMap-Smoke.ps1')
 $script:mapCommands = [Collections.Generic.List[object]]::new()
 $script:mapReplyPackage = 'dev.whiteboard.app'
+$script:mapReplyPassed = $true
 function Get-Ui { throw 'Semantic activation must not use cached screen coordinates.' }
 function Invoke-Adb {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Arguments)
     $script:mapCommands.Add($Arguments)
     $taskEncoded = $Arguments[[Array]::IndexOf($Arguments, 'wb_label64') + 1]
-    return @("INSTRUMENTATION_RESULT: whiteboard_clicked64=$taskEncoded",
-        "INSTRUMENTATION_RESULT: whiteboard_package=$script:mapReplyPackage", 'INSTRUMENTATION_CODE: -1')
+    $taskSummary = if ($script:mapReplyPassed) { 'OK (1 test)' } else { 'FAILURES!!! Tests run: 1, Failures: 1' }
+    return @("INSTRUMENTATION_STATUS: whiteboard_clicked64=$taskEncoded",
+        "INSTRUMENTATION_STATUS: whiteboard_package=$script:mapReplyPackage", $taskSummary, 'INSTRUMENTATION_CODE: -1')
 }
 $label = 'Add child; $(not a command)'
 Tap-MindMapAction $label
-$expected = @('shell', 'am', 'instrument', '-w', '-r', '-e', 'wb_package', 'dev.whiteboard.app',
+$expected = @('shell', 'am', 'instrument', '-w', '-r', '-e', 'class', 'dev.whiteboard.app.releaseclient.ReleaseUiActionTest', '-e', 'wb_package', 'dev.whiteboard.app',
     '-e', 'wb_mode', 'text', '-e', 'wb_label64', [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($label)),
-    'dev.whiteboard.app.debug.test/dev.whiteboard.app.ReleaseUiBridgeRunner')
+    'dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner')
 if ($script:mapCommands.Count -ne 1 -or ($script:mapCommands[0] -join '|') -cne ($expected -join '|')) {
     throw 'UI client must preserve flags, target, encoded label and component in exactly one invocation.'
 }
 $script:mapCommands.Clear()
 Tap-MindMapAction -Description 'More actions'
-if ($script:mapCommands.Count -ne 1 -or $script:mapCommands[0][10] -cne 'description') {
+if ($script:mapCommands.Count -ne 1 -or $script:mapCommands[0][[Array]::IndexOf($script:mapCommands[0], 'wb_mode') + 1] -cne 'description') {
     throw 'Description activation must use the connected description mode.'
 }
 $script:mapCommands.Clear()
@@ -34,6 +36,15 @@ try { Tap-MindMapAction 'Add child' } catch {
 if (!$rejected -or $script:mapCommands.Count -ne 1) { throw 'Wrong-package result must fail without replaying the action.' }
 $script:mapCommands.Clear()
 $script:mapReplyPackage = 'dev.whiteboard.app'
+$script:mapReplyPassed = $false
+$rejected = $false
+try { Tap-MindMapAction 'Confirm' } catch {
+    if ($_.Exception.Message -notlike 'Connected UI action failed:*') { throw }
+    $rejected = $true
+}
+if (!$rejected -or $script:mapCommands.Count -ne 1) { throw 'A failing JUnit result must be rejected even with an acknowledgement and result code -1.' }
+$script:mapCommands.Clear()
+$script:mapReplyPassed = $true
 
 # Exercise the actual nested input driver without running the installed-package flow.
 $tokens = $null

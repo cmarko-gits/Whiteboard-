@@ -14,13 +14,14 @@ function Tap-MindMapAction {
     # Encode one argument instead of putting labels into an adb shell command string.
     $taskOutput = (Invoke-Adb -Arguments @(
         'shell', 'am', 'instrument', '-w', '-r',
+        '-e', 'class', 'dev.whiteboard.app.releaseclient.ReleaseUiActionTest',
         '-e', 'wb_package', $Package, '-e', 'wb_mode', $taskMode,
         '-e', 'wb_label64', $taskEncoded,
-        'dev.whiteboard.app.debug.test/dev.whiteboard.app.ReleaseUiBridgeRunner'
+        'dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner'
     )) -join "`n"
-    if ($taskOutput -notmatch '(?m)^INSTRUMENTATION_CODE: -1\s*$' -or
-        $taskOutput -notmatch ('(?m)^INSTRUMENTATION_RESULT: whiteboard_clicked64=' + [regex]::Escape($taskEncoded) + '\s*$') -or
-        $taskOutput -notmatch ('(?m)^INSTRUMENTATION_RESULT: whiteboard_package=' + [regex]::Escape($Package) + '\s*$')) {
+    if ($taskOutput -cnotmatch '(?m)^INSTRUMENTATION_CODE: -1\s*$' -or $taskOutput -cnotmatch '\bOK \(1 test\)' -or
+        $taskOutput -cnotmatch ('(?m)^INSTRUMENTATION_STATUS: whiteboard_clicked64=' + [regex]::Escape($taskEncoded) + '\s*$') -or
+        $taskOutput -cnotmatch ('(?m)^INSTRUMENTATION_STATUS: whiteboard_package=' + [regex]::Escape($Package) + '\s*$')) {
         throw "Connected UI action failed: $taskMode/$taskLabel`n$($taskOutput.Substring(0, [Math]::Min(8192, $taskOutput.Length)))"
     }
 }

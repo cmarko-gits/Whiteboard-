@@ -90,7 +90,7 @@ try {
                 if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Lleakcanary/|Lshark/|Lcom/squareup/leakcanary/') {
                     throw 'Debug memory-analysis classes present in release.'
                 }
-                if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Ldev/whiteboard/app/ReleaseUiBridgeRunner;') {
+                if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Ldev/whiteboard/app/releaseclient/') {
                     throw 'External UI test client present in release.'
                 }
                 if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Lokhttp3/|Lio/ktor/|Landroidx/work/|Ldev/whiteboard/data/cloud/RemoteAccounts;|Ldev/whiteboard/data/cloud/RemoteBoards;') {

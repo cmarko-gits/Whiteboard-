@@ -71,6 +71,15 @@ internal fun activateConnectedUiControl(
     byDescription: Boolean = false
 ): Boolean = inspectDialogControl(label, true, byDescription, automation, expectedPackage, skipSelected = false).found
 
+/** Wait for a connected target, but never replay a successful semantic action. */
+internal fun clickConnectedUiControl(automation: UiAutomation, expectedPackage: String, label: String, byDescription: Boolean = false) {
+    val deadline = SystemClock.uptimeMillis() + 10_000
+    while (!activateConnectedUiControl(automation, expectedPackage, label, byDescription)) {
+        check(SystemClock.uptimeMillis() < deadline) { "Connected control unavailable in $expectedPackage: $label" }
+        SystemClock.sleep(50)
+    }
+}
+
 /** Small overlapping physical swipes avoid API 26 accessibility page-scroll skipping a whole row. */
 private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, towardTop: Boolean) {
     val deadline = SystemClock.uptimeMillis() + 20_000
