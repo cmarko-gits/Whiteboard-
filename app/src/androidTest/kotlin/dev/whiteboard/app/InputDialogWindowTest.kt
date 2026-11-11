@@ -92,8 +92,14 @@ class InputDialogWindowTest {
             compose.onNodeWithText("Open dialog").performClick()
             compose.onNodeWithTag("dialog-input").performClick().performTextInput("Child")
             compose.onNodeWithTag("dialog-input").assertIsFocused()
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            check(!activateConnectedUiControl(instrumentation.uiAutomation, "dev.whiteboard.other", "Replace dialog")) {
+                "A different package must not receive a dialog action"
+            }
             repeat(4) {
-                compose.onNodeWithText("Replace dialog").performClick()
+                check(
+                    activateConnectedUiControl(instrumentation.uiAutomation, instrumentation.targetContext.packageName, "Replace dialog")
+                )
                 // UiAutomator does not advance the Compose rule's controlled clock.
                 compose.waitForIdle()
                 val title = if (alert xor (it % 2 == 0)) "Alert input window" else "Plain input window"

@@ -1,34 +1,39 @@
 $ErrorActionPreference = 'Stop'
-. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath unused -LoadHelpersOnly
+. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath unused -Package dev.whiteboard.app -LoadHelpersOnly
 . (Join-Path $PSScriptRoot 'MindMap-Smoke.ps1')
-$script:mapFrames = [Collections.Generic.Queue[string]]::new()
 $script:mapCommands = [Collections.Generic.List[object]]::new()
-function Get-Ui {
-    if ($script:mapFrames.Count -eq 0) { throw 'Unexpected additional hierarchy read.' }
-    [xml] $taskFixture = $script:mapFrames.Dequeue()
-    return $taskFixture.SelectNodes('//node')
-}
+$script:mapReplyPackage = 'dev.whiteboard.app'
+function Get-Ui { throw 'Semantic activation must not use cached screen coordinates.' }
 function Invoke-Adb {
     param([Parameter(ValueFromRemainingArguments = $true)] [string[]] $Arguments)
     $script:mapCommands.Add($Arguments)
+    $taskEncoded = $Arguments[[Array]::IndexOf($Arguments, 'wb_label64') + 1]
+    return @("INSTRUMENTATION_RESULT: whiteboard_clicked64=$taskEncoded",
+        "INSTRUMENTATION_RESULT: whiteboard_package=$script:mapReplyPackage", 'INSTRUMENTATION_CODE: -1')
 }
-function Start-Sleep { param([int] $Milliseconds) }
-$moving = '<hierarchy><node clickable="true" enabled="true" bounds="[0,100][200,148]"><node text="Add child" bounds="[10,112][100,136]"/></node></hierarchy>'
-$settled = '<hierarchy><node clickable="true" enabled="true" bounds="[0,148][200,196]"><node text="Add child" bounds="[10,160][100,184]"/></node></hierarchy>'
-@($moving, $settled, $settled) | ForEach-Object { $script:mapFrames.Enqueue($_) }
-Tap-MindMapAction 'Add child'
-if ($script:mapFrames.Count -ne 0 -or $script:mapCommands.Count -ne 1 -or
-    ($script:mapCommands[0] -join '|') -cne 'shell|input|tap|100|172') {
-    throw 'Mind-map action must settle before exactly one tap at its fresh clickable owner.'
+$label = 'Add child; $(not a command)'
+Tap-MindMapAction $label
+$expected = @('shell', 'am', 'instrument', '-w', '-r', '-e', 'wb_package', 'dev.whiteboard.app',
+    '-e', 'wb_mode', 'text', '-e', 'wb_label64', [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($label)),
+    'dev.whiteboard.app.debug.test/dev.whiteboard.app.ReleaseUiBridgeRunner')
+if ($script:mapCommands.Count -ne 1 -or ($script:mapCommands[0] -join '|') -cne ($expected -join '|')) {
+    throw 'UI client must preserve flags, target, encoded label and component in exactly one invocation.'
 }
 $script:mapCommands.Clear()
-$script:mapFrames.Enqueue('<hierarchy><node clickable="true" enabled="true" text="Add child" bounds="[0,0][100,48]"/><node clickable="true" enabled="true" text="Add child" bounds="[0,48][100,96]"/></hierarchy>')
+Tap-MindMapAction -Description 'More actions'
+if ($script:mapCommands.Count -ne 1 -or $script:mapCommands[0][10] -cne 'description') {
+    throw 'Description activation must use the connected description mode.'
+}
+$script:mapCommands.Clear()
+$script:mapReplyPackage = 'dev.whiteboard.other'
 $rejected = $false
 try { Tap-MindMapAction 'Add child' } catch {
-    if ($_.Exception.Message -cne 'Ambiguous mind-map action: Add child') { throw }
+    if ($_.Exception.Message -notlike 'Connected UI action failed:*') { throw }
     $rejected = $true
 }
-if (!$rejected -or $script:mapCommands.Count -ne 0) { throw 'Ambiguous map controls must not be tapped.' }
+if (!$rejected -or $script:mapCommands.Count -ne 1) { throw 'Wrong-package result must fail without replaying the action.' }
+$script:mapCommands.Clear()
+$script:mapReplyPackage = 'dev.whiteboard.app'
 
 # Exercise the actual nested input driver without running the installed-package flow.
 $tokens = $null
@@ -37,7 +42,7 @@ $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRo
 if ($errors.Count) { throw 'Mind-map smoke did not parse.' }
 $enter = $ast.Find({ param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Enter-Title' }, $true)
 if (!$enter) { throw 'Missing actual title input driver.' }
-$script:mapField = [PSCustomObject]@{ text = 'existing root'; 'resource-id' = 'mind_map_node_title'; focused = 'true'; bounds = '[0,0][200,64]' }
+$script:mapField = [PSCustomObject]@{ text = 'existing root'; 'resource-id' = 'mind_map_node_title'; focused = 'true' }
 function Find-Ui { param([string] $Text, [string] $Description, [string] $Class) return $script:mapField }
 function Wait-Keyboard { param([bool] $Shown = $true) }
 $rejected = $false
@@ -54,7 +59,7 @@ try { & $enter.Body.GetScriptBlock() -Caption 'new child' } catch {
     $rejected = $true
 }
 if (!$rejected -or $script:mapCommands.Count -ne 1 -or
-    @($script:mapCommands | Where-Object { $_ -contains 'text' }).Count -ne 0) {
-    throw 'Unfocused field must not receive text or repeated clicks.'
+    @($script:mapCommands | Where-Object { $_ -contains 'input' }).Count -ne 0) {
+    throw 'Unfocused field must not receive text or repeated actions.'
 }
-Write-Output 'PASS: moving map actions settle before one fresh-owner tap; ambiguous controls, existing text and missing focus are rejected before typing. No device commands executed.'
+Write-Output 'PASS: connected UI protocol preserves encoded labels/flags, rejects a mismatched package without replay, and rejects existing/unfocused title input. No device commands executed.'

@@ -1,5 +1,6 @@
 package dev.whiteboard.app
 
+import android.app.UiAutomation
 import android.graphics.Rect
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityNodeInfo
@@ -12,8 +13,15 @@ private data class DialogProbe(val found: Boolean, val selected: Boolean = false
 
 /** Read a new connected hierarchy; retain values rather than UiObject2 handles across recomposition. */
 @Suppress("DEPRECATION")
-private fun inspectDialogControl(label: String, activate: Boolean, byDescription: Boolean = false): DialogProbe {
-    val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow ?: return DialogProbe(false)
+private fun inspectDialogControl(
+    label: String,
+    activate: Boolean,
+    byDescription: Boolean = false,
+    automation: UiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation,
+    expectedPackage: String = InstrumentationRegistry.getInstrumentation().targetContext.packageName,
+    skipSelected: Boolean = true
+): DialogProbe {
+    val root = automation.rootInActiveWindow ?: return DialogProbe(false)
     val owned = Collections.newSetFromMap(IdentityHashMap<AccessibilityNodeInfo, Boolean>())
     fun own(node: AccessibilityNodeInfo?): AccessibilityNodeInfo? = node?.also { owned.add(it) }
     val queue = ArrayDeque<AccessibilityNodeInfo>()
@@ -21,7 +29,6 @@ private fun inspectDialogControl(label: String, activate: Boolean, byDescription
     var scroll: Rect? = null
     var remaining = 2000
     try {
-        val expectedPackage = InstrumentationRegistry.getInstrumentation().targetContext.packageName
         if (root.packageName?.toString() != expectedPackage) return DialogProbe(false)
         while (queue.isNotEmpty() && remaining-- > 0) {
             val node = queue.removeFirst()
@@ -40,7 +47,9 @@ private fun inspectDialogControl(label: String, activate: Boolean, byDescription
                     // Text injection can precede the recomposition that enables Apply. Wait on a
                     // fresh hierarchy without scrolling away from the already visible control.
                     if (owner?.refresh() != true || !owner.isEnabled) return DialogProbe(false)
-                    if (!owner.isChecked && !owner.isSelected && !owner.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+                    if ((!skipSelected || !owner.isChecked && !owner.isSelected) &&
+                        !owner.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    ) {
                         return DialogProbe(false)
                     }
                 }
@@ -53,6 +62,14 @@ private fun inspectDialogControl(label: String, activate: Boolean, byDescription
         owned.forEach { it.recycle() }
     }
 }
+
+/** Same connected-node path as native tests; the release client must name its active package. */
+internal fun activateConnectedUiControl(
+    automation: UiAutomation,
+    expectedPackage: String,
+    label: String,
+    byDescription: Boolean = false
+): Boolean = inspectDialogControl(label, true, byDescription, automation, expectedPackage, skipSelected = false).found
 
 /** Small overlapping physical swipes avoid API 26 accessibility page-scroll skipping a whole row. */
 private fun reachDialogText(device: UiDevice, label: String, activate: Boolean, towardTop: Boolean) {

@@ -29,6 +29,7 @@ function Read-ApkXml([string] $File) {
     return $taskNodes.ToArray()
 }
 $taskManifest = @(Read-ApkXml 'AndroidManifest.xml')
+if (@($taskManifest | Where-Object Name -eq 'instrumentation').Count) { throw 'Instrumentation must not be packaged in release.' }
 $taskApp = @($taskManifest | Where-Object Name -eq 'application')
 if ($taskApp.Count -ne 1) { throw 'Expected one application.' }
 $taskAttributes = $taskApp[0].Attributes
@@ -88,6 +89,9 @@ try {
                 $taskStream.CopyTo($taskMemory)
                 if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Lleakcanary/|Lshark/|Lcom/squareup/leakcanary/') {
                     throw 'Debug memory-analysis classes present in release.'
+                }
+                if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Ldev/whiteboard/app/ReleaseUiBridgeRunner;') {
+                    throw 'External UI test client present in release.'
                 }
                 if ([Text.Encoding]::ASCII.GetString($taskMemory.ToArray()) -match 'Lokhttp3/|Lio/ktor/|Landroidx/work/|Ldev/whiteboard/data/cloud/RemoteAccounts;|Ldev/whiteboard/data/cloud/RemoteBoards;') {
                     throw 'Online client or background scheduling classes present in local release.'

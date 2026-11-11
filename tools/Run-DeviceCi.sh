@@ -69,6 +69,15 @@ run_release_smoke() {
     --out "$signed" "$unsigned" || return $?
   "${ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$signed" || return $?
   sha256sum "$signed" > artifacts/device-release/package.sha256 || return $?
+  # External UI client controls the optimized package through connected semantics.
+  # These debug/test APKs stay separate; neither is part of the release payload.
+  adb install -r app/build/outputs/apk/debug/app-debug.apk || return $?
+  adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk || return $?
+  adb shell pm list instrumentation > artifacts/device-release/ui-client-instrumentation.txt || return $?
+  grep -F 'dev.whiteboard.app.debug.test/dev.whiteboard.app.ReleaseUiBridgeRunner' \
+    artifacts/device-release/ui-client-instrumentation.txt || return $?
+  sha256sum app/build/outputs/apk/debug/app-debug.apk \
+    app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > artifacts/device-release/ui-client-packages.sha256 || return $?
   if [[ "$api" == 36 && "$scope" == full ]]; then
     pwsh -NoProfile -File ./tools/Get-UpgradeBaseline.ps1 || return $?
     local baseline=artifacts/device-release/baseline-0.7.2-ci-signed.apk
