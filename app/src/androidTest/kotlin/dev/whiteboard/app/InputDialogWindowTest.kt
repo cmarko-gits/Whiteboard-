@@ -2,6 +2,7 @@ package dev.whiteboard.app
 
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,7 +75,8 @@ class InputDialogWindowTest {
                         )
                     } else {
                         InputDialog({ visible = false }) { close ->
-                            Surface {
+                            // InputDialog callers own insets, just like the production map panels.
+                            Surface(Modifier.imePadding()) {
                                 Column {
                                     Text(title)
                                     input()
