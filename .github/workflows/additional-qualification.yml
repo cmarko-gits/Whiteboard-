@@ -1,6 +1,12 @@
 name: Additional candidate qualification
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: Separate qualification scope
+        type: choice
+        default: all
+        options: [all, runtime-16k, talkback, release-16k]
   push:
     paths:
       - '.github/workflows/additional-qualification.yml'
@@ -11,7 +17,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: additional-qualification-${{ github.ref }}
+  group: additional-qualification-${{ github.ref }}-${{ inputs.profile || 'all' }}
   cancel-in-progress: true
 jobs:
   qualify:
@@ -24,9 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {profile: runtime-16k, api: 35, tag: google_apis_ps16k}
-          - {profile: talkback, api: 36, tag: google_apis_playstore}
+        profile: ${{ fromJSON((inputs.profile == '' || inputs.profile == 'all') && '["runtime-16k","talkback"]' || format('["{0}"]', inputs.profile)) }}
     defaults:
       run:
         working-directory: candidate
@@ -64,6 +68,7 @@ jobs:
       - name: Install build SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build pinned candidate before emulator boot
+        if: matrix.profile != 'release-16k'
         run: |
           bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           bash ./gradlew --stop
@@ -73,7 +78,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Qualify actual runtime, accessibility and release
-        run: bash ../tools/Run-AdditionalQualification.sh '${{ matrix.profile }}'
+        run: bash ../tools/Run-AdditionalQualification.sh "$QUALIFICATION_PROFILE"
+        env:
+          QUALIFICATION_PROFILE: ${{ matrix.profile }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

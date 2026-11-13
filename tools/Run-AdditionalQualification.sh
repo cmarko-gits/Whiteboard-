@@ -4,6 +4,7 @@ set -euo pipefail
 profile=${1:?Qualification profile is required}
 case "$profile" in
   runtime-16k) api=35; tag=google_apis_ps16k ;;
+  release-16k) api=35; tag=google_apis_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
   *) echo 'Unsupported additional qualification profile.' >&2; exit 2 ;;
 esac
@@ -59,7 +60,7 @@ bash tools/Assert-CiDeviceHealth.sh extra-boot
 observed_api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
 if [[ "$observed_api" != "$api" || ! "$page_size" =~ ^[0-9]+$ ]]; then echo 'Unexpected device API/page size.' >&2; exit 1; fi
-if [[ "$profile" == runtime-16k && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
+if [[ "$profile" != talkback && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
 {
   printf 'source=%s\ntooling=%s\nprofile=%s\napi=%s\npageSize=%s\n' "$(git rev-parse HEAD)" "$GITHUB_SHA" "$profile" "$observed_api" "$page_size"
   adb shell getprop ro.build.fingerprint
@@ -74,6 +75,7 @@ adb install --no-streaming -r "$output/qualified-preview.apk" 2>&1 | tee "$outpu
 adb shell am start -W -n dev.whiteboard.app/.MainActivity > "$output/qualified-preview-start.txt"
 bash tools/Assert-CiDeviceHealth.sh extra-preview-start
 adb shell am force-stop dev.whiteboard.app
+if [[ "$profile" != release-16k ]]; then
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
 # adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
 # than losing it behind the frozen helper's generic installation exception.
@@ -105,6 +107,9 @@ pwsh -NoProfile -Command '
   }
 '
 bash tools/Assert-CiDeviceHealth.sh extra-native
+else
+  printf 'Not attempted: this explicitly separate profile measures the immutable R8 binary only.\n' > "$output/native-not-attempted.txt"
+fi
 talkback_result=0
 if [[ "$profile" == talkback ]]; then
   pwsh -NoProfile -File ../tools/Test-RealTalkBack.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/talkback.log" || talkback_result=$?
