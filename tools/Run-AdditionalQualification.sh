@@ -7,6 +7,7 @@ case "$profile" in
   release-16k) api=35; tag=google_apis_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
   talkback-service) api=36; tag=google_apis_playstore ;;
+  library-reopen) api=36; tag=google_apis_playstore ;;
   *) echo 'Unsupported additional qualification profile.' >&2; exit 2 ;;
 esac
 if [[ "${GITHUB_ACTIONS:-}" != true || "$(uname -s)" != Linux ]]; then
@@ -26,6 +27,16 @@ emulator_pid=''
 cleanup() {
   result=$?; trap - EXIT
   if [[ -n "$emulator_pid" ]]; then
+    # Only generated fixture snapshots; never pull arbitrary app files or heaps.
+    for label in failure-physicalLongPressOpensTheSharedMenuAndDuplicateUndoRedoSurviveSaveReopen object-menu-long-press; do
+      for suffix in png xml input-method.txt; do
+        remote="/sdcard/Android/data/dev.whiteboard.app.debug/files/$label.$suffix"
+        size=$(timeout 5s adb shell stat -c %s "$remote" 2>/dev/null | tr -d '\r' || true)
+        if [[ "$size" =~ ^[0-9]+$ ]] && ((size <= 3000000)); then
+          timeout 15s adb pull "$remote" "$output/$label.$suffix" >/dev/null 2>&1 || true
+        fi
+      done
+    done
     timeout 15s adb logcat -d | tail -c 4000000 > "$output/logcat.txt" || true
     timeout 10s adb shell dumpsys activity lastanr > "$output/last-anr.txt" 2>&1 || true
     timeout 10s adb exec-out screencap -p > "$output/final-screen.png" 2>/dev/null || true
@@ -85,6 +96,19 @@ verify_installed() {
   expected=$(sha256sum "$expected_apk" | awk '{print $1}')
   if [[ "$actual" != "$expected" ]]; then echo "Installed APK differs: $package" >&2; return 1; fi
 }
+if [[ "$profile" == library-reopen ]]; then
+  adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
+  adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
+  verify_installed dev.whiteboard.app.debug app/build/outputs/apk/debug/app-debug.apk
+  verify_installed dev.whiteboard.app.debug.test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+  sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/focused-packages.sha256"
+  timeout 600s adb shell am instrument -w -r -e class dev.whiteboard.app.CanvasAccessibilityTest \
+    dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner 2>&1 | tee artifacts/additional-reopen-app-tests.txt
+  pwsh -NoProfile -Command '$text=Get-Content artifacts/additional-reopen-app-tests.txt -Raw; if($text -notmatch "OK \(8 tests\)" -or $text -match "FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed") { throw "Focused accessibility/reopen cases failed" }'
+  bash tools/Assert-CiDeviceHealth.sh extra-reopen
+  printf 'PASS: eight focused CanvasAccessibilityTest cases only; this does not replace the failed full140 result.\n' > "$output/passed.txt"
+  exit 0
+fi
 if [[ "$profile" != release-16k && "$profile" != talkback-service ]]; then
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
 # adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather

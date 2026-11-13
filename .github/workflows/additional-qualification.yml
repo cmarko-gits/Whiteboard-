@@ -6,7 +6,7 @@ on:
         description: Separate qualification scope
         type: choice
         default: all
-        options: [all, runtime-16k, talkback, release-16k, talkback-service]
+        options: [all, runtime-16k, talkback, release-16k, talkback-service, library-reopen]
   push:
     paths:
       - '.github/workflows/additional-qualification.yml'
