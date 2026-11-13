@@ -24,7 +24,7 @@ emulator_pid=''
 cleanup() {
   result=$?; trap - EXIT
   if [[ -n "$emulator_pid" ]]; then
-    timeout 15s adb logcat -d | head -c 4000000 > "$output/logcat.txt" || true
+    timeout 15s adb logcat -d | tail -c 4000000 > "$output/logcat.txt" || true
     timeout 10s adb shell dumpsys activity lastanr > "$output/last-anr.txt" 2>&1 || true
     timeout 10s adb exec-out screencap -p > "$output/final-screen.png" 2>/dev/null || true
     timeout 10s adb emu kill >/dev/null 2>&1 || true
@@ -69,9 +69,34 @@ adb shell settings put system screen_off_timeout 2147483647
 adb shell wm dismiss-keyguard
 for setting in window_animation_scale transition_animation_scale animator_duration_scale; do adb shell settings put global "$setting" 0; done
 # No unlock key, launcher coordinates, dialog dismissal or test retry is used.
+# Record the original production binary independently of instrumentation installation.
+adb install --no-streaming -r "$output/qualified-preview.apk" 2>&1 | tee "$output/install-qualified-preview.log"
+adb shell am start -W -n dev.whiteboard.app/.MainActivity > "$output/qualified-preview-start.txt"
+bash tools/Assert-CiDeviceHealth.sh extra-preview-start
+adb shell am force-stop dev.whiteboard.app
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
-pwsh -NoProfile -File ./tools/Test-Android.ps1 -AdbPath "$(command -v adb)" -Suite all \
-  -ExcludeClasses dev.whiteboard.app.MemoryQualificationTest,dev.whiteboard.app.FrameQualificationTest,dev.whiteboard.app.RealTalkBackTest -ReportPrefix additional-native 2>&1 | tee "$output/native.log"
+# adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
+# than losing it behind the frozen helper's generic installation exception.
+adb install --no-streaming -r -t data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk 2>&1 | tee "$output/install-data-test.log"
+adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
+adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
+# The frozen helper verifies the data APK SHA. The full UI suite has a separate
+# 30-minute bound and streams every case, so a timeout retains its actual progress.
+pwsh -NoProfile -File ./tools/Test-Android.ps1 -AdbPath "$(command -v adb)" -Suite data -SkipInstall -ReportPrefix additional-native 2>&1 | tee "$output/native.log"
+verify_installed() {
+  local package=$1 expected_apk=$2 location actual expected
+  location=$(adb shell pm path "$package" | tr -d '\r')
+  location=${location#package:}
+  if [[ ! "$location" =~ ^/data/app/[A-Za-z0-9._~+/=-]+/base\.apk$ ]]; then echo 'Unexpected installed APK path.' >&2; return 1; fi
+  actual=$(adb shell sha256sum "$location" | awk '{print $1}' | tr -d '\r')
+  expected=$(sha256sum "$expected_apk" | awk '{print $1}')
+  if [[ "$actual" != "$expected" ]]; then echo "Installed APK differs: $package" >&2; return 1; fi
+}
+verify_installed dev.whiteboard.app.debug app/build/outputs/apk/debug/app-debug.apk
+verify_installed dev.whiteboard.app.debug.test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+timeout 1800s adb shell am instrument -w -r \
+  -e notClass dev.whiteboard.app.MemoryQualificationTest,dev.whiteboard.app.FrameQualificationTest,dev.whiteboard.app.RealTalkBackTest \
+  dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner 2>&1 | tee artifacts/additional-native-app-tests.txt
 pwsh -NoProfile -Command '
   $ErrorActionPreference="Stop"
   foreach($suite in @{app=140;data=13}.GetEnumerator()) {
