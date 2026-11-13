@@ -72,6 +72,17 @@ function Scroll-ToolStripLeft {
     Invoke-Adb shell input swipe ([int]($Canvas[0] + $taskStripWidth * 0.8)) $Y `
         ([int]($Canvas[0] + $taskStripWidth * 0.2)) $Y 350 | Out-Null
 }
+function Enter-SmokeBoardName {
+    param([ValidatePattern('^Recovery_check_[0-9]+$')][string]$Name)
+    Tap-Ui (Find-Ui -Class 'android.widget.EditText')
+    Wait-Keyboard
+    $taskInputs = @(Get-Ui | Where-Object { $_.class -ceq 'android.widget.EditText' -and $_.focused -eq 'true' -and $_.enabled -eq 'true' })
+    if ($taskInputs.Count -ne 1 -or $taskInputs[0].text -notin @('', 'Board name')) {
+        throw 'Fixture name field is not uniquely focused and empty; no keyboard text was sent.'
+    }
+    Invoke-Adb shell input text $Name | Out-Null
+    Find-Ui -Text $Name -Class 'android.widget.EditText' | Out-Null
+}
 function Capture {
     param([string] $Name)
     Invoke-Adb -Arguments @('shell', 'screencap', '-p', "/sdcard/whiteboard-$Name.png") | Out-Null
@@ -159,8 +170,7 @@ try {
     Wait-Keyboard $false
     Tap-Ui (Find-Ui -Description 'New board')
     Find-Ui -Text 'Board name' | Out-Null
-    Tap-Ui (Find-Ui -Class 'android.widget.EditText')
-    Invoke-Adb shell input text $taskName | Out-Null
+    Enter-SmokeBoardName -Name $taskName
     Wait-Keyboard
     Tap-Ui (Find-Ui -Text 'Confirm')
     Tap-Ui (Find-Ui -Description 'Pen')

@@ -17,6 +17,7 @@ on:
       - 'tools/Test-ThemeState.ps1'
       - 'tools/Smoke-Test.ps1'
       - 'tools/Test-ToolStripGesture.ps1'
+      - 'tools/Test-SmokeBoardInput.ps1'
 permissions:
   contents: read
 concurrency:
@@ -65,6 +66,7 @@ jobs:
           test "$result" = 2
           pwsh -NoProfile -File ../tools/Test-ToolStripGesture.ps1
           pwsh -NoProfile -File ../tools/Test-ThemeState.ps1
+          pwsh -NoProfile -File ../tools/Test-SmokeBoardInput.ps1
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
