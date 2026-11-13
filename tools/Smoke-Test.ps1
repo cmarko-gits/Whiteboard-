@@ -10,11 +10,12 @@ param(
     [switch] $CheckConnections,
     [switch] $CheckMindMaps,
     [switch] $SkipAdaptiveResize,
+    [string] $ArtifactsDirectory = '',
     [switch] $LoadHelpersOnly
 )
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
-$taskArtifacts = Join-Path $taskRoot 'artifacts'
+$taskArtifacts = if ($ArtifactsDirectory) { [IO.Path]::GetFullPath($ArtifactsDirectory) } else { Join-Path $taskRoot 'artifacts' }
 New-Item -ItemType Directory -Path $taskArtifacts -Force | Out-Null
 $taskUiPath = Join-Path $taskArtifacts 'smoke-ui.xml'
 
@@ -61,6 +62,15 @@ function Tap-Ui {
     param($Node)
     $taskRect = Get-Rect $Node
     Invoke-Adb shell input tap ([int](($taskRect[0] + $taskRect[2]) / 2)) ([int](($taskRect[1] + $taskRect[3]) / 2)) | Out-Null
+}
+function Scroll-ToolStripLeft {
+    param([int[]] $Canvas, [int] $Y)
+    if ($Canvas.Count -ne 4 -or $Canvas[2] -le $Canvas[0]) { throw 'Invalid tool-strip viewport.' }
+    $taskStripWidth = $Canvas[2] - $Canvas[0]
+    # Android gesture navigation owns the display edges. Scroll inside the actual
+    # strip viewport so the test cannot invoke system Back instead of its toolbar.
+    Invoke-Adb shell input swipe ([int]($Canvas[0] + $taskStripWidth * 0.8)) $Y `
+        ([int]($Canvas[0] + $taskStripWidth * 0.2)) $Y 350 | Out-Null
 }
 function Capture {
     param([string] $Name)
@@ -181,7 +191,7 @@ try {
         $taskPen = Get-Rect (Find-Ui -Description 'Pen')
         $taskToolY = [int](($taskPen[1] + $taskPen[3]) / 2)
         # Reach the shape palette by scrolling its own toolbar; the tablet may need no scroll.
-        Invoke-Adb shell input swipe ([int]($taskCanvas[2] - 24)) $taskToolY ([int]($taskCanvas[0] + 24)) $taskToolY 350 | Out-Null
+        Scroll-ToolStripLeft -Canvas $taskCanvas -Y $taskToolY
         Tap-Ui (Find-Ui -Description 'Shapes')
         Tap-Ui (Find-Ui -Text 'Rectangle')
         # Synchronize the native canvas/tool update before injecting the next gesture.

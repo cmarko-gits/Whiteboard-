@@ -162,7 +162,7 @@ bash ./gradlew --stop
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/ui-client-packages.sha256"
-pwsh -NoProfile -File ./tools/Smoke-Test.ps1 -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
+pwsh -NoProfile -File ../tools/Smoke-Test.ps1 -ArtifactsDirectory artifacts -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
   -ApkPath "$output/qualified-preview.apk" -CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps 2>&1 | tee "$output/release-smoke.log"
 pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/theme-appearance.log"
 bash tools/Assert-CiDeviceHealth.sh extra-release

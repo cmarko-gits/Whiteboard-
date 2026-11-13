@@ -14,6 +14,8 @@ on:
       - 'tools/Get-QualifiedPreview.ps1'
       - 'tools/Test-RealTalkBack.ps1'
       - 'tools/Test-ThemeAppearance.ps1'
+      - 'tools/Smoke-Test.ps1'
+      - 'tools/Test-ToolStripGesture.ps1'
 permissions:
   contents: read
 concurrency:
@@ -60,6 +62,7 @@ jobs:
           result=0
           GITHUB_ACTIONS=false bash ../tools/Run-AdditionalQualification.sh runtime-16k || result=$?
           test "$result" = 2
+          pwsh -NoProfile -File ../tools/Test-ToolStripGesture.ps1
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

@@ -26,6 +26,9 @@ jobs:
       - name: Check mind-map smoke targeting without a device
         shell: pwsh
         run: ./tools/Test-MindMapSmoke.ps1
+      - name: Check tool-strip gestures without a device
+        shell: pwsh
+        run: ./tools/Test-ToolStripGesture.ps1
       - name: Check release diagnostic parsing without a device
         shell: pwsh
         run: ./tools/Test-ReleaseRuntimeParsing.ps1
