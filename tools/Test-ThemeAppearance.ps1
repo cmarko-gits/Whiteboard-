@@ -88,7 +88,7 @@ try {
             Capture "$name-library"
             Write-Output "Opening exact fixture board: $board"
             Tap-Ui (Find-Ui -Text $board)
-            Find-Ui -Description 'Drawing canvas' -ExactDescription | Out-Null
+            Find-Ui -Description 'Drawing canvas' | Out-Null
             Capture "$name-editor"
             Tap-Ui (Find-Ui -Description 'Color picker' -ExactDescription)
             Find-Ui -Text 'Cancel' | Out-Null

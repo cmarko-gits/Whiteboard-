@@ -27,3 +27,21 @@ foreach ($invalid in @(
     if (-not $rejected) { throw 'Missing, ambiguous or wrong-package theme state was accepted.' }
 }
 Write-Output 'PASS: actual owner/merged/selected carriers; rejects absent, ambiguous, wrong-package and label-only state. No device calls.'
+
+# Execute the actual capture command against the connected canvas description shape.
+# Its accessibility instructions are part of the app's public description.
+$canvasCommand = $ast.Find({ param($node)
+    $node -is [Management.Automation.Language.CommandAst] -and
+        $node.GetCommandName() -eq 'Find-Ui' -and
+        $node.Extent.Text -match "-Description 'Drawing canvas'"
+}, $true)
+if (-not $canvasCommand) { throw 'Missing actual appearance canvas selector.' }
+. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath unused-host-probe -LoadHelpersOnly
+function Invoke-Adb { throw 'A host theme selector check attempted a device call.' }
+function Get-Ui { return $script:canvasFixture.SelectNodes('//node') }
+foreach ($description in @('Drawing canvas', 'Drawing canvas. Use Objects to browse all objects. Actions allow text, notes, shapes, zoom and pan without drawing gestures.')) {
+    [xml]$script:canvasFixture = '<hierarchy><node package="dev.whiteboard.app" enabled="true" content-desc="' + $description + '"/></hierarchy>'
+    $node = & ([scriptblock]::Create($canvasCommand.Extent.Text + ' -TimeoutSeconds 0'))
+    if ($node.'content-desc' -cne $description) { throw 'Actual canvas selector did not retain its accessibility description.' }
+}
+Write-Output 'PASS: actual capture selector accepts the canvas with and without accessibility instructions; no device calls.'
