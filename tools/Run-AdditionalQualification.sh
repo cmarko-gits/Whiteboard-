@@ -6,6 +6,7 @@ case "$profile" in
   runtime-16k) api=35; tag=google_apis_ps16k ;;
   release-16k) api=35; tag=google_apis_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
+  talkback-service) api=36; tag=google_apis_playstore ;;
   *) echo 'Unsupported additional qualification profile.' >&2; exit 2 ;;
 esac
 if [[ "${GITHUB_ACTIONS:-}" != true || "$(uname -s)" != Linux ]]; then
@@ -60,7 +61,7 @@ bash tools/Assert-CiDeviceHealth.sh extra-boot
 observed_api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
 if [[ "$observed_api" != "$api" || ! "$page_size" =~ ^[0-9]+$ ]]; then echo 'Unexpected device API/page size.' >&2; exit 1; fi
-if [[ "$profile" != talkback && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
+if [[ "$profile" == *16k && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
 {
   printf 'source=%s\ntooling=%s\nprofile=%s\napi=%s\npageSize=%s\n' "$(git rev-parse HEAD)" "$GITHUB_SHA" "$profile" "$observed_api" "$page_size"
   adb shell getprop ro.build.fingerprint
@@ -75,16 +76,6 @@ adb install --no-streaming -r "$output/qualified-preview.apk" 2>&1 | tee "$outpu
 adb shell am start -W -n dev.whiteboard.app/.MainActivity > "$output/qualified-preview-start.txt"
 bash tools/Assert-CiDeviceHealth.sh extra-preview-start
 adb shell am force-stop dev.whiteboard.app
-if [[ "$profile" != release-16k ]]; then
-sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
-# adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
-# than losing it behind the frozen helper's generic installation exception.
-adb install --no-streaming -r -t data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk 2>&1 | tee "$output/install-data-test.log"
-adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
-adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
-# The frozen helper verifies the data APK SHA. The full UI suite has a separate
-# 30-minute bound and streams every case, so a timeout retains its actual progress.
-pwsh -NoProfile -File ./tools/Test-Android.ps1 -AdbPath "$(command -v adb)" -Suite data -SkipInstall -ReportPrefix additional-native 2>&1 | tee "$output/native.log"
 verify_installed() {
   local package=$1 expected_apk=$2 location actual expected
   location=$(adb shell pm path "$package" | tr -d '\r')
@@ -94,6 +85,16 @@ verify_installed() {
   expected=$(sha256sum "$expected_apk" | awk '{print $1}')
   if [[ "$actual" != "$expected" ]]; then echo "Installed APK differs: $package" >&2; return 1; fi
 }
+if [[ "$profile" != release-16k && "$profile" != talkback-service ]]; then
+sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
+# adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
+# than losing it behind the frozen helper's generic installation exception.
+adb install --no-streaming -r -t data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk 2>&1 | tee "$output/install-data-test.log"
+adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
+adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
+# The frozen helper verifies the data APK SHA. The full UI suite has a separate
+# 30-minute bound and streams every case, so a timeout retains its actual progress.
+pwsh -NoProfile -File ./tools/Test-Android.ps1 -AdbPath "$(command -v adb)" -Suite data -SkipInstall -ReportPrefix additional-native 2>&1 | tee "$output/native.log"
 verify_installed dev.whiteboard.app.debug app/build/outputs/apk/debug/app-debug.apk
 verify_installed dev.whiteboard.app.debug.test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 timeout 1800s adb shell am instrument -w -r \
@@ -108,11 +109,25 @@ pwsh -NoProfile -Command '
 '
 bash tools/Assert-CiDeviceHealth.sh extra-native
 else
-  printf 'Not attempted: this explicitly separate profile measures the immutable R8 binary only.\n' > "$output/native-not-attempted.txt"
+  printf 'Full 140/13 not attempted: explicitly separate %s scope.\n' "$profile" > "$output/native-not-attempted.txt"
 fi
 talkback_result=0
-if [[ "$profile" == talkback ]]; then
+if [[ "$profile" == talkback-service ]]; then
+  adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
+  adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
+  verify_installed dev.whiteboard.app.debug app/build/outputs/apk/debug/app-debug.apk
+  verify_installed dev.whiteboard.app.debug.test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+  sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/service-packages.sha256"
+fi
+if [[ "$profile" == talkback || "$profile" == talkback-service ]]; then
   pwsh -NoProfile -File ../tools/Test-RealTalkBack.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/talkback.log" || talkback_result=$?
+fi
+if [[ "$profile" == talkback-service ]]; then
+  bash tools/Assert-CiDeviceHealth.sh extra-service
+  if ((talkback_result == 0)); then
+    printf 'PASS: two real TalkBack integration cases only; no full140/13, R8 journey or spoken-audio review.\n' > "$output/passed.txt"
+  fi
+  exit "$talkback_result"
 fi
 # Keep regular/service APK hashes above; the opt-in external R8 client is a different pair.
 bash ./gradlew :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false \
