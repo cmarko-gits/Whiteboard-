@@ -70,7 +70,7 @@ jobs:
       - name: Build pinned candidate before emulator boot
         run: |
           if [[ "$QUALIFICATION_PROFILE" == release-16k ]]; then
-            bash ./gradlew :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+            bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           else
             bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           fi

@@ -130,7 +130,7 @@ if [[ "$profile" == talkback-service ]]; then
   exit "$talkback_result"
 fi
 # Keep regular/service APK hashes above; the opt-in external R8 client is a different pair.
-bash ./gradlew :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false \
+bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false \
   -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel \
   '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8' --console=plain
 bash ./gradlew --stop
