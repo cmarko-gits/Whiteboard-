@@ -1,7 +1,7 @@
 param([Parameter(Mandatory = $true)][string]$AdbPath)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or -not $IsLinux) { throw 'Only the disposable Linux qualification device is supported.' }
-. ./tools/Smoke-Test.ps1 -AdbPath $AdbPath -Package dev.whiteboard.app -LoadHelpersOnly
+. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -Package dev.whiteboard.app -LoadHelpersOnly
 $taskArtifacts = Join-Path $PWD 'artifacts/qa-extra/themes'
 New-Item -ItemType Directory -Path $taskArtifacts -Force | Out-Null
 $taskUiPath = Join-Path $taskArtifacts 'current-ui.xml'
@@ -71,6 +71,7 @@ try {
     foreach ($case in $cases) {
         foreach ($font in @('1.0', '2.0')) {
             $name = $case.Name + '-font-' + $font.Replace('.', '')
+            Write-Output "Capturing $name with settings/library/editor/color-picker."
             Invoke-Adb shell cmd uimode night $case.Night | Out-Null
             Invoke-Adb shell settings put system font_scale $font | Out-Null
             Find-Ui -Description 'New board' -ExactDescription | Out-Null
@@ -85,6 +86,7 @@ try {
             Tap-Ui (Find-Ui -Text 'Done')
             Find-Ui -Description 'New board' -ExactDescription | Out-Null
             Capture "$name-library"
+            Write-Output "Opening exact fixture board: $board"
             Tap-Ui (Find-Ui -Text $board)
             Find-Ui -Description 'Drawing canvas' -ExactDescription | Out-Null
             Capture "$name-editor"
@@ -100,6 +102,12 @@ try {
 } catch {
     # Preserve the original capture failure even if restoring the device also fails.
     Write-Warning ("Appearance capture failed: " + $_.ToString() + "`n" + $_.ScriptStackTrace)
+    try {
+        if (Test-Path -LiteralPath $taskUiPath) {
+            Copy-Item -LiteralPath $taskUiPath -Destination (Join-Path $taskArtifacts 'failure-ui.xml')
+        }
+    } catch { Write-Warning ("Failure hierarchy unavailable: " + $_.ToString()) }
+    try { Capture 'failure-screen' } catch { Write-Warning ("Failure screenshot unavailable: " + $_.ToString()) }
     throw
 } finally {
     # A failed capture remains failed; restoration does not dismiss a failure to resume the case.
