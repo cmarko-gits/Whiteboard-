@@ -1,0 +1,85 @@
+name: Additional candidate qualification
+on:
+  push:
+    paths:
+      - '.github/workflows/additional-qualification.yml'
+      - 'tools/Run-AdditionalQualification.sh'
+      - 'tools/Get-QualifiedPreview.ps1'
+      - 'tools/Test-RealTalkBack.ps1'
+      - 'tools/Test-ThemeAppearance.ps1'
+permissions:
+  contents: read
+concurrency:
+  group: additional-qualification-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  qualify:
+    name: ${{ matrix.profile }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {profile: runtime-16k, api: 35, tag: google_apis_ps16k}
+          - {profile: talkback, api: 36, tag: google_apis_playstore}
+    defaults:
+      run:
+        working-directory: candidate
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 36cd15a6415d66eff7be10c97802ddc61f522f59
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: true
+      - name: Validate launcher and host guard
+        shell: bash
+        run: |
+          bash -n ../tools/Run-AdditionalQualification.sh
+          result=0
+          GITHUB_ACTIONS=false bash ../tools/Run-AdditionalQualification.sh runtime-16k || result=$?
+          test "$result" = 2
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install build SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Build pinned candidate before emulator boot
+        run: |
+          bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+          bash ./gradlew --stop
+      - name: Fetch immutable qualified R8 preview
+        shell: pwsh
+        run: ../tools/Get-QualifiedPreview.ps1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Qualify actual runtime, accessibility and release
+        run: bash ../tools/Run-AdditionalQualification.sh '${{ matrix.profile }}'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: additional-${{ matrix.profile }}
+          path: |
+            candidate/artifacts/qa-extra/
+            candidate/artifacts/additional-*-tests.txt
+            candidate/artifacts/ci-health-*.txt
+            candidate/artifacts/*.png
+            candidate/artifacts/smoke-ui.xml
