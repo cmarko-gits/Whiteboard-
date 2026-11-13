@@ -6,7 +6,7 @@ on:
         description: Separate qualification scope
         type: choice
         default: all
-        options: [all, runtime-16k, runtime-16k-standard, talkback, release-16k, talkback-service, library-reopen]
+        options: [all, runtime-16k, runtime-16k-standard, talkback, release-16k, themes-16k, talkback-service, library-reopen]
   push:
     paths:
       - '.github/workflows/additional-qualification.yml'
@@ -14,6 +14,7 @@ on:
       - 'tools/Get-QualifiedPreview.ps1'
       - 'tools/Test-RealTalkBack.ps1'
       - 'tools/Test-ThemeAppearance.ps1'
+      - 'tools/Test-ThemeState.ps1'
       - 'tools/Smoke-Test.ps1'
       - 'tools/Test-ToolStripGesture.ps1'
 permissions:
@@ -63,6 +64,7 @@ jobs:
           GITHUB_ACTIONS=false bash ../tools/Run-AdditionalQualification.sh runtime-16k || result=$?
           test "$result" = 2
           pwsh -NoProfile -File ../tools/Test-ToolStripGesture.ps1
+          pwsh -NoProfile -File ../tools/Test-ThemeState.ps1
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -72,7 +74,7 @@ jobs:
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build pinned candidate before emulator boot
         run: |
-          if [[ "$QUALIFICATION_PROFILE" == release-16k ]]; then
+          if [[ "$QUALIFICATION_PROFILE" == release-16k || "$QUALIFICATION_PROFILE" == themes-16k ]]; then
             bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           elif [[ "$QUALIFICATION_PROFILE" == runtime-16k-standard ]]; then
             bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain

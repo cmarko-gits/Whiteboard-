@@ -6,6 +6,7 @@ case "$profile" in
   runtime-16k) api=35; tag=google_apis_ps16k ;;
   runtime-16k-standard) api=35; tag=google_apis_ps16k ;;
   release-16k) api=35; tag=google_apis_ps16k ;;
+  themes-16k) api=36; tag=google_apis_playstore_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
   talkback-service) api=36; tag=google_apis_playstore ;;
   library-reopen) api=36; tag=google_apis_playstore ;;
@@ -25,6 +26,15 @@ export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 output=artifacts/qa-extra
 mkdir -p "$output" "$ANDROID_AVD_HOME"
 emulator_pid=''
+assert_extra_health() {
+  local phase=$1
+  bash tools/Assert-CiDeviceHealth.sh "$phase"
+  timeout 15s adb logcat -b crash -d -v brief > "$output/$phase-native-crashes.txt"
+  if grep -Eq 'Fatal signal [0-9]+|signal [0-9]+ \(SIG' "$output/$phase-native-crashes.txt"; then
+    echo "Native process crash recorded at $phase; environment is not qualified." >&2
+    return 1
+  fi
+}
 cleanup() {
   result=$?; trap - EXIT
   if [[ -n "$emulator_pid" ]]; then
@@ -39,6 +49,7 @@ cleanup() {
       done
     done
     timeout 15s adb logcat -d | tail -c 4000000 > "$output/logcat.txt" || true
+    timeout 15s adb logcat -b crash -d -v brief | tail -c 524288 > "$output/native-crashes.txt" || true
     timeout 10s adb shell dumpsys activity lastanr > "$output/last-anr.txt" 2>&1 || true
     timeout 10s adb exec-out screencap -p > "$output/final-screen.png" 2>/dev/null || true
     timeout 10s adb emu kill >/dev/null 2>&1 || true
@@ -69,11 +80,11 @@ while ((SECONDS < deadline)); do
   sleep 2
 done
 if [[ "$booted" != true ]]; then echo 'Boot timed out; no application tests ran.' >&2; exit 1; fi
-bash tools/Assert-CiDeviceHealth.sh extra-boot
+assert_extra_health extra-boot
 observed_api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
 if [[ "$observed_api" != "$api" || ! "$page_size" =~ ^[0-9]+$ ]]; then echo 'Unexpected device API/page size.' >&2; exit 1; fi
-if [[ "$api" == 35 && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
+if [[ "$profile" == *16k* && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
 {
   printf 'source=%s\ntooling=%s\nprofile=%s\napi=%s\npageSize=%s\n' "$(git rev-parse HEAD)" "$GITHUB_SHA" "$profile" "$observed_api" "$page_size"
   adb shell getprop ro.build.fingerprint
@@ -86,7 +97,7 @@ for setting in window_animation_scale transition_animation_scale animator_durati
 # Record the original production binary independently of instrumentation installation.
 adb install --no-streaming -r "$output/qualified-preview.apk" 2>&1 | tee "$output/install-qualified-preview.log"
 adb shell am start -W -n dev.whiteboard.app/.MainActivity > "$output/qualified-preview-start.txt"
-bash tools/Assert-CiDeviceHealth.sh extra-preview-start
+assert_extra_health extra-preview-start
 adb shell am force-stop dev.whiteboard.app
 verify_installed() {
   local package=$1 expected_apk=$2 location actual expected
@@ -106,11 +117,11 @@ if [[ "$profile" == library-reopen ]]; then
   timeout 600s adb shell am instrument -w -r -e class dev.whiteboard.app.CanvasAccessibilityTest \
     dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner 2>&1 | tee artifacts/additional-reopen-app-tests.txt
   pwsh -NoProfile -Command '$text=Get-Content artifacts/additional-reopen-app-tests.txt -Raw; if($text -notmatch "OK \(8 tests\)" -or $text -match "FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed") { throw "Focused accessibility/reopen cases failed" }'
-  bash tools/Assert-CiDeviceHealth.sh extra-reopen
+  assert_extra_health extra-reopen
   printf 'PASS: eight focused CanvasAccessibilityTest cases only; this does not replace the failed full140 result.\n' > "$output/passed.txt"
   exit 0
 fi
-if [[ "$profile" != release-16k && "$profile" != talkback-service ]]; then
+if [[ "$profile" != release-16k && "$profile" != themes-16k && "$profile" != talkback-service ]]; then
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
 # adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
 # than losing it behind the frozen helper's generic installation exception.
@@ -132,7 +143,7 @@ pwsh -NoProfile -Command '
     if($text -notmatch ("OK \("+$suite.Value+" tests\)") -or $text -match "FAILURES!!!|INSTRUMENTATION_FAILED|INSTRUMENTATION_ABORTED") { throw "Unexpected native inventory or failure" }
   }
 '
-bash tools/Assert-CiDeviceHealth.sh extra-native
+assert_extra_health extra-native
 else
   printf 'Full 140/13 not attempted: explicitly separate %s scope.\n' "$profile" > "$output/native-not-attempted.txt"
 fi
@@ -148,7 +159,7 @@ if [[ "$profile" == talkback || "$profile" == talkback-service ]]; then
   pwsh -NoProfile -File ../tools/Test-RealTalkBack.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/talkback.log" || talkback_result=$?
 fi
 if [[ "$profile" == talkback-service ]]; then
-  bash tools/Assert-CiDeviceHealth.sh extra-service
+  assert_extra_health extra-service
   if ((talkback_result == 0)); then
     printf 'PASS: two real TalkBack integration cases only; no full140/13, R8 journey or spoken-audio review.\n' > "$output/passed.txt"
   fi
@@ -162,9 +173,11 @@ bash ./gradlew --stop
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/ui-client-packages.sha256"
+smoke_options=(-CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps)
+if [[ "$profile" == themes-16k ]]; then smoke_options=(); fi
 pwsh -NoProfile -File ../tools/Smoke-Test.ps1 -ArtifactsDirectory artifacts -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
-  -ApkPath "$output/qualified-preview.apk" -CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps 2>&1 | tee "$output/release-smoke.log"
+  -ApkPath "$output/qualified-preview.apk" "${smoke_options[@]}" 2>&1 | tee "$output/release-smoke.log"
 pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/theme-appearance.log"
-bash tools/Assert-CiDeviceHealth.sh extra-release
+assert_extra_health extra-release
 if ((talkback_result != 0)); then echo 'Real TalkBack integration failed; retained separate native and R8 evidence is not a whole-job pass.' >&2; exit "$talkback_result"; fi
 printf 'PASS: pinned candidate additional qualification (%s), API %s, page size %s.\n' "$profile" "$observed_api" "$page_size" | tee "$output/passed.txt"

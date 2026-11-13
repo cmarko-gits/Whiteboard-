@@ -29,6 +29,9 @@ jobs:
       - name: Check tool-strip gestures without a device
         shell: pwsh
         run: ./tools/Test-ToolStripGesture.ps1
+      - name: Check appearance state reader without a device
+        shell: pwsh
+        run: ./tools/Test-ThemeState.ps1
       - name: Check release diagnostic parsing without a device
         shell: pwsh
         run: ./tools/Test-ReleaseRuntimeParsing.ps1

@@ -11,12 +11,41 @@ if ($originalNight -notmatch '^Night mode: (auto|yes|no)$') { throw "Unrecognize
 $restoreNight = $Matches[1]
 function Open-Settings {
     Tap-Ui (Find-Ui -Description 'Settings' -ExactDescription)
-    Find-Ui -Text 'Appearance' | Out-Null
+    Find-ThemeSetting -Label 'Appearance' | Out-Null
+}
+function Find-ThemeSetting {
+    param([string]$Label)
+    for ($scroll = 0; $scroll -lt 12; $scroll++) {
+        $nodes = @(Get-Ui)
+        $match = @($nodes | Where-Object { $_.text -ceq $Label -and $_.enabled -eq 'true' })
+        if ($match.Count -eq 1) { return $match[0] }
+        $containers = @($nodes | Where-Object scrollable -eq 'true')
+        if (-not $containers.Count) { break }
+        $area = Get-Rect $containers[-1]
+        $height = $area[3] - $area[1]
+        $x = [int](($area[0] + $area[2]) / 2)
+        Invoke-Adb shell input swipe $x ([int]($area[1] + $height * 0.8)) $x ([int]($area[1] + $height * 0.2)) 300 | Out-Null
+    }
+    throw "Appearance control is not reachable: $Label"
+}
+function Get-SelectedThemeFromNodes {
+    param([object[]]$Nodes)
+    $selected = [Collections.Generic.List[string]]::new()
+    foreach ($label in @($Nodes | Where-Object { $_.package -ceq 'dev.whiteboard.app' -and $_.text -in @('System', 'Light', 'Dark') })) {
+        $owner = $label
+        while ($null -ne $owner -and $owner.Name -eq 'node' -and $owner.package -ceq 'dev.whiteboard.app') {
+            if ($owner.checkable -eq 'true' -or $owner.selected -eq 'true') {
+                if ($owner.checked -eq 'true' -or $owner.selected -eq 'true') { $selected.Add([string]$label.text) }
+                break
+            }
+            $owner = $owner.ParentNode
+        }
+    }
+    if ($selected.Count -ne 1) { throw 'Expected exactly one selected appearance chip in the connected hierarchy.' }
+    return $selected[0]
 }
 function Selected-Theme {
-    $selected = @(Get-Ui | Where-Object { $_.text -in @('System', 'Light', 'Dark') -and $_.selected -eq 'true' })
-    if ($selected.Count -ne 1) { throw 'Expected exactly one selected appearance chip in the connected hierarchy.' }
-    return [string]$selected[0].text
+    return Get-SelectedThemeFromNodes -Nodes @(Get-Ui)
 }
 $back = @(Get-Ui | Where-Object { $_.'content-desc' -ceq 'Back to boards' })
 if ($back.Count) { Tap-Ui $back[0] }
@@ -42,7 +71,8 @@ try {
             Invoke-Adb shell settings put system font_scale $font | Out-Null
             Find-Ui -Description 'New board' -ExactDescription | Out-Null
             Open-Settings
-            Tap-Ui (Find-Ui -Text $case.Theme)
+            Tap-Ui (Find-ThemeSetting -Label $case.Theme)
+            Find-ThemeSetting -Label $case.Theme | Out-Null
             if ((Selected-Theme) -cne $case.Theme) { throw 'Requested theme did not become selected.' }
             $observedNight = ((Invoke-Adb shell cmd uimode night) -join '').Trim()
             $observedFont = ((Invoke-Adb shell settings get system font_scale) -join '').Trim()
@@ -72,7 +102,7 @@ try {
     Invoke-Adb shell am start -W -n dev.whiteboard.app/.MainActivity | Out-Null
     Find-Ui -Description 'New board' -ExactDescription | Out-Null
     Open-Settings
-    Tap-Ui (Find-Ui -Text $originalTheme)
+    Tap-Ui (Find-ThemeSetting -Label $originalTheme)
     $restoredTheme = Selected-Theme
     Tap-Ui (Find-Ui -Text 'Done')
     $restoredFont = ((Invoke-Adb shell settings get system font_scale) -join '').Trim()
