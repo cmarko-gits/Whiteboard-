@@ -47,6 +47,10 @@ function Get-SelectedThemeFromNodes {
 function Selected-Theme {
     return Get-SelectedThemeFromNodes -Nodes @(Get-Ui)
 }
+function Restart-ThemeApp {
+    Invoke-Adb -Arguments @('shell', 'am', 'force-stop', 'dev.whiteboard.app') | Out-Null
+    Invoke-Adb -Arguments @('shell', 'am', 'start', '-W', '-n', 'dev.whiteboard.app/.MainActivity') | Out-Null
+}
 $back = @(Get-Ui | Where-Object { $_.'content-desc' -ceq 'Back to boards' })
 if ($back.Count) { Tap-Ui $back[0] }
 $fixture = @(Get-Ui | Where-Object { $_.text -like 'Recovery_check_*' })
@@ -93,13 +97,16 @@ try {
         }
     }
     $status = 'passed-ui-capture-only'
+} catch {
+    # Preserve the original capture failure even if restoring the device also fails.
+    Write-Warning ("Appearance capture failed: " + $_.ToString() + "`n" + $_.ScriptStackTrace)
+    throw
 } finally {
     # A failed capture remains failed; restoration does not dismiss a failure to resume the case.
     if ($originalFont -eq 'null') { Invoke-Adb shell settings delete system font_scale | Out-Null }
     else { Invoke-Adb shell settings put system font_scale $originalFont | Out-Null }
     Invoke-Adb shell cmd uimode night $restoreNight | Out-Null
-    Invoke-Adb shell am force-stop dev.whiteboard.app | Out-Null
-    Invoke-Adb shell am start -W -n dev.whiteboard.app/.MainActivity | Out-Null
+    Restart-ThemeApp
     Find-Ui -Description 'New board' -ExactDescription | Out-Null
     Open-Settings
     Tap-Ui (Find-ThemeSetting -Label $originalTheme)

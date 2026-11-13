@@ -66,6 +66,7 @@ jobs:
           test "$result" = 2
           pwsh -NoProfile -File ../tools/Test-ToolStripGesture.ps1
           pwsh -NoProfile -File ../tools/Test-ThemeState.ps1
+          pwsh -NoProfile -File ../tools/Test-AdbArgumentBinding.ps1
           pwsh -NoProfile -File ../tools/Test-SmokeBoardInput.ps1
       - name: Enable emulator acceleration
         run: |

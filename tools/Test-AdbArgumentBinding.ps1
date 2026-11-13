@@ -23,3 +23,15 @@ if($start -cne '-s|argument-probe|shell|am|start|-W|-n|dev.whiteboard.argumentpr
     throw 'Launch flags were consumed by PowerShell parameter binding'
 }
 Write-Output 'PASS: actual release restart function preserves -W/-n as adb arguments; no device commands executed.'
+$script:adbInvocations.Clear()
+$ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'Test-ThemeAppearance.ps1'),[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'Theme capture script did not parse'}
+$restart=$ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Restart-ThemeApp'},$true)
+if(!$restart){throw 'Missing production theme restart function'}
+& $restart.Body.GetScriptBlock()
+if($script:adbInvocations.Count -ne 2 -or
+    ($script:adbInvocations[0] -join '|') -cne '-s|argument-probe|shell|am|force-stop|dev.whiteboard.app' -or
+    ($script:adbInvocations[1] -join '|') -cne '-s|argument-probe|shell|am|start|-W|-n|dev.whiteboard.app/.MainActivity'){
+    throw 'Theme restoration flags were consumed by PowerShell parameter binding'
+}
+Write-Output 'PASS: actual theme restoration preserves both launch flags; no device commands executed.'
