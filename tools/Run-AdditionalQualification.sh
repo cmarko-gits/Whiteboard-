@@ -4,6 +4,7 @@ set -euo pipefail
 profile=${1:?Qualification profile is required}
 case "$profile" in
   runtime-16k) api=35; tag=google_apis_ps16k ;;
+  runtime-16k-standard) api=35; tag=google_apis_ps16k ;;
   release-16k) api=35; tag=google_apis_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
   talkback-service) api=36; tag=google_apis_playstore ;;
@@ -72,7 +73,7 @@ bash tools/Assert-CiDeviceHealth.sh extra-boot
 observed_api=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 page_size=$(adb shell getconf PAGE_SIZE | tr -d '\r')
 if [[ "$observed_api" != "$api" || ! "$page_size" =~ ^[0-9]+$ ]]; then echo 'Unexpected device API/page size.' >&2; exit 1; fi
-if [[ "$profile" == *16k && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
+if [[ "$api" == 35 && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
 {
   printf 'source=%s\ntooling=%s\nprofile=%s\napi=%s\npageSize=%s\n' "$(git rev-parse HEAD)" "$GITHUB_SHA" "$profile" "$observed_api" "$page_size"
   adb shell getprop ro.build.fingerprint

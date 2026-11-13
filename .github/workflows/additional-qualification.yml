@@ -6,7 +6,7 @@ on:
         description: Separate qualification scope
         type: choice
         default: all
-        options: [all, runtime-16k, talkback, release-16k, talkback-service, library-reopen]
+        options: [all, runtime-16k, runtime-16k-standard, talkback, release-16k, talkback-service, library-reopen]
   push:
     paths:
       - '.github/workflows/additional-qualification.yml'
@@ -71,6 +71,8 @@ jobs:
         run: |
           if [[ "$QUALIFICATION_PROFILE" == release-16k ]]; then
             bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+          elif [[ "$QUALIFICATION_PROFILE" == runtime-16k-standard ]]; then
+            bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           else
             bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
           fi
