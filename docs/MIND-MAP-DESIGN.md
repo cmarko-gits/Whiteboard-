@@ -1,8 +1,8 @@
 # F06 — lokalni mind-map: ugovor pre implementacije
 
-> Prva puna editor matrica 7f0fe83/CI 42330852735 nije prošla: API 33 je zelen, ostali profili imaju fixture prelaz ili stvarni tablet focus pad. [Pregled i ispravke](MIND-MAP-EDITOR-CI-REVIEW.md) čuva izvor, sve rezultate, SHA-256 snimaka i dodatni vizuelni nalaz. Novi fix mora ponovo proći punu matricu; F06 ostaje otvoren.
+> F06 je završen u lokalnom softverskom/emulatorskom opsegu: [0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md), svih šest CI 43008205011 poslova bez retry-ja, kvalifikovani preview APK i vlasnički potpisani AAB. [Editor i tokovi](MIND-MAP-EDITOR.md) opisuju konačnu implementaciju. Prva neuspešna matrica 7f0fe83 i kasniji nalazi ostaju sačuvani u [pregledu](MIND-MAP-EDITOR-CI-REVIEW.md) i RELEASE-READINESS.md.
 
-Status: razvojna 0.8.0/code 17. Projekcija/clipboard source 6b53d42 ima zelenu CI 42183053409 kohortu (638 jedinstvenih slučajeva, jedan sačuvani API 36 startup retry). Branch potvrde source 23463e6/CI 42269898794 prolaze 500 JVM i pet profila po 132 app + 13 data, tri R8/jezička toka; 645 jedinstvenih slučajeva. Novi [editor čvorova i semantički šablon](MIND-MAP-EDITOR.md) imaju 518 lokalnih JVM testova, stil/arhitekturu i Android kompilaciju, ali novu punu kvalifikaciju tek treba izvršiti. F06 ostaje otvoren. Nema distribuiranog 0.8.0 kandidata; kvalifikovani paket ostaje 0.7.2/source 1176e59.
+Status: kvalifikovani lokalni kandidat 0.8.0/code 17. Konačni izvor prolazi 519 JVM, pet profila po 140 app + 13 data, tri R8/jezička/runtime toka, upgrade/adaptive/split-screen i dve odvojene dijagnostike. Ranije projekcija/clipboard 6b53d42 (638 slučajeva, sačuvani startup retry) i branch potvrde 23463e6 (645 slučajeva) ostaju istorijske kohorte. Ručni govorni TalkBack, kompletan kontrast i fizičko profilisanje ostaju zasebni završni rad; ne menjaju domenski ugovor ispod.
 
 ## Autoritativni podaci i granice
 

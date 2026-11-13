@@ -1,6 +1,6 @@
 # F06 — semantički snapshot i trajni format
 
-Razvojni podkorak 0.8.0/code 17; kvalifikovani korisnički paket ostaje 0.7.2/source 1176e59. Novi kod još nije završena mind-map funkcija. Domenske komande opisuje MIND-MAP-COMMANDS.md; njihovi dijalozi i povezivanje vidljive projekcije sa canvas/input/AX/izvoz potrošačima ostaju sledeći podkoraci. Novi template još nije aktiviran.
+Ovaj dokument čuva ugovor trajnog formata uvedenog tokom razvoja 0.8.0/code 17. Konačni [kvalifikovani 0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md) uključuje povezanu projekciju, canvas/input/AX/izvoz potrošače, editor dijaloge i aktivni semantički Mind map šablon. F06 je završen u lokalnom softverskom/emulatorskom opsegu; [MIND-MAP-EDITOR.md](MIND-MAP-EDITOR.md) opisuje konačne tokove. Domenske komande opisuje MIND-MAP-COMMANDS.md. Ranije razvojne kohorte ispod nisu aktuelni paket status.
 
 Page sada poseduje listu MindMapTree vrednosti i opcioni MindMapPageIndex. Prazna semantika nema novi indeks. Kopije naziva, kamere i pozadine dele isti content i semantički indeks; promena topologije/collapse stanja menja scene identitet. sharesSceneWith proverava oba identiteta u O(1). ViewModel potvrde konektora i SelectionEditPlan koriste taj ugovor, pa jednaka lista objekata više ne može prikriti promenjeno semantičko stanje.
 

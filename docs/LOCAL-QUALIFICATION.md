@@ -1,6 +1,6 @@
 # Kvalifikacija lokalnog Whiteboard-a 0.4.0
 
-Ovo je istorijska kohorta 0.4.0. Aktuelni [0.7.2 kandidat](LOCAL-0.7.2-CANDIDATE.md) ima zasebnih 399 JVM i pet profila po 123 app + 13 data, tri release toka i provereni paket; 535 jedinstvenih slučajeva. Stari TalkBack, heap i frame-time nalazi ispod nisu automatski ponovljeni za njega. Warm preview algoritam ima novo petoprofilno poređenje, a committed edit/copy/codec i process/encoder/retained-memory scope ostaju otvoreni. Ovo nije završna potvrda cele aplikacije.
+Ovo je istorijska kohorta 0.4.0. Aktuelni [0.8.0 kandidat/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md) prolazi 519 JVM i pet profila po 140 app + 13 data, tri release toka i dve zasebne memory/frame dijagnostike; 674 različita osnovna/dijagnostička slučaja. Potpisani AAB i preview imaju zasebne proverene hash-eve. Stari TalkBack nalaz ispod nije automatski ponovljen za njega; završni ručni rad navodi [RELEASE-HANDOFF.md](RELEASE-HANDOFF.md), a aktuelna merenja [PERFORMANCE.md](PERFORMANCE.md). Committed edit/copy/codec i fizički GPU/peak/retained-memory scope ostaju otvoreni. Ovo nije završna potvrda cele aplikacije.
 
 Datum: 1. novembar 2026. Korisnik je izabrao nastavak bez fizičkog telefona. Ovaj pregled obuhvata dostupne emulatore i lokalne pakete; ne potvrđuje fizičku latenciju olovke, OEM ponašanje ili sve Android uređaje.
 
