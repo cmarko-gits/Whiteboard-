@@ -68,10 +68,15 @@ jobs:
       - name: Install build SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Build pinned candidate before emulator boot
-        if: matrix.profile != 'release-16k'
         run: |
-          bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+          if [[ "$QUALIFICATION_PROFILE" == release-16k ]]; then
+            bash ./gradlew :app:assembleDebugAndroidTest -Pwhiteboard.releaseUiClient=true -Pwhiteboard.leakDetection=false -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+          else
+            bash ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :data:assembleDebugAndroidTest -Pwhiteboard.qualificationTests=true -Pwhiteboard.leakDetection=true -Pkotlin.compiler.execution.strategy=in-process --max-workers=1 --no-parallel '-Dorg.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8' --console=plain
+          fi
           bash ./gradlew --stop
+        env:
+          QUALIFICATION_PROFILE: ${{ matrix.profile }}
       - name: Fetch immutable qualified R8 preview
         shell: pwsh
         run: ../tools/Get-QualifiedPreview.ps1
