@@ -1,6 +1,5 @@
 package dev.whiteboard.app
 
-import android.os.SystemClock
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.OutlinedTextField
@@ -122,19 +121,18 @@ class InputDialogWindowTest {
             compose.onNodeWithTag("owner-input").performTextInput(" resumed")
             compose.onNodeWithTag("owner-input").assertTextContains("Owner resumed")
         } catch (error: Throwable) {
-            CaptureUiFailure().snapshot("input-window-${if (alert) "alert" else "plain"}")
+            CaptureUiFailure().snapshot("input-window-${if (alert) "alert" else "plain"}", includeWindowState = true)
             throw error
         }
     }
 
     private fun awaitKeyboardShown(device: UiDevice) {
-        val deadline = SystemClock.uptimeMillis() + 10_000
         val shown = Regex("\\bmInputShown=true\\b")
-        while (!shown.containsMatchIn(device.executeShellCommand("dumpsys input_method")) && SystemClock.uptimeMillis() < deadline) {
-            SystemClock.sleep(50)
-        }
-        check(shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))) {
-            "Explicit owner input did not show its keyboard"
+        // Window focus/input callbacks arrive outside Compose. A physical click can
+        // enqueue Compose input work after waitForIdle returns; keep advancing the
+        // controlled clock while also yielding to the real platform IME.
+        compose.waitUntil("Explicit input must show the real platform keyboard", timeoutMillis = 10_000) {
+            shown.containsMatchIn(device.executeShellCommand("dumpsys input_method"))
         }
     }
 }

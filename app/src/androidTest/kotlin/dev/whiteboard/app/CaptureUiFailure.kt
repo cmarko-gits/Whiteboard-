@@ -14,7 +14,7 @@ class CaptureUiFailure : TestWatcher() {
         snapshot("failure-${description.methodName}")
     }
 
-    fun snapshot(label: String) {
+    fun snapshot(label: String, includeWindowState: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         val name = label.replace(Regex("[^A-Za-z0-9_-]"), "_")
@@ -25,6 +25,11 @@ class CaptureUiFailure : TestWatcher() {
         runCatching { device.takeScreenshot(File(directory, "$name.png")) }
         runCatching {
             File(directory, "$name-input-method.txt").writeText(device.executeShellCommand("dumpsys input_method").take(200_000))
+        }
+        if (includeWindowState) {
+            runCatching {
+                File(directory, "$name-window.txt").writeText(device.executeShellCommand("dumpsys window windows").take(200_000))
+            }
         }
     }
 }
