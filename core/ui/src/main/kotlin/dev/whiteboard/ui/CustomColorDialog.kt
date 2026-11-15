@@ -169,67 +169,58 @@ fun CustomColorDialog(initial: Int, favorites: List<Int>, saveFavorites: (List<I
         submit(selected)
     }
     InputDialog(dismiss) { closeKeyboard ->
-        BoxWithConstraints(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp, vertical = 8.dp)) {
-            val inlineActions = maxHeight < 240.dp
-            val showTitle = maxHeight >= 360.dp
-            Surface(
-                modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp
-            ) {
-                Column(Modifier.padding(if (inlineActions) 8.dp else 24.dp)) {
-                    if (showTitle) {
-                        Text(stringResource(R.string.custom_color), style = MaterialTheme.typography.headlineSmall)
-                        Spacer(Modifier.height(12.dp))
-                    }
-                    AdaptiveDialogContent(
-                        compact = inlineActions,
-                        input = { hexInput(!inlineActions) },
-                        actions = {
-                            TextButton(
-                                onClick = {
-                                    closeKeyboard()
-                                    dismiss()
-                                },
-                                modifier = Modifier.weight(1f, fill = false).focusProperties {
-                                    canFocus = true
-                                }.focusRequester(cancelFocus)
-                            ) { Text(stringResource(R.string.cancel)) }
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(
-                                onClick = {
-                                    closeKeyboard()
-                                    commit()
-                                },
-                                enabled = valid,
-                                modifier = Modifier.weight(1f, fill = false).focusProperties {
-                                    canFocus = valid
-                                }.focusRequester(applyFocus)
-                            ) { Text(stringResource(R.string.apply)) }
-                        },
-                        body = {
-                            if (!inlineActions) {
-                                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                                    if (compact && maxWidth >= 360.dp) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { visual() }
-                                            Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { details() }
-                                        }
-                                    } else {
-                                        Column(
-                                            Modifier.verticalScroll(rememberScrollState()),
-                                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            visual()
-                                            details()
-                                        }
+        Box(Modifier.systemBarsPadding().imePadding().padding(horizontal = 24.dp)) {
+            AdaptiveDialogSurface { inlineActions, showTitle ->
+                if (showTitle) {
+                    Text(stringResource(R.string.custom_color), style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(12.dp))
+                }
+                AdaptiveDialogContent(
+                    compact = inlineActions,
+                    input = { hexInput(!inlineActions) },
+                    actions = {
+                        TextButton(
+                            onClick = {
+                                closeKeyboard()
+                                dismiss()
+                            },
+                            modifier = Modifier.weight(1f, fill = false).focusProperties {
+                                canFocus = true
+                            }.focusRequester(cancelFocus)
+                        ) { Text(stringResource(R.string.cancel)) }
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(
+                            onClick = {
+                                closeKeyboard()
+                                commit()
+                            },
+                            enabled = valid,
+                            modifier = Modifier.weight(1f, fill = false).focusProperties {
+                                canFocus = valid
+                            }.focusRequester(applyFocus)
+                        ) { Text(stringResource(R.string.apply)) }
+                    },
+                    body = {
+                        if (!inlineActions) {
+                            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                                if (compact && maxWidth >= 360.dp) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { visual() }
+                                        Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { details() }
+                                    }
+                                } else {
+                                    Column(
+                                        Modifier.verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        visual()
+                                        details()
                                     }
                                 }
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
     }

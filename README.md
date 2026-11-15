@@ -2,7 +2,7 @@
 
 > [Devet završnih celina](docs/RELEASE-READINESS.md): **6/9 završeno, 3 otvoreno**. Opseg je offline 0.8.0/code 17, bez F07 razvoja. Ručni TalkBack/kontrast, fizičko profilisanje i nezavisna kopija ključa ostaju otvoreni; Play objava nije izvršena.
 
-Radni kod je [0.8.1/code 18 — ispravka kontrasta sistemskih traka u dijalozima](docs/DIALOG-SYSTEM-BARS.md). Novi kod još zahteva punu CI kvalifikaciju; prethodni 0.8.0 paketi ostaju sačuvani i ne predstavljaju ovu izmenu. Glavni broj 6/9 označava prethodne završene celine i ne predstavlja automatski prolaz novog kandidata.
+Radni kod je [0.8.1/code 18 — kontrast sistemskih traka i čitljivost kompaktnog HEX unosa](docs/DIALOG-SYSTEM-BARS.md). Novi kod još zahteva punu CI kvalifikaciju sa 143 app testa; prethodni 0.8.0 paketi ostaju sačuvani i ne predstavljaju ovu izmenu. Glavni broj 6/9 označava prethodne završene celine i ne predstavlja automatski prolaz novog kandidata.
 
 Kvalifikovani lokalni paket je [0.8.0/source 36cd15a](docs/LOCAL-0.8.0-CANDIDATE.md). [CI 43008205011](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43008205011) prolazi svih šest poslova bez retry-ja: 519 JVM, pet profila po 140 app + 13 data, dve odvojene dijagnostike, tri R8/jezička/runtime toka, stvarna binarna nadogradnja i adaptive/split-screen. Preview APK i vlasnički potpisani AAB su sačuvani i provereni. [F06 editor čvorova i semantički šablon](docs/MIND-MAP-EDITOR.md) je zatvoren u softverskom/emulatorskom opsegu. Širi backlog: **14/47 završeno, 33 otvoreno**; Z08, hardverski rad i buduće opcije ostaju u planu. Prethodni paketi i neuspešni pokušaji ostaju sačuvani.
 

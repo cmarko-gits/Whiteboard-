@@ -1,15 +1,41 @@
 package dev.whiteboard.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+
+/** Keep the field's natural height when the IME leaves only a compact strip. */
+@Composable
+fun AdaptiveDialogSurface(content: @Composable ColumnScope.(compact: Boolean, showTitle: Boolean) -> Unit) {
+    BoxWithConstraints {
+        val compact = maxHeight < 240.dp
+        val showTitle = maxHeight >= 360.dp
+        Surface(
+            modifier = Modifier.padding(vertical = if (compact) 0.dp else 8.dp).widthIn(max = 560.dp).fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.padding(horizontal = if (compact) 8.dp else 24.dp, vertical = if (compact) 0.dp else 24.dp)) {
+                content(compact, showTitle)
+            }
+        }
+    }
+}
 
 /** The input and action row keep the same parents while IME insets change their placement. */
 @Composable
