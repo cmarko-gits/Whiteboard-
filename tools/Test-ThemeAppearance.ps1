@@ -60,6 +60,8 @@ if ($CreateFixture) {
     Find-Ui -Description 'New board' -ExactDescription | Out-Null
     $board = 'Theme_check_' + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
     Tap-Ui (Find-Ui -Description 'New board' -ExactDescription)
+    # The library search input remains in the old hierarchy while the dialog opens.
+    Find-Ui -Text 'Board name' | Out-Null
     Tap-Ui (Find-Ui -Class 'android.widget.EditText')
     Wait-Keyboard
     $inputs = @(Get-Ui | Where-Object { $_.class -ceq 'android.widget.EditText' -and $_.focused -eq 'true' -and $_.enabled -eq 'true' })
