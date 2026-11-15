@@ -407,6 +407,11 @@ try {
     Write-Output 'PASS: new-board keyboard Confirm, color keyboard/landscape restoration, recovery, Save and close, reopen, phone/tablet portrait and landscape layouts.'
 } catch {
     $taskOriginalError = $_
+    try {
+        $taskFailedIme = (Invoke-Adb shell dumpsys input_method) -join "`n"
+        $taskFailedIme.Substring(0, [Math]::Min(200000, $taskFailedIme.Length)) |
+            Set-Content (Join-Path $taskArtifacts 'release-smoke-failure-input-method.txt')
+    } catch { }
     try { Capture 'release-smoke-failure' } catch { }
     throw $taskOriginalError
 } finally {

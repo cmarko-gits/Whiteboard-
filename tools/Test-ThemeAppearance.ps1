@@ -1,4 +1,4 @@
-param([Parameter(Mandatory = $true)][string]$AdbPath)
+param([Parameter(Mandatory = $true)][string]$AdbPath, [switch]$CreateFixture)
 $ErrorActionPreference = 'Stop'
 if ($env:GITHUB_ACTIONS -ne 'true' -or -not $IsLinux) { throw 'Only the disposable Linux qualification device is supported.' }
 . (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -Package dev.whiteboard.app -LoadHelpersOnly
@@ -51,11 +51,33 @@ function Restart-ThemeApp {
     Invoke-Adb -Arguments @('shell', 'am', 'force-stop', 'dev.whiteboard.app') | Out-Null
     Invoke-Adb -Arguments @('shell', 'am', 'start', '-W', '-n', 'dev.whiteboard.app/.MainActivity') | Out-Null
 }
-$back = @(Get-Ui | Where-Object { $_.'content-desc' -ceq 'Back to boards' })
-if ($back.Count) { Tap-Ui $back[0] }
-$fixture = @(Get-Ui | Where-Object { $_.text -like 'Recovery_check_*' })
-if ($fixture.Count -ne 1) { throw 'Exactly one saved smoke-owned Recovery_check board is required.' }
-$board = [string]$fixture[0].text
+if ($CreateFixture) {
+    # An independent appearance fixture: the separate input profile keeps every
+    # keyboard-persistence assertion. This setup makes no keyboard qualification claim.
+    Invoke-Adb -Arguments @('shell', 'am', 'start', '-W', '-n', 'dev.whiteboard.app/.MainActivity') | Out-Null
+    $onboarding = @(Get-Ui | Where-Object text -ceq 'Start creating')
+    if ($onboarding.Count -eq 1) { Tap-Ui $onboarding[0] }
+    Find-Ui -Description 'New board' -ExactDescription | Out-Null
+    $board = 'Theme_check_' + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    Tap-Ui (Find-Ui -Description 'New board' -ExactDescription)
+    Tap-Ui (Find-Ui -Class 'android.widget.EditText')
+    Wait-Keyboard
+    $inputs = @(Get-Ui | Where-Object { $_.class -ceq 'android.widget.EditText' -and $_.focused -eq 'true' -and $_.enabled -eq 'true' })
+    if ($inputs.Count -ne 1 -or $inputs[0].text -notin @('', 'Board name')) { throw 'Appearance fixture field is not uniquely focused and empty.' }
+    Invoke-Adb shell input text $board | Out-Null
+    Find-Ui -Text $board -Class 'android.widget.EditText' | Out-Null
+    Tap-Ui (Find-Ui -Text 'Confirm')
+    Find-Ui -Description 'Drawing canvas' | Out-Null
+    Find-Ui -Text 'Saved on this device' | Out-Null
+    Tap-Ui (Find-Ui -Description 'Back to boards' -ExactDescription)
+    Find-Ui -Text $board | Out-Null
+} else {
+    $back = @(Get-Ui | Where-Object { $_.'content-desc' -ceq 'Back to boards' })
+    if ($back.Count) { Tap-Ui $back[0] }
+    $fixture = @(Get-Ui | Where-Object { $_.text -like 'Recovery_check_*' })
+    if ($fixture.Count -ne 1) { throw 'Exactly one saved smoke-owned Recovery_check board is required.' }
+    $board = [string]$fixture[0].text
+}
 Open-Settings
 $originalTheme = Selected-Theme
 Tap-Ui (Find-Ui -Text 'Done')
@@ -126,6 +148,7 @@ try {
     $images = @(Get-ChildItem -LiteralPath $taskArtifacts -Filter '*.png' | ForEach-Object { [ordered]@{ name = $_.Name; bytes = $_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName).Hash } })
     [ordered]@{
         status = $status; sourceCommit = (git rev-parse HEAD).Trim(); package = 'dev.whiteboard.app'
+        fixture = $board; fixtureCreatedByAppearanceUi = [bool]$CreateFixture; keyboardQualified = $false
         cases = $observations; images = $images; settingsRestored = $restored
         checkedAtUtc = [datetime]::UtcNow.ToString('o')
         scope = 'EN UI capture for Light/Dark/System light/System dark at font 100/200%, four actual app scenes each. Requires separate visual review; not measured pixel contrast, all locales, all dialogs or spoken TalkBack.'

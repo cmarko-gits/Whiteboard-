@@ -7,9 +7,11 @@ case "$profile" in
   runtime-16k-standard) api=35; tag=google_apis_ps16k ;;
   release-16k) api=35; tag=google_apis_ps16k ;;
   themes-16k) api=36; tag=google_apis_playstore_ps16k ;;
+  input-16k) api=36; tag=google_apis_playstore_ps16k ;;
   talkback) api=36; tag=google_apis_playstore ;;
   talkback-service) api=36; tag=google_apis_playstore ;;
   library-reopen) api=36; tag=google_apis_playstore ;;
+  library-prefix) api=36; tag=google_apis_playstore ;;
   *) echo 'Unsupported additional qualification profile.' >&2; exit 2 ;;
 esac
 if [[ "${GITHUB_ACTIONS:-}" != true || "$(uname -s)" != Linux ]]; then
@@ -108,20 +110,29 @@ verify_installed() {
   expected=$(sha256sum "$expected_apk" | awk '{print $1}')
   if [[ "$actual" != "$expected" ]]; then echo "Installed APK differs: $package" >&2; return 1; fi
 }
-if [[ "$profile" == library-reopen ]]; then
+if [[ "$profile" == library-reopen || "$profile" == library-prefix ]]; then
   adb install --no-streaming -r -t app/build/outputs/apk/debug/app-debug.apk 2>&1 | tee "$output/install-debug-app.log"
   adb install --no-streaming -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk 2>&1 | tee "$output/install-app-test.log"
   verify_installed dev.whiteboard.app.debug app/build/outputs/apk/debug/app-debug.apk
   verify_installed dev.whiteboard.app.debug.test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
   sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/focused-packages.sha256"
-  timeout 600s adb shell am instrument -w -r -e class dev.whiteboard.app.CanvasAccessibilityTest \
+  focused_classes=dev.whiteboard.app.CanvasAccessibilityTest
+  focused_count=8
+  if [[ "$profile" == library-prefix ]]; then
+    # Preserve every class that preceded the original failure at case 8. This is
+    # a sequence diagnosis, not another isolated retry or a full140 replacement.
+    focused_classes=dev.whiteboard.app.AlignmentFlowTest,dev.whiteboard.app.AppLanguageFlowTest,dev.whiteboard.app.AssetLifecycleTest,dev.whiteboard.app.CanvasAccessibilityTest
+    focused_count=13
+  fi
+  printf 'profile=%s\nclasses=%s\nexpectedCases=%s\n' "$profile" "$focused_classes" "$focused_count" > "$output/focused-scope.txt"
+  timeout 900s adb shell am instrument -w -r -e class "$focused_classes" \
     dev.whiteboard.app.debug.test/androidx.test.runner.AndroidJUnitRunner 2>&1 | tee artifacts/additional-reopen-app-tests.txt
-  pwsh -NoProfile -Command '$text=Get-Content artifacts/additional-reopen-app-tests.txt -Raw; if($text -notmatch "OK \(8 tests\)" -or $text -match "FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed") { throw "Focused accessibility/reopen cases failed" }'
+  FOCUSED_EXPECTED="$focused_count" pwsh -NoProfile -Command '$text=Get-Content artifacts/additional-reopen-app-tests.txt -Raw; if($text -notmatch ("OK \("+$env:FOCUSED_EXPECTED+" tests\)") -or $text -match "FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed") { throw "Focused accessibility/reopen cases failed" }'
   assert_extra_health extra-reopen
-  printf 'PASS: eight focused CanvasAccessibilityTest cases only; this does not replace the failed full140 result.\n' > "$output/passed.txt"
+  printf 'PASS: %s focused cases (%s) only; this does not replace the failed full140 result.\n' "$focused_count" "$profile" > "$output/passed.txt"
   exit 0
 fi
-if [[ "$profile" != release-16k && "$profile" != themes-16k && "$profile" != talkback-service ]]; then
+if [[ "$profile" != release-16k && "$profile" != themes-16k && "$profile" != input-16k && "$profile" != talkback-service ]]; then
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk > "$output/native-packages.sha256"
 # adb -t permits genuine instrumentation APKs. Keep the raw installer failure rather
 # than losing it behind the frozen helper's generic installation exception.
@@ -173,11 +184,18 @@ bash ./gradlew --stop
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 sha256sum app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > "$output/ui-client-packages.sha256"
-smoke_options=(-CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps)
-if [[ "$profile" == themes-16k ]]; then smoke_options=(); fi
-pwsh -NoProfile -File ../tools/Smoke-Test.ps1 -ArtifactsDirectory artifacts -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
-  -ApkPath "$output/qualified-preview.apk" "${smoke_options[@]}" 2>&1 | tee "$output/release-smoke.log"
-pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/theme-appearance.log"
+if [[ "$profile" == themes-16k ]]; then
+  printf 'Separate appearance-only fixture; keyboard smoke is not attempted or qualified here.\n' > "$output/release-smoke-not-attempted.txt"
+  pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" -CreateFixture 2>&1 | tee "$output/theme-appearance.log"
+else
+  smoke_options=(-CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps)
+  if [[ "$profile" == input-16k ]]; then smoke_options=(); fi
+  pwsh -NoProfile -File ../tools/Smoke-Test.ps1 -ArtifactsDirectory artifacts -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
+    -ApkPath "$output/qualified-preview.apk" "${smoke_options[@]}" 2>&1 | tee "$output/release-smoke.log"
+  if [[ "$profile" != input-16k ]]; then
+    pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" 2>&1 | tee "$output/theme-appearance.log"
+  fi
+fi
 assert_extra_health extra-release
 if ((talkback_result != 0)); then echo 'Real TalkBack integration failed; retained separate native and R8 evidence is not a whole-job pass.' >&2; exit "$talkback_result"; fi
 printf 'PASS: pinned candidate additional qualification (%s), API %s, page size %s.\n' "$profile" "$observed_api" "$page_size" | tee "$output/passed.txt"
