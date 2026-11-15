@@ -106,3 +106,4 @@ jobs:
             candidate/artifacts/ci-health-*.txt
             candidate/artifacts/*.png
             candidate/artifacts/smoke-ui.xml
+            candidate/artifacts/release-smoke-failure-input-method.txt
