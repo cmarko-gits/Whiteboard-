@@ -4,6 +4,8 @@
 
 Kvalifikovani lokalni paket je [0.8.0/source 36cd15a](docs/LOCAL-0.8.0-CANDIDATE.md). [CI 43008205011](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43008205011) prolazi svih šest poslova bez retry-ja: 519 JVM, pet profila po 140 app + 13 data, dve odvojene dijagnostike, tri R8/jezička/runtime toka, stvarna binarna nadogradnja i adaptive/split-screen. Preview APK i vlasnički potpisani AAB su sačuvani i provereni. [F06 editor čvorova i semantički šablon](docs/MIND-MAP-EDITOR.md) je zatvoren u softverskom/emulatorskom opsegu. Širi backlog: **14/47 završeno, 33 otvoreno**; Z08, hardverski rad i buduće opcije ostaju u planu. Prethodni paketi i neuspešni pokušaji ostaju sačuvani.
 
+Dopuna 15. novembra: puna standardna matrica ponovo prolazi svih šest poslova, a pravi TalkBack servis prolazi dva zasebna slučaja. [Dodatne provere](docs/ADDITIONAL-QUALIFICATION.md) beleže i otvorene nalaze novog API 35/16 KB dijagnostičkog okruženja i ponovnog otvaranja table / ponašanja tastature na dodatnim Google Play slikama. Ciljani prolazi ne brišu neuspešne pune grupe. Kompletan kontrast/govorni pregled, razjašnjenje tih nalaza, fizičko profilisanje i nezavisna kopija ključa ostaju u završnom planu.
+
 Native Android aplikacija u Kotlin-u za lokalne bele table. Trenutni obim su editor, biblioteka, oporavak, mediji i prenosivi backup. Priprema se stabilno lokalno izdanje za kasniju Play predaju; objava nije izvršena. AI, backend, nalozi i cloud ostaju van opsega. Lokalni paket nema INTERNET ni ACCESS_NETWORK_STATE dozvolu.
 
 Rekonstrukcija uvodi novo aplikaciono jezgro, Hilt graf, lokalnu navigaciju, bibliotečki ViewModel i Use Case sloj. Postojeći renderer, komande, format i Room migracije se zadržavaju radi kontinuiteta dokumenata i regresione provere. Ovo nije tvrdnja da je svaki red koda ponovo napisan.
@@ -52,6 +54,7 @@ Manual Save čuva uhvaćenu reviziju. Izmene tokom upisa ostaju dirty; recovery 
 - [Aktuelni lokalni QA status](docs/LOCAL-STATUS.md)
 - [Aktuelne bezbednosne provere](docs/LOCAL-SECURITY.md)
 - [Pristupačnost, memorija i profili](docs/LOCAL-QUALIFICATION.md)
+- [Dodatna 16 KB i TalkBack kvalifikacija kandidata](docs/ADDITIONAL-QUALIFICATION.md)
 - [Arhivirani online kod](legacy/README.md)
 
 Optimizovani APK i AAB služe lokalnoj proveri i pripremi. Preview koristi razvojni potpis; zaseban AAB ima provereni vlasnički upload potpis. Nezavisna prenosiva kopija ključa i Play Console objava nisu završeni. Podrška svim fizičkim telefonima, stylus uređajima i foldable konfiguracijama nije proglašena na osnovu emulatora.

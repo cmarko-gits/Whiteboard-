@@ -4,6 +4,8 @@ Presek 11. novembra 2026, pregledani aplikacioni izvor **36cd15a6415d66eff7be10c
 
 ## Proverene granice
 
+Dopuna 13. novembra: [dodatna kvalifikacija](ADDITIONAL-QUALIFICATION.md) beleži stvarni TalkBack prolaz, običnu 16 KB native kontrolu i R8 funkcionalne prolaze, ali i otvoreni dijagnostički SQLite/JIT SIGSEGV i full-suite Google Play reopen failure. Ovo nisu potvrđene bezbednosne ranjivosti niti zatvoreni nalazi pouzdanosti. Novi QA kod ima odvojeni source/history secret scan; originalni aplikacioni izvor i tri distribuciona hash-a ispod ostaju nepromenjeni.
+
 | Granica | Ponašanje i dokaz |
 |---|---|
 | Dokument iz nepouzdanog fajla | Document 6 / delta 2 proveravaju tip i integer verziju, identitete, reference i semantiku; nepoznat format i nova semantika pod starim header-om se odbijaju. JSON preflight ograničava dubinu, veličinu i numeričke literale. |

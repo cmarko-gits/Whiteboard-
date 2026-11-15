@@ -1,8 +1,10 @@
 # Završni ručni rad za prvo lokalno izdanje
 
-Presek 11. novembra 2026. Merodavan status svih devet celina je u [RELEASE-READINESS.md](RELEASE-READINESS.md): **6/9 završeno, 3 otvoreno (5, 6, 9)**. [Kandidat 0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md) prolazi svih šest punih CI poslova bez retry-ja, strict package/payload gates i vlasnički AAB potpis/bundletool proveru. Slede preostali ručni/hardverski koraci; nije izvršena Play predaja. AI, backend, cloud i F07 ostaju van prvog izdanja.
+Presek dopunjen 15. novembra 2026. Merodavan status svih devet celina je u [RELEASE-READINESS.md](RELEASE-READINESS.md): **6/9 završeno, 3 otvoreno (5, 6, 9)**. [Kandidat 0.8.0/source 36cd15a](LOCAL-0.8.0-CANDIDATE.md) prolazi svih šest punih osnovnih CI poslova bez retry-ja, strict package/payload gates i vlasnički AAB potpis/bundletool proveru. Slede otvoreni dodatni softverski nalazi i ručni/hardverski koraci navedeni ispod; nije izvršena Play predaja. AI, backend, cloud i F07 ostaju van prvog izdanja.
 
 ## Pristupačnost i vizuelni pregled — celina 5
+
+Dopuna 13. novembra: [pravi TalkBack servis prolazi oba integraciona slučaja](ADDITIONAL-QUALIFICATION.md), uz vraćena početna podešavanja. Govor nije poslušan. Dodatna puna Google Play grupa ima 139/140 app: ponovni pronalazak kartice table posle long-press/duplicate/Undo/Redo/save toka zahteva ciljanu dijagnozu; ne zatvarati kao prolaz samo na osnovu uspešne standardne matrice.
 
 - Sa stvarno uključenim TalkBack servisom poslušati onboarding, biblioteku/pretragu, foldere/Trash i kreiranje table. Potvrditi razumljive nazive, redosled i povratak pristupačnog fokusa.
 - Proći izbor objekata i akcije bez preciznih poteza: tekst, beleške, oblici/bojenje, veze, mape uma, stranice, izbor/pomeranje, Undo/Redo i čuvanje.
@@ -13,6 +15,8 @@ Presek 11. novembra 2026. Merodavan status svih devet celina je u [RELEASE-READI
 Automatizovani native/semantički testovi i screenshots imaju svoj source i dokaz. Ranija 0.4 TalkBack integracija i nova kompilacija RealTalkBackTest ne predstavljaju izvršen govorni pregled konačnog izdanja.
 
 ## Fizičko profilisanje — celina 6
+
+Dopuna 13. novembra: dodatni API 35/16 KB dijagnostički proces pada u SQLite/JIT toku nakon 72 uspešna app slučaja i 13 data. Obična konfiguracija bez dijagnostičkih dodataka prolazi svih 140 app + 13 data, a originalni R8 APK zaseban napredni funkcionalni tok na istoj 16 KB slici. To ne utvrđuje uzrok prvog pada. [ADDITIONAL-QUALIFICATION.md](ADDITIONAL-QUALIFICATION.md) čuva originalni stack, source, hash-eve i granice kontrola; ceo kontrolni posao takođe nije zelen zbog kasnijeg QA toka/sistemske tastature. Ne proglašavati 16 KB kvalifikaciju kompletnom bez dokaza.
 
 - Prema [PERFORMANCE.md](PERFORMANCE.md), zabeležiti tačan release APK/potpis, model, API, RAM, refresh rate i termalno stanje reprezentativnog telefona/tableta.
 - Izmeriti stvarne Window/GPU frejmove i p50/p95/p99, crtanje/pomeranje/zoom i odziv unosa na dogovorenim scenama. Emulator/tracing rezultat ne proglašavati fizičkim FPS prolazom.
