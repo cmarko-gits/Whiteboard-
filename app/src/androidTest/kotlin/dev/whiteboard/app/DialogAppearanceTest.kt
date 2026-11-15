@@ -32,7 +32,8 @@ class DialogAppearanceTest {
         var theme by mutableStateOf(ThemeMode.LIGHT)
         var font by mutableFloatStateOf(1f)
         var dialogView: View? = null
-        var originalWindow: Window? = null
+        var previousWindow: Window? = null
+        var previousFont: Float? = null
         compose.setContent {
             WhiteboardTheme(theme) {
                 val density = LocalDensity.current.density
@@ -56,7 +57,16 @@ class DialogAppearanceTest {
                 }
             }
         }
-        for ((mode, scale) in listOf(ThemeMode.LIGHT to 1f, ThemeMode.DARK to 2f, ThemeMode.LIGHT to 2f, ThemeMode.DARK to 1f)) {
+        val changes = listOf(
+            ThemeMode.LIGHT to 1f,
+            ThemeMode.DARK to 1f,
+            ThemeMode.LIGHT to 1f,
+            ThemeMode.LIGHT to 2f,
+            ThemeMode.DARK to 2f,
+            ThemeMode.LIGHT to 2f,
+            ThemeMode.DARK to 1f
+        )
+        for ((mode, scale) in changes) {
             compose.runOnIdle {
                 theme = mode
                 font = scale
@@ -66,11 +76,13 @@ class DialogAppearanceTest {
                 val view = checkNotNull(dialogView)
                 val provider = checkNotNull(view.parent as? DialogWindowProvider) { "Expected the actual separate dialog Window" }
                 val window = provider.window
-                if (originalWindow == null) {
-                    originalWindow = window
-                } else {
-                    assertSame("The test must retain its dialog across changes", originalWindow, window)
+                if (previousFont == scale) {
+                    assertSame("A theme-only change must update the retained dialog", previousWindow, window)
                 }
+                // Compose remembers DialogWrapper with density as a key. Font changes
+                // may replace its Window; that new Window must get the right flags too.
+                previousWindow = window
+                previousFont = scale
                 val controller = WindowCompat.getInsetsController(window, view)
                 assertEquals("Status icons must follow the dialog theme", mode == ThemeMode.LIGHT, controller.isAppearanceLightStatusBars)
                 assertEquals(
