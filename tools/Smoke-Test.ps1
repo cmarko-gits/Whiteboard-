@@ -11,9 +11,13 @@ param(
     [switch] $CheckMindMaps,
     [switch] $SkipAdaptiveResize,
     [string] $ArtifactsDirectory = '',
+    [switch] $DiagnoseFailedApply,
     [switch] $LoadHelpersOnly
 )
 $ErrorActionPreference = 'Stop'
+if ($DiagnoseFailedApply -and ($env:GITHUB_ACTIONS -ne 'true' -or -not $IsLinux)) {
+    throw 'Post-failure Apply diagnosis is restricted to the disposable Linux CI device.'
+}
 $taskRoot = Split-Path -Parent $PSScriptRoot
 $taskArtifacts = if ($ArtifactsDirectory) { [IO.Path]::GetFullPath($ArtifactsDirectory) } else { Join-Path $taskRoot 'artifacts' }
 New-Item -ItemType Directory -Path $taskArtifacts -Force | Out-Null
@@ -159,6 +163,7 @@ $taskDensity = (Invoke-Adb shell wm density) -join "`n"
 $taskPreviousSize = if ($taskSize -match 'Override size: (\d+x\d+)') { $Matches[1] } else { 'reset' }
 $taskPreviousDensity = if ($taskDensity -match 'Override density: (\d+)') { $Matches[1] } else { 'reset' }
 $taskName = 'Recovery_check_' + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$taskStage = 'new-board'
 try {
     Write-Output 'Checking create and unsaved recovery.'
     Invoke-Adb shell am force-stop $Package | Out-Null
@@ -188,8 +193,10 @@ try {
     Wait-Keyboard
     Find-Ui -Text '65B7F2' -Class 'android.widget.EditText' | Out-Null
     Capture 'release-color-keyboard-landscape'
+    $taskStage = 'color-landscape-apply'
     Tap-Ui (Find-Ui -Text 'Apply')
     Find-Ui -Description 'Drawing canvas' | Out-Null
+    $taskStage = 'drawing'
     Invoke-Adb shell wm size $taskPreviousSize | Out-Null
     $taskCanvas = Get-Rect (Find-Ui -Description 'Drawing canvas')
     $taskWidth = $taskCanvas[2] - $taskCanvas[0]
@@ -413,6 +420,23 @@ try {
             Set-Content (Join-Path $taskArtifacts 'release-smoke-failure-input-method.txt')
     } catch { }
     try { Capture 'release-smoke-failure' } catch { }
+    if ($DiagnoseFailedApply) {
+        $taskProbe = [ordered]@{ phase = $taskStage; originalFailureRetained = $true; actionSent = $false; status = 'not-applicable'; checkedAtUtc = [datetime]::UtcNow.ToString('o') }
+        try {
+            $taskProbeNodes = @(Get-Ui)
+            $taskProbeInput = @($taskProbeNodes | Where-Object { $_.package -ceq $Package -and $_.class -ceq 'android.widget.EditText' -and $_.text -ceq '65B7F2' })
+            $taskProbeApply = @($taskProbeNodes | Where-Object { $_.package -ceq $Package -and $_.text -ceq 'Apply' -and $_.enabled -eq 'true' })
+            if ($taskStage -ceq 'color-landscape-apply' -and $taskProbeInput.Count -eq 1 -and $taskProbeApply.Count -eq 1) {
+                . (Join-Path $taskRoot 'tools/MindMap-Smoke.ps1')
+                $taskProbe.actionSent = $true
+                Tap-MindMapAction 'Apply'
+                Find-Ui -Description 'Drawing canvas' -TimeoutSeconds 10 | Out-Null
+                $taskProbe.status = 'canvas-opened-after-connected-accessibility-action'
+                Capture 'color-apply-probe-after'
+            }
+        } catch { $taskProbe.status = 'probe-failed'; $taskProbe['error'] = $_.ToString() }
+        try { $taskProbe | ConvertTo-Json -Depth 4 | Set-Content (Join-Path $taskArtifacts 'color-apply-probe.json') } catch { }
+    }
     throw $taskOriginalError
 } finally {
     Invoke-Adb shell wm size $taskPreviousSize | Out-Null

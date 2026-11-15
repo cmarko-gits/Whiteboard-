@@ -189,7 +189,7 @@ if [[ "$profile" == themes-16k ]]; then
   pwsh -NoProfile -File ../tools/Test-ThemeAppearance.ps1 -AdbPath "$(command -v adb)" -CreateFixture 2>&1 | tee "$output/theme-appearance.log"
 else
   smoke_options=(-CheckRotation -CheckLayers -CheckAlignment -CheckObjectMenu -CheckConnections -CheckMindMaps)
-  if [[ "$profile" == input-16k ]]; then smoke_options=(); fi
+  if [[ "$profile" == input-16k ]]; then smoke_options=(-DiagnoseFailedApply); fi
   pwsh -NoProfile -File ../tools/Smoke-Test.ps1 -ArtifactsDirectory artifacts -AdbPath "$(command -v adb)" -Package dev.whiteboard.app \
     -ApkPath "$output/qualified-preview.apk" "${smoke_options[@]}" 2>&1 | tee "$output/release-smoke.log"
   if [[ "$profile" != input-16k ]]; then
