@@ -3,12 +3,18 @@ package dev.whiteboard.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.View
+import android.view.ViewParent
+import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.view.WindowCompat
 import dev.whiteboard.core.model.ThemeMode
 
@@ -28,20 +34,41 @@ private val DarkColors = darkColorScheme(
     surfaceContainer = Color(0xFF202820), surfaceContainerHigh = Color(0xFF283128), surfaceContainerHighest = Color(0xFF313B30),
     surfaceTint = Color(0xFFB5D7BE)
 )
+private val LocalDarkAppearance = staticCompositionLocalOf { false }
 
 @Composable
 fun WhiteboardTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     val dark = mode == ThemeMode.DARK || mode == ThemeMode.SYSTEM && isSystemInDarkTheme()
+    MaterialTheme(colorScheme = if (dark) DarkColors else LightColors) {
+        CompositionLocalProvider(LocalDarkAppearance provides dark) {
+            MatchWindowSystemBars()
+            content()
+        }
+    }
+}
+
+/** Dialogs own a separate Window; update its icons when the inherited app theme changes. */
+@Composable
+internal fun MatchWindowSystemBars() {
+    val dark = LocalDarkAppearance.current
     val view = LocalView.current
     SideEffect {
-        view.context.activity()?.window?.let { window ->
+        view.ownedWindow()?.let { window ->
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !dark
                 isAppearanceLightNavigationBars = !dark
             }
         }
     }
-    MaterialTheme(colorScheme = if (dark) DarkColors else LightColors, content = content)
+}
+
+private fun View.ownedWindow(): Window? {
+    var owner: ViewParent? = parent
+    while (owner != null) {
+        if (owner is DialogWindowProvider) return owner.window
+        owner = owner.parent
+    }
+    return context.activity()?.window
 }
 private tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this

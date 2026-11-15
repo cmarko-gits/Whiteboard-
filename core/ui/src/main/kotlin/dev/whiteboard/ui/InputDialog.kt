@@ -153,6 +153,7 @@ fun InputDialog(dismiss: () -> Unit, content: @Composable (closeKeyboard: () -> 
         },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
+        MatchWindowSystemBars()
         val closeKeyboard = rememberDialogInputCloser(ownerClose)
         SideEffect { input.close = closeKeyboard }
         DisposableEffect(input, ownerClose) {
@@ -187,6 +188,7 @@ fun InputAlertDialog(
         properties = properties,
         title = title,
         text = {
+            MatchWindowSystemBars()
             val closeKeyboard = rememberDialogInputCloser(ownerClose)
             SideEffect { input.close = closeKeyboard }
             DisposableEffect(input, ownerClose) {
