@@ -4,6 +4,8 @@ Presek 11. novembra 2026, pregledani aplikacioni izvor **36cd15a6415d66eff7be10c
 
 ## Proverene granice
 
+**Dopuna za radni 0.8.1/code 18, 15. novembar:** [source 7137675 / CI 43693506262](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43693506262) prolazi verify posao: 519 JVM, stil/arhitektura/lint, OSV/licence 155 i release manifest/DEX politiku. Izvornih 467 fajlova i odvojeni lokalni history pregled sa 175 skeniranih revizija nemaju prijavljene tajne. Unsigned inspection APK ima SHA-256 **EA3FFE116B9DD4EEC2584A2447A603FB687D3D92B1A0F565E92E8518010E557B**; verzija/VCS/SDK, ZIP-P16 i četiri ELF64 LOAD/RELRO prolaze. Ovo je ograničena provera radnog paketa: puna nova matrica sa 143 app + 13 data i nove dodatne provere još nisu završene, pa nema nove kvalifikovane distribucije ili vlasničkog potpisa. Hash-evi, izveštaji i šest-poslovni prolaz 0.8.0 ispod ostaju dokazi samo tog prethodnog izvora. [Izmene dijaloga i zadržani neuspehi](DIALOG-SYSTEM-BARS.md) imaju odvojen zapis. Lokalni dokazi su `artifacts/release-rc-7137675-{evidence,build-inspection}.json` i `artifacts/security/release-081-7137675-{source-summary,history}.json`.
+
 Dopuna 13. novembra: [dodatna kvalifikacija](ADDITIONAL-QUALIFICATION.md) beleži stvarni TalkBack prolaz, običnu 16 KB native kontrolu i R8 funkcionalne prolaze, ali i otvoreni dijagnostički SQLite/JIT SIGSEGV i full-suite Google Play reopen failure. Ovo nisu potvrđene bezbednosne ranjivosti niti zatvoreni nalazi pouzdanosti. Novi QA kod ima odvojeni source/history secret scan; originalni aplikacioni izvor i tri distribuciona hash-a ispod ostaju nepromenjeni.
 
 | Granica | Ponašanje i dokaz |
