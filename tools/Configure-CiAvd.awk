@@ -1,6 +1,6 @@
 # Keep unrelated device profile settings; replace inherited/duplicate CI resource settings.
 BEGIN {
-    if (guest_ram != "" && guest_ram != "3072") {
+    if (guest_ram != "" && guest_ram != "3072" && guest_ram != "4096") {
         print "Unsupported CI guest RAM override." > "/dev/stderr"
         exit 2
     }

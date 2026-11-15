@@ -66,7 +66,11 @@ printf '%s\n' "$image" > "$output/requested-image.txt"
 timeout 600s sdkmanager --install emulator "$image" --channel=0 2>&1 | tee "$output/sdk-install.log"
 printf 'no\n' | avdmanager create avd --force --name whiteboard-extra --package "$image" --device pixel_2
 config="$ANDROID_AVD_HOME/whiteboard-extra.avd/config.ini"
-awk -v guest_ram=3072 -f tools/Configure-CiAvd.awk "$config" > "$config.tmp"
+guest_ram=3072
+# A separate 4GB control: the previous 3GB Play/16KB run retained actual LMKD
+# kills of the active Gboard. Those failures remain evidence, not passing retries.
+if [[ "$api" == 36 && "$tag" == google_apis_playstore_ps16k ]]; then guest_ram=4096; fi
+awk -v guest_ram="$guest_ram" -f ../tools/Configure-CiAvd.awk "$config" > "$config.tmp"
 mv "$config.tmp" "$config"
 cp "$config" "$output/avd-config.txt"
 bash ./gradlew --stop
@@ -89,6 +93,8 @@ if [[ "$observed_api" != "$api" || ! "$page_size" =~ ^[0-9]+$ ]]; then echo 'Une
 if [[ "$profile" == *16k* && "$page_size" != 16384 ]]; then echo 'This device is not actually running 16KB pages.' >&2; exit 1; fi
 {
   printf 'source=%s\ntooling=%s\nprofile=%s\napi=%s\npageSize=%s\n' "$(git rev-parse HEAD)" "$GITHUB_SHA" "$profile" "$observed_api" "$page_size"
+  printf 'guestRamMiB=%s\n' "$guest_ram"
+  adb shell grep '^MemTotal:' /proc/meminfo
   adb shell getprop ro.build.fingerprint
   adb shell getprop ro.product.model
 } > "$output/device-profile.txt"

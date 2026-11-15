@@ -179,6 +179,7 @@ try {
     Wait-Keyboard
     Tap-Ui (Find-Ui -Text 'Confirm')
     Tap-Ui (Find-Ui -Description 'Pen')
+    $taskStage = 'color-portrait-input'
     Write-Output 'Checking color input and keyboard/landscape restoration in the installed build.'
     Tap-Ui (Find-Ui -Description 'Color picker')
     Tap-Ui (Find-Ui -Class 'android.widget.EditText')
@@ -187,6 +188,7 @@ try {
     Invoke-Adb shell input keyevent 123 67 67 67 67 67 67 | Out-Null
     Invoke-Adb shell input text 65B7F2 | Out-Null
     Find-Ui -Text '65B7F2' -Class 'android.widget.EditText' | Out-Null
+    $taskStage = 'color-landscape-input'
     Invoke-Adb shell wm size 1280x720 | Out-Null
     # Configuration changes can hide the IME; explicitly reopen it in the narrow-height layout.
     Tap-Ui (Find-Ui -Text '65B7F2' -Class 'android.widget.EditText')

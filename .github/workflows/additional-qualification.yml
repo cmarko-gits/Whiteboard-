@@ -19,6 +19,8 @@ on:
       - 'tools/Test-ToolStripGesture.ps1'
       - 'tools/Test-SmokeBoardInput.ps1'
       - 'tools/Test-ColorApplyProbe.ps1'
+      - 'tools/Configure-CiAvd.awk'
+      - 'tools/Test-CiStartup.sh'
 permissions:
   contents: read
 concurrency:
@@ -62,6 +64,7 @@ jobs:
         shell: bash
         run: |
           bash -n ../tools/Run-AdditionalQualification.sh
+          (cd .. && bash ./tools/Test-CiStartup.sh)
           result=0
           GITHUB_ACTIONS=false bash ../tools/Run-AdditionalQualification.sh runtime-16k || result=$?
           test "$result" = 2

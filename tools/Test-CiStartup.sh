@@ -77,6 +77,13 @@ again=$(printf '%s\n' "$modern" | awk -v guest_ram=3072 -f tools/Configure-CiAvd
 if [[ "$again" != "$modern" ]]; then echo 'Modern RAM configuration is not idempotent.' >&2; exit 1; fi
 legacy=$(printf 'hw.ramSize=2G\n' | awk -f tools/Configure-CiAvd.awk)
 if [[ "$legacy" != hw.ramSize=2G$'\n'* ]]; then echo 'Legacy device RAM was unexpectedly changed.' >&2; exit 1; fi
+play16k=$(printf 'hw.ramSize=3072\nhw.ramSize=1536\n' | awk -v guest_ram=4096 -f tools/Configure-CiAvd.awk)
+if [[ $(printf '%s\n' "$play16k" | grep -c '^hw.ramSize=4096$') != 1 ]] ||
+    [[ $(printf '%s\n' "$play16k" | grep -c '^hw.ramSize') != 1 ]]; then
+  echo '16KB Play image RAM control was not normalized exactly once.' >&2; exit 1
+fi
+again=$(printf '%s\n' "$play16k" | awk -v guest_ram=4096 -f tools/Configure-CiAvd.awk)
+if [[ "$again" != "$play16k" ]]; then echo '16KB Play RAM control is not idempotent.' >&2; exit 1; fi
 status=0
 awk -v guest_ram=8192 -f tools/Configure-CiAvd.awk </dev/null >/dev/null 2>&1 || status=$?
 if ((status != 2)); then echo 'Unbounded guest RAM override was accepted.' >&2; exit 1; fi
