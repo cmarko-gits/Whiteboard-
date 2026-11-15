@@ -4,6 +4,8 @@ Presek dopunjen 15. novembra 2026. Merodavan status svih devet celina je u [RELE
 
 ## Pristupačnost i vizuelni pregled — celina 5
 
+Radni [0.8.1/code 18](DIALOG-SYSTEM-BARS.md) menja prozore dijaloga i kompaktan HEX raspored. Source 966fb03 nije prošao Android 8 phone/tablet; source 7137675 čuva legacy window zastavice i čeka [novu punu kvalifikaciju](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43693506262). Postojeći 0.8.0 paketi ostaju poslednji kvalifikovani paketi. Ponavljanje vizuelnih, TalkBack i 16 KB provera mora biti vezano za novo izvorno stanje.
+
 Dopuna 13. novembra: [pravi TalkBack servis prolazi oba integraciona slučaja](ADDITIONAL-QUALIFICATION.md), uz vraćena početna podešavanja. Govor nije poslušan. Dodatna puna Google Play grupa ima 139/140 app: ponovni pronalazak kartice table posle long-press/duplicate/Undo/Redo/save toka zahteva ciljanu dijagnozu; ne zatvarati kao prolaz samo na osnovu uspešne standardne matrice.
 
 - Sa stvarno uključenim TalkBack servisom poslušati onboarding, biblioteku/pretragu, foldere/Trash i kreiranje table. Potvrditi razumljive nazive, redosled i povratak pristupačnog fokusa.

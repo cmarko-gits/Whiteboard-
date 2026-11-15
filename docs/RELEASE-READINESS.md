@@ -4,6 +4,8 @@ Presek dopunjen 15. novembra 2026. **Završeno 6/9 celina: 1, 2, 3, 4, 7 i 8; ot
 
 ## Opseg
 
+**Radni kandidat je sada [0.8.1/code 18](DIALOG-SYSTEM-BARS.md), source 7137675; njegova kvalifikacija je odvojena od prethodnih 6/9.** Source 966fb03 ima pet neuspeha na svakom od API 26 phone/tablet profila i nije distribucija. Ograničena ispravka čuva legacy dialog window zastavice tokom promene ikonica; [nova puna matrica 43693506262](https://github.com/cmarko-gits/Whiteboard-/actions/runs/43693506262) tek treba da potvrdi rezultat. Lokalna kompilacija/stil/arhitektura prolaze, inventar je 519 JVM + 143 app + 13 data, uz dve odvojene dijagnostike. Novi R8 vizuelni, TalkBack i 16 KB dokazi potrebni su za novo izvorno stanje; stari prolazi i paketi se ne preimenuju u 0.8.1.
+
 Prvo izdanje ostaje offline Kotlin Android: postojeće crtanje/bojenje, objekti, veze, mape uma, stranice, organizacija, recovery, privatni clipboard i postojeći import/export. Dijagrami toka iz lokalne grane `codex/flowchart-foundation` / b78b435 ostaju zasebno sačuvani i nisu spojeni u kandidata. Kandidat polazi od `codex/mind-map-editor` / 1b83faa, app 0.8.0/code 17, dokument 6/delta 2/Room 4. AI, cloud, backend, naplata, PIN, novi fontovi, SVG i druge dodatne funkcije nisu uslov ovog izdanja.
 
 ## Devet celina i kriterijumi
