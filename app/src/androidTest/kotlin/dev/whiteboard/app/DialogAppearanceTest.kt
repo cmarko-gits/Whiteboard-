@@ -2,6 +2,7 @@ package dev.whiteboard.app
 
 import android.view.View
 import android.view.Window
+import android.view.WindowManager
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalDensity
@@ -32,6 +33,7 @@ class DialogAppearanceTest {
         var theme by mutableStateOf(ThemeMode.LIGHT)
         var font by mutableFloatStateOf(1f)
         var dialogView: View? = null
+        var initialBarFlags = 0
         var previousWindow: Window? = null
         var previousFont: Float? = null
         compose.setContent {
@@ -40,7 +42,14 @@ class DialogAppearanceTest {
                 CompositionLocalProvider(LocalDensity provides Density(density, font)) {
                     val body: @Composable () -> Unit = {
                         val view = LocalView.current
-                        SideEffect { dialogView = view }
+                        val window = checkNotNull(view.parent as? DialogWindowProvider).window
+                        // Capture before appearance SideEffects run, including on a new
+                        // density-owned Window. Icon changes must not alter layout flags.
+                        val originalFlags = remember(view) { window.attributes.flags and barWindowFlags }
+                        SideEffect {
+                            dialogView = view
+                            initialBarFlags = originalFlags
+                        }
                         Text("Dialog appearance")
                     }
                     if (alert) {
@@ -76,6 +85,11 @@ class DialogAppearanceTest {
                 val view = checkNotNull(dialogView)
                 val provider = checkNotNull(view.parent as? DialogWindowProvider) { "Expected the actual separate dialog Window" }
                 val window = provider.window
+                assertEquals(
+                    "Appearance must preserve the dialog's bar/layout flags",
+                    initialBarFlags,
+                    window.attributes.flags and barWindowFlags
+                )
                 if (previousFont == scale) {
                     assertSame("A theme-only change must update the retained dialog", previousWindow, window)
                 }
@@ -92,5 +106,12 @@ class DialogAppearanceTest {
                 )
             }
         }
+    }
+
+    private companion object {
+        @Suppress("DEPRECATION") // These flags still determine legacy floating-dialog insets.
+        val barWindowFlags = WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
+            WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION or
+            WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
     }
 }

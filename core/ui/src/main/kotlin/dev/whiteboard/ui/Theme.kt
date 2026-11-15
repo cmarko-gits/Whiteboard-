@@ -3,6 +3,7 @@ package dev.whiteboard.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import android.view.View
 import android.view.ViewParent
 import android.view.Window
@@ -53,7 +54,11 @@ internal fun MatchWindowSystemBars() {
     val dark = LocalDarkAppearance.current
     val view = LocalView.current
     SideEffect {
-        view.ownedWindow()?.let { window ->
+        val dialogWindow = view.dialogWindow()
+        val window = dialogWindow ?: view.context.activity()?.window
+        if (dialogWindow != null && Build.VERSION.SDK_INT < 30) {
+            matchLegacyDialogSystemBars(dialogWindow, light = !dark)
+        } else if (window != null) {
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !dark
                 isAppearanceLightNavigationBars = !dark
@@ -62,13 +67,23 @@ internal fun MatchWindowSystemBars() {
     }
 }
 
-private fun View.ownedWindow(): Window? {
+@Suppress("DEPRECATION") // Legacy dialog appearance must not change its Window layout flags.
+private fun matchLegacyDialogSystemBars(window: Window, light: Boolean) {
+    // The compat setters also clear translucent flags and add DRAWS_SYSTEM_BAR_BACKGROUNDS
+    // before API 30. That changes legacy floating-dialog IME layout. Compose owns these
+    // flags; change only icon bits, preserving its resize and inset configuration.
+    val decor = window.decorView
+    val icons = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+    decor.systemUiVisibility = if (light) decor.systemUiVisibility or icons else decor.systemUiVisibility and icons.inv()
+}
+
+private fun View.dialogWindow(): Window? {
     var owner: ViewParent? = parent
     while (owner != null) {
         if (owner is DialogWindowProvider) return owner.window
         owner = owner.parent
     }
-    return context.activity()?.window
+    return null
 }
 private tailrec fun Context.activity(): Activity? = when (this) {
     is Activity -> this
