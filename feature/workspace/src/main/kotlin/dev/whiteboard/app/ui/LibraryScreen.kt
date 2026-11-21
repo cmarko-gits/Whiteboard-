@@ -331,7 +331,7 @@ fun LibraryScreen(state: LibraryUi, viewModel: LibraryViewModel, workspace: Work
         }
     }
     deleting?.let { board ->
-        AlertDialog(
+        WhiteboardAlertDialog(
             onDismissRequest = {
                 deleting = null
             },

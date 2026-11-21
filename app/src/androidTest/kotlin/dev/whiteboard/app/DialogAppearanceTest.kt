@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.whiteboard.core.model.ThemeMode
 import dev.whiteboard.ui.InputAlertDialog
 import dev.whiteboard.ui.InputDialog
+import dev.whiteboard.ui.WhiteboardAlertDialog
 import dev.whiteboard.ui.WhiteboardTheme
 import org.junit.Assert.*
 import org.junit.Rule
@@ -25,11 +26,15 @@ import org.junit.runner.RunWith
 class DialogAppearanceTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun plainDialogOwnsSystemBarContrastAcrossThemeAndFontChanges() = assertOwnWindow(alert = false)
+    @Test fun plainDialogOwnsSystemBarContrastAcrossThemeAndFontChanges() = assertOwnWindow(Kind.INPUT)
 
-    @Test fun alertDialogOwnsSystemBarContrastAcrossThemeAndFontChanges() = assertOwnWindow(alert = true)
+    @Test fun alertDialogOwnsSystemBarContrastAcrossThemeAndFontChanges() = assertOwnWindow(Kind.INPUT_ALERT)
 
-    private fun assertOwnWindow(alert: Boolean) {
+    @Test fun standardAlertOwnsSystemBarContrastAcrossThemeAndFontChanges() = assertOwnWindow(Kind.ALERT)
+
+    private enum class Kind { INPUT, INPUT_ALERT, ALERT }
+
+    private fun assertOwnWindow(kind: Kind) {
         var theme by mutableStateOf(ThemeMode.LIGHT)
         var font by mutableFloatStateOf(1f)
         var dialogView: View? = null
@@ -52,16 +57,22 @@ class DialogAppearanceTest {
                         }
                         Text("Dialog appearance")
                     }
-                    if (alert) {
-                        InputAlertDialog(
+                    when (kind) {
+                        Kind.INPUT_ALERT -> InputAlertDialog(
                             onDismissRequest = {},
                             title = { Text("Theme") },
                             text = { body() },
                             confirmButton = {},
                             dismissButton = {}
                         )
-                    } else {
-                        InputDialog(dismiss = {}) { body() }
+                        Kind.ALERT -> WhiteboardAlertDialog(
+                            onDismissRequest = {},
+                            title = { Text("Theme") },
+                            text = { body() },
+                            confirmButton = {},
+                            dismissButton = {}
+                        )
+                        Kind.INPUT -> InputDialog(dismiss = {}) { body() }
                     }
                 }
             }
@@ -98,12 +109,8 @@ class DialogAppearanceTest {
                 previousWindow = window
                 previousFont = scale
                 val controller = WindowCompat.getInsetsController(window, view)
-                assertEquals("Status icons must follow the dialog theme", mode == ThemeMode.LIGHT, controller.isAppearanceLightStatusBars)
-                assertEquals(
-                    "Navigation icons must follow the dialog theme",
-                    mode == ThemeMode.LIGHT,
-                    controller.isAppearanceLightNavigationBars
-                )
+                assertFalse("Status icons must stay light over the dialog's dimmed owner", controller.isAppearanceLightStatusBars)
+                assertFalse("Navigation icons must stay light over the dialog's dimmed owner", controller.isAppearanceLightNavigationBars)
             }
         }
     }

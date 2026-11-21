@@ -3,16 +3,13 @@ package dev.whiteboard.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.os.Build
 import android.view.View
 import android.view.ViewParent
 import android.view.Window
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
@@ -35,46 +32,33 @@ private val DarkColors = darkColorScheme(
     surfaceContainer = Color(0xFF202820), surfaceContainerHigh = Color(0xFF283128), surfaceContainerHighest = Color(0xFF313B30),
     surfaceTint = Color(0xFFB5D7BE)
 )
-private val LocalDarkAppearance = staticCompositionLocalOf { false }
 
 @Composable
 fun WhiteboardTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     val dark = mode == ThemeMode.DARK || mode == ThemeMode.SYSTEM && isSystemInDarkTheme()
     MaterialTheme(colorScheme = if (dark) DarkColors else LightColors) {
-        CompositionLocalProvider(LocalDarkAppearance provides dark) {
-            MatchWindowSystemBars()
-            content()
-        }
+        MatchWindowSystemBars(lightAppearance = !dark)
+        content()
     }
 }
 
-/** Dialogs own a separate Window; update its icons when the inherited app theme changes. */
+/** Activities follow their theme; transparent dialog bars sit over the dark platform dim. */
 @Composable
-internal fun MatchWindowSystemBars() {
-    val dark = LocalDarkAppearance.current
+internal fun MatchWindowSystemBars(lightAppearance: Boolean = false) {
     val view = LocalView.current
     SideEffect {
         val dialogWindow = view.dialogWindow()
         val window = dialogWindow ?: view.context.activity()?.window
-        if (dialogWindow != null && Build.VERSION.SDK_INT < 30) {
-            matchLegacyDialogSystemBars(dialogWindow, light = !dark)
-        } else if (window != null) {
+        if (window != null) {
+            // A light dialog surface does not cover the system bars. Dark icons
+            // lose contrast against its dimmed owner, even with a light app theme.
+            val light = dialogWindow == null && lightAppearance
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !dark
-                isAppearanceLightNavigationBars = !dark
+                isAppearanceLightStatusBars = light
+                isAppearanceLightNavigationBars = light
             }
         }
     }
-}
-
-@Suppress("DEPRECATION") // Legacy dialog appearance must not change its Window layout flags.
-private fun matchLegacyDialogSystemBars(window: Window, light: Boolean) {
-    // The compat setters also clear translucent flags and add DRAWS_SYSTEM_BAR_BACKGROUNDS
-    // before API 30. That changes legacy floating-dialog IME layout. Compose owns these
-    // flags; change only icon bits, preserving its resize and inset configuration.
-    val decor = window.decorView
-    val icons = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-    decor.systemUiVisibility = if (light) decor.systemUiVisibility or icons else decor.systemUiVisibility and icons.inv()
 }
 
 private fun View.dialogWindow(): Window? {

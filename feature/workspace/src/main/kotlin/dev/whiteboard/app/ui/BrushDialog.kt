@@ -30,7 +30,7 @@ fun BrushDialog(
     onDelete: (String) -> Unit
 ) {
     var name by rememberSaveable { mutableStateOf("") }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.favorite_tools)) }, text = {
+    WhiteboardAlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.favorite_tools)) }, text = {
         Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
             presets.forEach { preset ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

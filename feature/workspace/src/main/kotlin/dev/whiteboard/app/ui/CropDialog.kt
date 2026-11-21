@@ -18,7 +18,7 @@ fun CropDialog(media: MediaElement, dismiss: () -> Unit, submit: (Bounds) -> Uni
     var top by rememberSaveable(media.id) { mutableFloatStateOf(media.crop.top) }
     var right by rememberSaveable(media.id) { mutableFloatStateOf(media.crop.right) }
     var bottom by rememberSaveable(media.id) { mutableFloatStateOf(media.crop.bottom) }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.crop)) },
         text = {

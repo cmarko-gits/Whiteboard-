@@ -18,7 +18,7 @@ fun PdfRangeDialog(count: Int, apply: (Int, Int) -> Unit, dismiss: () -> Unit) {
     val from = first.toIntOrNull()
     val to = last.toIntOrNull()
     val valid = from != null && to != null && from >= 1 && to >= from && to <= count
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.pdf_choose_pages)) },
         text = {

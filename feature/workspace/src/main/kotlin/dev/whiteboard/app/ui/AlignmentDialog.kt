@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.whiteboard.core.editor.ObjectAlignment
 import dev.whiteboard.ui.R
+import dev.whiteboard.ui.WhiteboardAlertDialog
 
 @Composable
 internal fun AlignmentDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit, submit: (ObjectAlignment) -> Unit) {
@@ -18,7 +19,7 @@ internal fun AlignmentDialog(busy: Boolean, sequence: Long, dismiss: () -> Unit,
     val processing = busy || submitted
     val initialSequence = rememberSaveable { sequence }
     LaunchedEffect(sequence) { if (sequence != initialSequence) dismiss() }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = { if (!processing) dismiss() },
         title = { Text(stringResource(R.string.alignment)) },
         text = {

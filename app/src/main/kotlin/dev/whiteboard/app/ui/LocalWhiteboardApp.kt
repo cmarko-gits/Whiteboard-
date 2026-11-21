@@ -22,6 +22,7 @@ import dev.whiteboard.app.workspace.WorkspaceUi
 import dev.whiteboard.app.workspace.WorkspaceViewModel
 import dev.whiteboard.core.model.AppLanguage
 import dev.whiteboard.ui.R
+import dev.whiteboard.ui.WhiteboardAlertDialog
 import dev.whiteboard.ui.WhiteboardTheme
 import java.io.File
 import java.io.IOException
@@ -127,7 +128,7 @@ fun LocalWhiteboardApp(workspace: WorkspaceViewModel, library: LibraryViewModel,
         }
         if (state.settingsLoaded && !state.settings.onboarded) OnboardingDialog(workspace::finishOnboarding)
         if (confirmLeave && state.editor != null) {
-            AlertDialog(
+            WhiteboardAlertDialog(
                 onDismissRequest = { confirmLeave = false },
                 title = { Text(stringResource(R.string.unsaved_changes)) },
                 text = { Text(stringResource(R.string.unsaved_description)) },
@@ -159,7 +160,7 @@ fun LocalWhiteboardApp(workspace: WorkspaceViewModel, library: LibraryViewModel,
 @Composable
 private fun LocalWorkspaceDialogs(state: WorkspaceUi, workspace: WorkspaceViewModel) {
     state.recovery?.let { recovery ->
-        AlertDialog(
+        WhiteboardAlertDialog(
             onDismissRequest = {},
             title = { Text(stringResource(R.string.recover_title)) },
             text = { Text(stringResource(R.string.recover_description, recovery.saved.name)) },

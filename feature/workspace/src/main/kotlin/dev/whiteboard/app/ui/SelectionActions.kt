@@ -195,7 +195,7 @@ internal fun ObjectStyleDialog(
     }
     var ink by rememberSaveable(stateSaver = saver) { mutableStateOf(original) }
     var fill by rememberSaveable { mutableStateOf(elements.filterIsInstance<Shape>().firstOrNull()?.fill) }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.properties)) },
         text = {

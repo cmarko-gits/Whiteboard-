@@ -24,7 +24,7 @@ internal fun NoticesDialog(dismiss: () -> Unit) {
                 .split(Regex("""\r?\n\s*\r?\n""")).filter { it.isNotBlank() }
         }
     }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.open_source_licenses)) },
         text = {

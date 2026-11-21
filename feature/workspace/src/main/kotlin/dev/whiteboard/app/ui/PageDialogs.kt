@@ -21,7 +21,7 @@ import dev.whiteboard.ui.R
 @Composable
 fun PagesDialog(editor: EditorUi, viewModel: WorkspaceViewModel, dismiss: () -> Unit) {
     var renameId by rememberSaveable { mutableStateOf<String?>(null) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.pages)) }, text = {
+    WhiteboardAlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.pages)) }, text = {
         Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
             editor.pages.forEachIndexed { index, page ->
                 var menu by remember(page.id) { mutableStateOf(false) }
@@ -81,7 +81,7 @@ fun PagesDialog(editor: EditorUi, viewModel: WorkspaceViewModel, dismiss: () -> 
 fun BackgroundDialog(page: Page, viewModel: WorkspaceViewModel, favoriteColors: List<Int>, dismiss: () -> Unit) {
     var pattern by rememberSaveable(page.id) { mutableStateOf(page.background) }
     var color by rememberSaveable(page.id) { mutableIntStateOf(page.backgroundColor) }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.background)) },
         text = {

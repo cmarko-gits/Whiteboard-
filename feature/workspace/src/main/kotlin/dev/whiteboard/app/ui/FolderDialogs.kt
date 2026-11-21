@@ -28,7 +28,7 @@ fun FolderPickerDialog(
 ) {
     var selected by remember { mutableStateOf(initial) }
     val tree = remember(folders) { FolderTree(folders) }
-    AlertDialog(
+    WhiteboardAlertDialog(
         onDismissRequest = dismiss,
         title = { Text(stringResource(R.string.move_to_folder)) },
         text = {
@@ -60,7 +60,7 @@ fun FoldersDialog(folders: List<Folder>, current: String?, viewModel: LibraryVie
     var moving by remember { mutableStateOf<Folder?>(null) }
     var deleting by remember { mutableStateOf<Folder?>(null) }
     val tree = remember(folders) { FolderTree(folders) }
-    AlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.folders)) }, text = {
+    WhiteboardAlertDialog(onDismissRequest = dismiss, title = { Text(stringResource(R.string.folders)) }, text = {
         Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
             TextButton(onClick = { select(null) }) { Text(stringResource(R.string.all_boards)) }
             folders.forEach { folder ->
@@ -124,7 +124,7 @@ fun FoldersDialog(folders: List<Folder>, current: String?, viewModel: LibraryVie
         }
     }
     deleting?.let { folder ->
-        AlertDialog(
+        WhiteboardAlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text(stringResource(R.string.delete_folder)) },
             text = { Text(stringResource(R.string.delete_folder_description)) },
