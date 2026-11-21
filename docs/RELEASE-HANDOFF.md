@@ -4,7 +4,7 @@ Presek dopunjen 15. novembra 2026. Merodavan status svih devet celina je u [RELE
 
 ## Pristupačnost i vizuelni pregled — celina 5
 
-Radni [0.8.1/code 18](DIALOG-SYSTEM-BARS.md) menja prozore dijaloga i kompaktan HEX raspored. Source dc7ddc8 prolazi svih pet 143/13 native grupa, ali API 36 adaptive provera traži staru oznaku verzije. Source 06f9dc8 čita očekivanu verziju iz stvarnog APK-a i čeka [punu kvalifikaciju 44892361765](https://github.com/cmarko-gits/Whiteboard-/actions/runs/44892361765). Postojeći 0.8.0 paketi ostaju poslednji kvalifikovani paketi. Ponavljanje vizuelnih, TalkBack i 16 KB provera mora biti vezano za novo izvorno stanje.
+Radni [0.8.1/code 18](DIALOG-SYSTEM-BARS.md) menja prozore dijaloga i kompaktan HEX raspored. Source 06f9dc8 prolazi svih šest poslova, ali vizuelni pregled otkriva slab kontrast modalnih traka u svetloj temi. Source e3a2c1e obuhvata zajedničku ispravku aktivnih alerta i čeka [punu matricu 44895366623](https://github.com/cmarko-gits/Whiteboard-/actions/runs/44895366623), sada sa 144 app testa. Postojeći 0.8.0 paketi ostaju poslednji kvalifikovani distribucioni paketi. Ponavljanje vizuelnih, TalkBack i 16 KB provera mora biti vezano za novo izvorno stanje.
 
 Dopuna 13. novembra: [pravi TalkBack servis prolazi oba integraciona slučaja](ADDITIONAL-QUALIFICATION.md), uz vraćena početna podešavanja. Govor nije poslušan. Dodatna puna Google Play grupa ima 139/140 app: ponovni pronalazak kartice table posle long-press/duplicate/Undo/Redo/save toka zahteva ciljanu dijagnozu; ne zatvarati kao prolaz samo na osnovu uspešne standardne matrice.
 
