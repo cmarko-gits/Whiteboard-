@@ -111,8 +111,12 @@ run_release_smoke() {
   pwsh -NoProfile -File ./tools/Measure-ReleaseRuntime.ps1 -AdbPath "$(command -v adb)" \
     -Package dev.whiteboard.app 2>&1 | tee artifacts/device-release/runtime-profile.log || return $?
   if [[ "$api" == 36 ]]; then
+    local release_version
+    release_version=$("${ANDROID_HOME}/build-tools/36.0.0/aapt2" dump badging "$unsigned" | \
+      awk -f tools/Read-ApkVersionName.awk) || return $?
+    printf '%s\n' "$release_version" > artifacts/device-release/release-version-name.txt || return $?
     pwsh -NoProfile -File ./tools/Test-Adaptive.ps1 -AdbPath "$(command -v adb)" \
-      -Package dev.whiteboard.app -VersionName 0.8.0 -ArtifactsDirectory artifacts/device-release \
+      -Package dev.whiteboard.app -VersionName "$release_version" -ArtifactsDirectory artifacts/device-release \
       2>&1 | tee artifacts/device-release/adaptive.log || return $?
   fi
   pwsh -NoProfile -File ./tools/Test-AppLanguage.ps1 -AdbPath "$(command -v adb)" \

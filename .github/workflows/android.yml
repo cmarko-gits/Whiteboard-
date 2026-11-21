@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check CI startup guards
         run: bash ./tools/Test-CiStartup.sh
+      - name: Check expected APK version parsing
+        run: bash ./tools/Test-ApkVersionName.sh
       - name: Check adb argument binding without a device
         shell: pwsh
         run: ./tools/Test-AdbArgumentBinding.ps1

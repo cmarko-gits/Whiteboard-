@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory = $true)] [string] $AdbPath,
     [string] $DeviceSerial = 'emulator-5554',
     [string] $Package = 'dev.whiteboard.app',
-    [string] $VersionName = '0.4.0',
+    [Parameter(Mandatory = $true)] [ValidatePattern('^\d+\.\d+\.\d+$')] [string] $VersionName,
     [string] $ArtifactsDirectory = ''
 )
 $ErrorActionPreference = 'Stop'
