@@ -19,6 +19,9 @@ jobs:
         run: bash ./tools/Test-CiStartup.sh
       - name: Check expected APK version parsing
         run: bash ./tools/Test-ApkVersionName.sh
+      - name: Check smoke helper artifact path ownership without a device
+        shell: pwsh
+        run: ./tools/Test-SmokeArtifactPaths.ps1
       - name: Check adb argument binding without a device
         shell: pwsh
         run: ./tools/Test-AdbArgumentBinding.ps1

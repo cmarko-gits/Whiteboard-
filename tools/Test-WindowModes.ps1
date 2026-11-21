@@ -5,7 +5,7 @@ param(
     [string] $ArtifactsDirectory=''
 )
 $ErrorActionPreference='Stop'
-. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -DeviceSerial $DeviceSerial -Package $Package -LoadHelpersOnly
+. (Join-Path $PSScriptRoot 'Smoke-Test.ps1') -AdbPath $AdbPath -DeviceSerial $DeviceSerial -Package $Package -ArtifactsDirectory $ArtifactsDirectory -LoadHelpersOnly
 if($ArtifactsDirectory){
     $taskArtifacts=[IO.Path]::GetFullPath($ArtifactsDirectory)
     New-Item -ItemType Directory -Path $taskArtifacts -Force|Out-Null
